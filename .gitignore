@@ -19,7 +19,9 @@ apps/mission-control/out/
 # IDEs and OS
 .idea/
 *.iml
-.vscode/
+# Folder ignored with /* (not /) so single files can be shared again.
+.vscode/*
+!.vscode/extensions.json
 .DS_Store
 Thumbs.db
 *.log

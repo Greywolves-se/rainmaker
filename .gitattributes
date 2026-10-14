@@ -6,3 +6,8 @@ mvnw text eol=lf
 *.png binary
 *.jpg binary
 *.pdf binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.jar binary
