@@ -91,8 +91,9 @@ as finished or "production-ready" without this review.
 
 ## Code standards
 - Java 21 + Spring Boot 4.1, Google Java Style Guide (google-java-format, Checkstyle).
-  The build enforces both once #39 is merged; until then, follow the style guide by hand
-  and do not claim that a format or Checkstyle check has passed.
+  `./mvnw verify` enforces both (see README.md, "Code quality"). Run
+  `./mvnw spotless:apply` before committing; Checkstyle fails on any warning, including
+  missing Javadoc on public classes and methods.
 - Spring Boot 4 differs from Boot 3, and most examples online are still Boot 3. Check the
   Boot 4 reference docs and migration guide instead of copying old examples:
   - Starters are split per technology, with matching test starters (e.g.
@@ -114,7 +115,7 @@ as finished or "production-ready" without this review.
 ## Testing
 - Tests first: write tests from the acceptance criteria before implementation.
 - Unit tests: JUnit 5, AssertJ, Mockito. Minimum 80 % coverage on domain logic
-  (JaCoCo gate added in #39).
+  (JaCoCo; a module with domain logic switches the gate on, see README.md).
 - Integration tests: Spring Boot Test + Testcontainers (PostgreSQL, Redis, LocalStack).
 - Contract tests for REST APIs and event schemas. A breaking change fails the build.
 - External APIs are mocked with WireMock, never called from tests.
@@ -127,7 +128,8 @@ as finished or "production-ready" without this review.
 - Inside a group: interfaces + Spring events (outbox pattern). Between groups:
   REST for queries, EventBridge + SQS for events.
 - External calls use timeouts, retries with back-off and circuit breakers (Resilience4j).
-- ArchUnit tests will enforce these boundaries (set up in #39); until then reviewers check them.
+- ArchUnit tests enforce these boundaries. Each module or app that depends on other
+  modules adds its rules (example in README.md); until a rule exists, reviewers check it.
 
 ## Product rules (do not break)
 - Red articles and blocked categories NEVER get suggestions or a panel.
