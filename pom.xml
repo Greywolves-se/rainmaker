@@ -21,7 +21,20 @@
     <java.version>21</java.version>
   </properties>
 
-  <!-- Maven modules are added here: services in the next PR, apps after that. -->
+  <!-- Logical services (S1–S10): one module each, see architecture v0.5 section 5.1. -->
+  <!-- Deployable apps (G1–G4) are added in the next PR. -->
+  <modules>
+    <module>services/widget-delivery</module>
+    <module>services/tracking-click</module>
+    <module>services/publisher-control</module>
+    <module>services/advertiser-marketplace</module>
+    <module>services/content-ingestion</module>
+    <module>services/content-intent</module>
+    <module>services/matching-ranking</module>
+    <module>services/inventory-integration</module>
+    <module>services/analytics-qti</module>
+    <module>services/clearing-house</module>
+  </modules>
 
   <build>
     <plugins>
