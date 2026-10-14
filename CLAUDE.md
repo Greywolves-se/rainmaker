@@ -12,6 +12,8 @@ approves them, and every click is tracked for settlement.
 
 - Before starting a task, read the GitHub issue, the README of the folder you work in,
   and `/docs/START_HERE.md` once it exists (Mission Control will generate it, #25).
+  Read issues with `gh issue view <number> --comments`; acceptance criteria are often
+  refined in the comments.
 - Source of truth for architecture: *Rainmaker Solution Architecture v0.5*.
 - Milestones: technically ready in UAT by 18 Dec 2026, external pilot ~7 Jan 2027.
 
@@ -56,6 +58,10 @@ Mission Control: `se.rainmaker.missioncontrol.<module>` (e.g.
 - Do not invent APIs, library methods, configuration keys or AWS services.
   If you are unsure something exists, check the code or the docs, or say so.
 - Do not add new dependencies without stating why and asking first.
+- Use the domain terms defined in `docs/CONTEXT.md` (once it exists) in code, tests
+  and issues. Do not use the synonyms it lists as ones to avoid.
+- If a change contradicts an architecture decision record in `docs/adr/`, say so
+  explicitly. Do not silently override it.
 
 ### Be critical of your own code
 Before presenting any change, review it as a strict senior reviewer would:
@@ -73,6 +79,9 @@ as finished or "production-ready" without this review.
 
 ### Verify, don't assume
 - Run the build, formatter and relevant tests before saying a change works.
+- While iterating, build only the module you change:
+  `./mvnw -pl <module path> -am verify`, or a single test with `-Dtest=ClassName#method`.
+  Run the full `./mvnw verify` from the root before saying the change is done.
 - Report results honestly: if tests fail, are skipped or could not be run, say so
   with the output.
 - Never weaken, skip, delete or `@Disabled` a test to make the build pass.
@@ -106,6 +115,8 @@ as finished or "production-ready" without this review.
 - Small classes and methods with a single responsibility. No god classes.
 - No `TODO` without a linked issue number (`// TODO(#123): ...`).
 - Never commit secrets, API keys, or passwords. Secrets live in AWS Secrets Manager.
+- Never read secret values into the session (no `aws secretsmanager get-secret-value`).
+  Reference secrets by name or ARN; in CDK use `SecretValue.secretsManager(...)`.
 - No hard-coded UI text, category names or pick-list values. Everything comes from
   Swedish/English translation files.
 - Database changes only through versioned Flyway migrations. Never edit a
@@ -134,6 +145,8 @@ as finished or "production-ready" without this review.
 - Fail open for the reader: if Rainmaker fails, the publisher's page must load normally.
 - Fail closed for money: clicks are idempotent on `click_id`, never lost, never
   counted twice.
+- Click, settlement and audit records are append-only. Never update or delete them;
+  correct a mistake with a new compensating record.
 - Rank by relevance and quality. Price (CPC) only breaks ties.
 - Never write to the publisher's CMS. Ingestion is read-only.
 - Respect reader consent (TCF). No reader profiles, no personal data in logs.
