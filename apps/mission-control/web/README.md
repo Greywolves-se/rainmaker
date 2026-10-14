@@ -6,10 +6,10 @@ Navigator panel.
 
 ## Run
 
-Needs Node.js 20 or newer.
+Needs Node.js 22 or newer.
 
 ```
-npm install
+npm ci
 npm run dev      # local dev server
 npm run build    # type check + production build into dist/
 npm run lint     # ESLint with the gts (Google TypeScript style) rules
