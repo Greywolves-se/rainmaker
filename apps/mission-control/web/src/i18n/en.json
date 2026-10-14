@@ -1,0 +1,154 @@
+{
+  "app": {
+    "name": "MISSION CONTROL",
+    "edition": "V1 · GreyWolves",
+    "documentTitle": "{{page}} – Mission Control"
+  },
+  "nav": {
+    "mainMenu": "Main menu",
+    "overview": "Overview",
+    "development": "Development",
+    "sources": "Sources",
+    "projects": "Projects",
+    "dataSources": "Data sources",
+    "synced": "{{synced}} of {{total}} synced"
+  },
+  "topBar": {
+    "searchLabel": "Search",
+    "searchPlaceholder": "Search Drive, GitHub, Slack, AWS …",
+    "notAvailable": "Not available in V1"
+  },
+  "pages": {
+    "overview": {
+      "title": "Overview",
+      "subtitle": "Current status for Rainmaker, Friction Intelligence and Mission Control"
+    },
+    "development": {
+      "title": "Development",
+      "subtitle": "Sprint, code, tests and dependencies"
+    },
+    "sources": {
+      "title": "Sources",
+      "subtitle": "Mission Control pulls from the systems where the work happens, with no double entry"
+    }
+  },
+  "status": {
+    "onTrack": "On track",
+    "stable": "Stable",
+    "growing": "Growing",
+    "running": "Running",
+    "atRisk": "At risk",
+    "review": "Review",
+    "merged": "Merged",
+    "decided": "Decided",
+    "proposed": "Proposed",
+    "missing": "Missing",
+    "done": "Done",
+    "synced": "Synced",
+    "partial": "Partial",
+    "ok": "OK",
+    "error": "Error",
+    "blocker": "Blocker",
+    "question": "Question"
+  },
+  "storyStatus": {
+    "todo": "To do",
+    "inProgress": "In progress",
+    "blocked": "Blocked",
+    "done": "Done"
+  },
+  "health": {
+    "green": "green",
+    "yellow": "yellow"
+  },
+  "overview": {
+    "projectStatus": "Project status",
+    "sprintProgress": "{{sprint}} · {{percent}}% done",
+    "operations": "Operations",
+    "businessStatus": "Business status",
+    "activePilots": "Active pilots",
+    "currentStatus": "Current status",
+    "currentStatusSources": "From GitHub, Drive and Slack",
+    "doneCount": "Done · {{count}}",
+    "inProgressCount": "In progress · {{count}}",
+    "blockedCount": "Blocked · {{count}}",
+    "decisionsFor": "Decisions needing {{names}}",
+    "open": "Open",
+    "risksPilotsCost": "Risks, pilots and cost",
+    "risk": "Risk: {{title}}",
+    "awsCost": "AWS cost, {{month}}",
+    "amountUnknown": "[AMOUNT] SEK",
+    "latestVersion": "Latest working version",
+    "openDemo": "Open demo",
+    "releaseNotes": "Release notes",
+    "recentEvents": "Recent events",
+    "viewAll": "View all"
+  },
+  "development": {
+    "sprintHeading": "{{name}} · {{dates}}",
+    "storySummary": "{{total}} stories · {{done}} done · {{blocked}} blocked",
+    "progress": "{{percent}}% done",
+    "addStory": "+ Add story",
+    "storyLabel": "User story",
+    "storyPlaceholder": "As an owner I want to …",
+    "ownerLabel": "Owner",
+    "ownerPlaceholder": "Name",
+    "statusLabel": "Status",
+    "add": "Add",
+    "cancel": "Cancel",
+    "localOnlyHint": "V1 keeps new stories in this browser tab only. Saving them as GitHub issues comes later.",
+    "columnId": "ID",
+    "columnStory": "User story",
+    "columnOwner": "Owner",
+    "columnStatus": "Status",
+    "columnActions": "Actions",
+    "unassigned": "Unassigned",
+    "statusOf": "Status of {{id}}",
+    "remove": "Remove {{id}}",
+    "pullRequests": "Pull requests and tests",
+    "latestBuild": "Latest build",
+    "buildPassed": "{{branch}} · build #{{number}} passed",
+    "unitTests": "Unit tests",
+    "lint": "Lint",
+    "staging": "Staging",
+    "techDecisions": "Technical decisions and dependencies",
+    "questionsFor": "Blockers and questions for {{audience}}",
+    "environments": "Environments, logs and documentation"
+  },
+  "sources": {
+    "connected": "Connected sources",
+    "synced": "Synced",
+    "needsAction": "Needs action",
+    "readOnlyNote": "V1 reads from the sources. The one thing it will write is sprint stories, straight into GitHub as issues, so nothing is entered twice.",
+    "addSource": "+ Add source",
+    "buildPrinciple": "Build principle: from source to shared picture",
+    "steps": {
+      "fetch": {"title": "Fetch", "text": "Data from the source systems via integrations and APIs."},
+      "normalize": {"title": "Normalize", "text": "Link to project, activity, owner and status."},
+      "show": {"title": "Show", "text": "One shared dashboard for owners and developers."},
+      "summarize": {"title": "Summarize", "text": "Navigator highlights deviations, risks and next steps."},
+      "goToSource": {"title": "Go to source", "text": "From the overview straight to the details."}
+    },
+    "scope": "Scope",
+    "mapsTo": "Maps to",
+    "updates": "Updates",
+    "openSource": "Open source →",
+    "howTheyConnect": "How the sources connect",
+    "howTheyConnectSubtitle": "Every event is normalized to the same concepts, whatever the source",
+    "columnConcept": "Concept",
+    "columnFrom": "Taken from",
+    "columnExample": "Example",
+    "syncLog": "Sync log"
+  },
+  "navigator": {
+    "label": "Navigator",
+    "title": "NAVIGATOR",
+    "summaryAt": "AI summary · {{time}}",
+    "managementSummary": "MANAGEMENT SUMMARY",
+    "nextSteps": "Suggested next steps",
+    "ask": "Ask Navigator",
+    "askOwnLabel": "Ask your own question",
+    "askOwnPlaceholder": "Ask your own question …",
+    "askButton": "Ask"
+  }
+}

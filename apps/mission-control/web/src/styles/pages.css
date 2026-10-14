@@ -1,0 +1,248 @@
+/* Styles used by a single page. */
+
+/* Development */
+.story-board__header {
+  align-items: center;
+  gap: 10px;
+}
+
+.story-board__controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.story-board__progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 200px;
+}
+
+.story-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 14px;
+  background: var(--color-blue-soft);
+  border-radius: var(--radius-inner);
+}
+
+.story-form__title {
+  flex: 1 1 260px;
+}
+
+.story-form__owner {
+  width: 160px;
+}
+
+.story-form__hint {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--color-text-soft);
+}
+
+.build__badge {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-inner);
+  background: #e3f2e9;
+  color: var(--color-green-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.build__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.build__fact {
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-control);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.build__steps {
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--color-navy);
+  color: var(--color-text-on-navy-muted);
+  border-radius: var(--radius-control);
+  padding: 12px;
+}
+
+.question {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.question__tags {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.link-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+}
+
+/* Sources */
+.source-stats {
+  padding: 16px 18px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 28px;
+}
+
+.source-stats__number {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.source-stats__number--green {
+  color: var(--color-green-text);
+}
+
+.source-stats__number--amber {
+  color: var(--color-amber-text);
+}
+
+.source-stats__note {
+  flex: 1 1 260px;
+  font-size: 13px;
+  color: var(--color-text-soft);
+}
+
+.principle-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.principle-step {
+  background: var(--color-navy-raised);
+  border-radius: var(--radius-inner);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.principle-step__number {
+  font-family: var(--font-mono);
+  color: #8fb2ff;
+  font-size: 12px;
+}
+
+.principle-step__title {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.principle-step__text {
+  font-size: 12px;
+  color: var(--color-text-on-navy-muted);
+}
+
+.source-card__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.source-card__role {
+  font-style: italic;
+  color: var(--color-text-soft);
+}
+
+.source-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.source-card__facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.source-card__fact {
+  display: flex;
+  gap: 8px;
+}
+
+.source-card__fact dt {
+  flex: none;
+  width: 96px;
+  color: var(--color-text-muted);
+}
+
+.source-card__fact dd {
+  margin: 0;
+}
+
+.source-card__footer {
+  margin-top: auto;
+}
+
+.mapping__concept {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mapping__example {
+  color: var(--color-text-soft);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.sync-log__row {
+  padding-top: 8px;
+  flex-wrap: wrap;
+}
+
+.sync-log__time {
+  width: 44px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.sync-log__text {
+  flex: 1 1 220px;
+}
