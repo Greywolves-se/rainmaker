@@ -22,7 +22,8 @@
   </properties>
 
   <!-- Logical services (S1–S10): one module each, see architecture v0.5 section 5.1. -->
-  <!-- Deployable apps (G1–G4) are added in the next PR. -->
+  <!-- Deployable apps (G1–G4): assemble the services, see section 5.2. -->
+  <!-- Mission Control (apps/mission-control) is added as a module in issue #7. -->
   <modules>
     <module>services/widget-delivery</module>
     <module>services/tracking-click</module>
@@ -34,6 +35,10 @@
     <module>services/inventory-integration</module>
     <module>services/analytics-qti</module>
     <module>services/clearing-house</module>
+    <module>apps/g1-reader-app</module>
+    <module>apps/g2-content-app</module>
+    <module>apps/g3-publisher-app</module>
+    <module>apps/g4-money-app</module>
   </modules>
 
   <build>
