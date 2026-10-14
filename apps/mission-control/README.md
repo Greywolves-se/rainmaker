@@ -1,6 +1,6 @@
 # Mission Control
 
-The team's working environment and shared project memory: status, decisions, risks, links and the START HERE onboarding report (architecture v0.5, section 10.6). Built first, this week.
+The team's working environment and shared project memory: status, decisions, risks, links and the START HERE onboarding report (architecture v0.5, section 10.6). The first part of Rainmaker to be built.
 
 ## How V1 works
 A Java collector reads GitHub and YAML data files, writes one JSON snapshot, and a React dashboard shows it. V1 runs locally only. See the decision in issue #6.
@@ -15,10 +15,10 @@ A Java collector reads GitHub and YAML data files, writes one JSON snapshot, and
 | `out/` | Generated snapshot and reports – git-ignored, never commit | |
 
 ## Build
-`pom.xml` in this folder groups Mission Control's Java modules (today: none; `collector` is added in #7). Build only Mission Control from the repository root:
+`pom.xml` in this folder groups Mission Control's Java modules (today: none; `collector` is added in #7). Each module inside lists this POM (`mission-control`, `../pom.xml`) as its `<parent>`. Build only Mission Control from the repository root:
 
 ```
-./mvnw -pl apps/mission-control -amd verify
+./mvnw -f apps/mission-control/pom.xml verify
 ```
 
 The web app is built with npm inside `web/`.

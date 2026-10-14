@@ -27,7 +27,7 @@ Empty folders contain only a `.gitkeep`, because Git cannot store empty folders.
 
 ## Build
 
-Needs JDK 21. Maven itself is downloaded by the wrapper.
+Needs JDK 21 or newer (the code targets Java 21). Maven itself is downloaded by the wrapper.
 
 ```
 ./mvnw verify        # macOS / Linux / Git Bash

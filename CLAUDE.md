@@ -25,8 +25,11 @@ approves them, and every click is tracked for settlement.
 | `portals/` | React apps for publishers and admins | npm | Empty – later |
 | `docs/` | START_HERE.md, architecture decision records | – | Empty – later |
 
-Build all Maven modules with `./mvnw verify` from the root (parent `pom.xml`).
-Each Maven module is listed in the `pom.xml` of the folder above it.
+Build all Maven modules with `./mvnw verify` from the root (parent `pom.xml`, JDK 21
+or newer; code targets Java 21).
+Each Maven module is listed in its nearest aggregator POM: the root `pom.xml`, or an
+aggregator such as `apps/mission-control/pom.xml` for modules inside it. A module's
+`<parent>` is that same aggregator.
 
 Planned services and apps (folder names to use when they are created):
 
@@ -39,6 +42,8 @@ Planned services and apps (folder names to use when they are created):
 
 Base package per service: `se.rainmaker.<folder without dashes>` (e.g.
 `se.rainmaker.clearinghouse`). Other modules may only use its `.api` sub-package.
+Mission Control: `se.rainmaker.missioncontrol.<module>` (e.g.
+`se.rainmaker.missioncontrol.collector`).
 
 ## Claude behaviour
 
@@ -86,7 +91,10 @@ as finished or "production-ready" without this review.
 
 ## Code standards
 - Java 21 + Spring Boot 3.x, Google Java Style Guide (google-java-format, Checkstyle).
-- TypeScript (React portals, rainmaker.js widget) follows Google TypeScript style (gts).
+  The build enforces both once #39 is merged; until then, follow the style guide by hand
+  and do not claim that a format or Checkstyle check has passed.
+- TypeScript (React portals, rainmaker.js widget) follows Google TypeScript style (gts;
+  set up for Mission Control in #8).
 - Use constructor injection. NEVER `@Autowired` on fields.
 - Descriptive names. No abbreviations or names like `helper2`.
 - Small classes and methods with a single responsibility. No god classes.
@@ -99,7 +107,8 @@ as finished or "production-ready" without this review.
 
 ## Testing
 - Tests first: write tests from the acceptance criteria before implementation.
-- Unit tests: JUnit 5, AssertJ, Mockito. Minimum 80 % coverage on domain logic.
+- Unit tests: JUnit 5, AssertJ, Mockito. Minimum 80 % coverage on domain logic
+  (JaCoCo gate added in #39).
 - Integration tests: Spring Boot Test + Testcontainers (PostgreSQL, Redis, LocalStack).
 - Contract tests for REST APIs and event schemas. A breaking change fails the build.
 - External APIs are mocked with WireMock, never called from tests.
@@ -112,7 +121,7 @@ as finished or "production-ready" without this review.
 - Inside a group: interfaces + Spring events (outbox pattern). Between groups:
   REST for queries, EventBridge + SQS for events.
 - External calls use timeouts, retries with back-off and circuit breakers (Resilience4j).
-- ArchUnit tests enforce these boundaries in CI.
+- ArchUnit tests will enforce these boundaries (set up in #39); until then reviewers check them.
 
 ## Product rules (do not break)
 - Red articles and blocked categories NEVER get suggestions or a panel.
@@ -145,7 +154,8 @@ as finished or "production-ready" without this review.
 
 ## Definition of done
 - Acceptance criteria met and demonstrated.
-- Tests written and passing in CI; no new critical static-analysis findings.
+- Tests written and passing in CI; no new critical static-analysis findings
+  (once a static-analysis tool is added).
 - Logging, metrics and translations in place.
 - Docs updated (module README, `START_HERE.md` if status or decisions changed).
 - PR summary written, reviewed and approved by a human.
