@@ -1,0 +1,16 @@
+# The Docker build context is the repository root (see the Dockerfiles).
+# Keep it small and never send secrets or generated data to the build.
+.git
+.github
+.idea
+.vscode
+**/node_modules
+**/target
+**/dist
+**/coverage
+apps/mission-control/out
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.log
