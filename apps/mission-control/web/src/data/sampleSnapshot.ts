@@ -7,9 +7,9 @@ import type {Snapshot} from './types';
 export const SAMPLE_SNAPSHOT: Snapshot = {
   generatedAt: '2026-10-14T08:24:00Z',
   projects: [
-    {name: 'Rainmaker', health: 'green'},
-    {name: 'Friction Intelligence', health: 'green'},
-    {name: 'Mission Control', health: 'yellow'},
+    {id: 'project-1', name: 'Rainmaker', health: 'green'},
+    {id: 'project-2', name: 'Friction Intelligence', health: 'green'},
+    {id: 'project-3', name: 'Mission Control', health: 'yellow'},
   ],
   sourceSummary: {synced: 5, total: 6, note: 'AWS awaiting permissions'},
   overview: {
@@ -18,20 +18,53 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     business: {status: 'growing', note: 'Traffic +12% this week'},
     pilots: {active: 3, note: '2 running · 1 starts in 6 days'},
     done: [
-      {title: 'Release v0.8.1 in production', meta: 'GitHub · yesterday'},
-      {title: 'Architecture v2.1', meta: 'Drive · Simon · 1 hr ago'},
-      {title: 'Pilot plan Q1', meta: 'Drive · Peter · 3 hrs ago'},
-      {title: 'PR #233 Update documentation', meta: 'GitHub · merged'},
+      {
+        id: 'done-1',
+        title: 'Release v0.8.1 in production',
+        meta: 'GitHub · yesterday',
+      },
+      {
+        id: 'done-2',
+        title: 'Architecture v2.1',
+        meta: 'Drive · Simon · 1 hr ago',
+      },
+      {id: 'done-3', title: 'Pilot plan Q1', meta: 'Drive · Peter · 3 hrs ago'},
+      {
+        id: 'done-4',
+        title: 'PR #233 Update documentation',
+        meta: 'GitHub · merged',
+      },
     ],
     inProgress: [
-      {title: 'Sprint 2 – 75% done', meta: 'GitHub · 7 stories'},
-      {title: 'Pilot – Retail customer', meta: 'Friction · started 12 Jan'},
-      {title: 'Pilot – Industrial customer', meta: 'Friction · started 7 Jan'},
-      {title: 'Material for Friday customer meeting', meta: 'Drive · Caroline'},
+      {
+        id: 'progress-1',
+        title: 'Sprint 2 – 75% done',
+        meta: 'GitHub · 7 stories',
+      },
+      {
+        id: 'progress-2',
+        title: 'Pilot – Retail customer',
+        meta: 'Friction · started 12 Jan',
+      },
+      {
+        id: 'progress-3',
+        title: 'Pilot – Industrial customer',
+        meta: 'Friction · started 7 Jan',
+      },
+      {
+        id: 'progress-4',
+        title: 'Material for Friday customer meeting',
+        meta: 'Drive · Caroline',
+      },
     ],
     blocked: [
-      {title: 'AWS health is missing an IAM role', meta: 'Slack #tech · Erik'},
       {
+        id: 'blocked-1',
+        title: 'AWS health is missing an IAM role',
+        meta: 'Slack #tech · Erik',
+      },
+      {
+        id: 'blocked-2',
         title: 'Pilot data from Service company missing',
         meta: 'Slack #friction · Caroline',
       },
@@ -39,16 +72,19 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     decisionMakers: ['Peter', 'Staffan'],
     decisions: [
       {
+        id: 'decision-1',
         initial: 'P',
         title: 'Approve Service company pilot start 20 Oct',
         meta: 'Peter · Friction Intelligence · by Fri',
       },
       {
+        id: 'decision-2',
         initial: 'P',
         title: 'Which customer do we show in Friday’s demo?',
         meta: 'Peter · Slack #rainmaker',
       },
       {
+        id: 'decision-3',
         initial: 'S',
         title: 'Budget for AWS staging',
         meta: 'Staffan · cost rises with the new environment',
@@ -56,16 +92,19 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     ],
     pilotList: [
       {
+        id: 'pilot-1',
         title: 'Pilot – Retail customer',
         meta: 'Result +18%',
         status: 'running',
       },
       {
+        id: 'pilot-2',
         title: 'Pilot – Industrial customer',
         meta: 'Result +12%',
         status: 'running',
       },
       {
+        id: 'pilot-3',
         title: 'Pilot – Service company',
         meta: 'Starts 20 Oct',
         status: 'atRisk',
@@ -84,26 +123,31 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     },
     events: [
       {
+        id: 'event-1',
         source: 'GH',
         title: 'PR #234 ready for review',
         meta: 'GitHub · 12 min ago',
       },
       {
+        id: 'event-2',
         source: 'GD',
         title: 'New architecture file added',
         meta: 'Drive · Simon · 1 hr ago',
       },
       {
+        id: 'event-3',
         source: 'SL',
         title: 'Discussion about pilot start',
         meta: 'Slack · 2 hrs ago',
       },
       {
+        id: 'event-4',
         source: 'AWS',
         title: 'CPU usage back to normal',
         meta: 'AWS · 3 hrs ago',
       },
       {
+        id: 'event-5',
         source: 'FI',
         title: 'New pilot activated',
         meta: 'Friction Intelligence · 4 hrs ago',
@@ -158,24 +202,28 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     ],
     pullRequests: [
       {
+        id: 'pr-1',
         number: '#234',
         title: 'Campaign view with per-channel filter',
         status: 'review',
         meta: 'Erik · tests passing · 12 min ago',
       },
       {
+        id: 'pr-2',
         number: '#236',
         title: 'Normalize Slack events',
         status: 'review',
         meta: 'Simon · 1 test failing · 1 hr ago',
       },
       {
+        id: 'pr-3',
         number: '#237',
         title: 'Pilot overview for Friction',
         status: 'review',
         meta: 'Caroline · tests running · 2 hrs ago',
       },
       {
+        id: 'pr-4',
         number: '#233',
         title: 'Update documentation',
         status: 'merged',
@@ -194,21 +242,25 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     },
     techDecisions: [
       {
+        id: 'tech-1',
         title: 'One shared data model in Postgres (RDS)',
         meta: 'Decision · Simon · Architecture v2.1',
         status: 'decided',
       },
       {
+        id: 'tech-2',
         title: 'Slack via Events API instead of polling',
         meta: 'Proposal · Erik',
         status: 'proposed',
       },
       {
+        id: 'tech-3',
         title: 'IAM role for reading CloudWatch',
         meta: 'Dependency for MC-06',
         status: 'missing',
       },
       {
+        id: 'tech-4',
         title: 'API key for Rainmaker traffic',
         meta: 'Dependency for the business status card',
         status: 'done',
@@ -217,18 +269,21 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     questionAudience: 'Simon / supervisors',
     questions: [
       {
+        id: 'question-1',
         status: 'blocker',
         audience: 'for Simon',
         title: 'Who can create the IAM role for CloudWatch?',
         meta: 'Erik · Slack #tech · 08:47',
       },
       {
+        id: 'question-2',
         status: 'question',
         audience: 'for supervisors',
         title: 'How do we link pilots to customers in Rainmaker?',
         meta: 'Caroline · yesterday',
       },
       {
+        id: 'question-3',
         status: 'question',
         audience: 'for Simon',
         title: 'Should Navigator be allowed to read private Slack channels?',
@@ -236,12 +291,12 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
       },
     ],
     links: [
-      {title: 'Production', meta: 'Rainmaker · v0.8.1'},
-      {title: 'Staging', meta: 'Latest build #128'},
-      {title: 'Logs', meta: 'AWS CloudWatch'},
-      {title: 'Repo', meta: 'GitHub · rainmaker'},
-      {title: 'Architecture v2.1', meta: 'Google Drive'},
-      {title: 'Technical spec', meta: 'Google Drive · PDF'},
+      {id: 'link-1', title: 'Production', meta: 'Rainmaker · v0.8.1'},
+      {id: 'link-2', title: 'Staging', meta: 'Latest build #128'},
+      {id: 'link-3', title: 'Logs', meta: 'AWS CloudWatch'},
+      {id: 'link-4', title: 'Repo', meta: 'GitHub · rainmaker'},
+      {id: 'link-5', title: 'Architecture v2.1', meta: 'Google Drive'},
+      {id: 'link-6', title: 'Technical spec', meta: 'Google Drive · PDF'},
     ],
   },
   sources: {
@@ -348,31 +403,37 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     ],
     mapping: [
       {
+        id: 'concept-1',
         concept: 'Project',
         from: 'GitHub repo, Drive folder, Slack channel',
         example: '#rainmaker → Rainmaker',
       },
       {
+        id: 'concept-2',
         concept: 'Activity',
         from: 'PRs, issues, releases, new files, messages',
         example: 'PR #234 ready for review',
       },
       {
+        id: 'concept-3',
         concept: 'Owner',
         from: 'Assignee in GitHub, file owner in Drive, sender in Slack',
         example: 'Simon',
       },
       {
+        id: 'concept-4',
         concept: 'Status',
         from: 'GitHub labels, pilot status, AWS health',
         example: 'In progress / Blocked',
       },
       {
+        id: 'concept-5',
         concept: 'Decision',
         from: 'Slack messages tagged decision, decision docs in Drive',
         example: 'Decision: go ahead with pilot 2',
       },
       {
+        id: 'concept-6',
         concept: 'Blocker',
         from: 'Slack threads tagged blocker, GitHub label blocked',
         example: 'IAM role missing',
@@ -380,30 +441,35 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     ],
     syncLog: [
       {
+        id: 'sync-1',
         time: '10:22',
         source: 'GH',
         text: '4 new events (PR #234, #236, #237)',
         status: 'ok',
       },
       {
+        id: 'sync-2',
         time: '10:20',
         source: 'GD',
         text: '2 new files: Architecture v2.1, Customer meeting material',
         status: 'ok',
       },
       {
+        id: 'sync-3',
         time: '10:18',
         source: 'SL',
         text: '1 decision and 1 blocker found in #tech',
         status: 'ok',
       },
       {
+        id: 'sync-4',
         time: '10:15',
         source: 'AWS',
         text: 'CloudWatch: access denied, IAM role missing',
         status: 'error',
       },
       {
+        id: 'sync-5',
         time: '10:10',
         source: 'FI',
         text: 'Service company pilot created, starts 20 Oct',
@@ -417,21 +483,25 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
       'Rainmaker: green. Sprint 2 is 75% done. Two open blockers. New architecture file from Simon in Drive. Three PRs awaiting review. Pilot starts in 6 days. No critical outage.',
     projects: [
       {
+        id: 'nav-project-1',
         title: 'Rainmaker',
         health: 'green',
         text: 'Sprint 2 is 75% done. Three PRs awaiting review.',
       },
       {
+        id: 'nav-project-2',
         title: 'Friction Intelligence',
         health: 'green',
         text: 'Two pilots running. New pilot starts in 6 days.',
       },
       {
+        id: 'nav-project-3',
         title: 'Operations (AWS)',
         health: 'green',
         text: 'All systems stable. No critical outage.',
       },
       {
+        id: 'nav-project-4',
         title: 'Key notes',
         health: 'yellow',
         text: 'Two open blockers. New architecture file from Simon in Drive.',
@@ -445,36 +515,43 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     ],
     questions: [
       {
+        id: 'ask-1',
         question: 'What is happening now?',
         answer:
           'Sprint 2 is underway (75%). Three PRs await review, and the Retail and Industrial pilots are running.',
       },
       {
+        id: 'ask-2',
         question: 'What is done?',
         answer:
           'Release v0.8.1 is in production, Architecture v2.1 and Pilot plan Q1 are in Drive, PR #233 is merged.',
       },
       {
+        id: 'ask-3',
         question: 'What are the next steps?',
         answer:
           'Review PRs #234, #236 and #237, fix the AWS IAM role and prepare the pilot start on 20 Oct.',
       },
       {
+        id: 'ask-4',
         question: 'Any blockers?',
         answer:
           'Yes, two: AWS health is missing an IAM role (Erik) and pilot data from the Service company is missing (Caroline).',
       },
       {
+        id: 'ask-5',
         question: 'Who is responsible?',
         answer:
           'Simon: architecture and review. Erik: integrations. Caroline: pilots and overview. Peter and Staffan: decisions.',
       },
       {
+        id: 'ask-6',
         question: 'How are the systems?',
         answer:
           'All systems stable. CPU back to normal after a spike this morning. No 5xx errors in the last 24 hours.',
       },
       {
+        id: 'ask-7',
         question: 'How is the business doing?',
         answer:
           'Rainmaker is growing: traffic +12% and 24 active customers. The Retail pilot shows +18% in results.',

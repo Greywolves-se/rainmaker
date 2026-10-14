@@ -1,7 +1,8 @@
 # Builds the Mission Control Docker images and pushes them to Docker Hub.
 # - Pull requests: build only (proves the Dockerfiles work), nothing is pushed.
 # - Push to develop or main: build and push.
-# An image is skipped (with a notice) until its source exists: collector #7, web #8.
+# An image is skipped (with a notice) until its source exists. The web image (#8) is built;
+# the collector image is skipped until the collector exists (#7).
 #
 # Repository secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN (Docker Hub access token, Read & Write).
 

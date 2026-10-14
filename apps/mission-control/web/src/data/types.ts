@@ -33,7 +33,9 @@ export interface Story {
   status: StoryStatus;
 }
 
+/** Every list item has an id so React keys stay unique when titles repeat. */
 export interface TitledItem {
+  id: string;
   title: string;
   meta: string;
 }
@@ -48,7 +50,7 @@ export interface SourceEvent extends TitledItem {
 
 export interface Snapshot {
   generatedAt: string;
-  projects: {name: string; health: Health}[];
+  projects: {id: string; name: string; health: Health}[];
   sourceSummary: {synced: number; total: number; note: string};
   overview: {
     project: {status: StatusCode; sprint: string; percentDone: number};
@@ -98,8 +100,9 @@ export interface Snapshot {
       status: StatusCode;
       lastSync: string;
     }[];
-    mapping: {concept: string; from: string; example: string}[];
+    mapping: {id: string; concept: string; from: string; example: string}[];
     syncLog: {
+      id: string;
       time: string;
       source: SourceCode;
       text: string;
@@ -109,8 +112,8 @@ export interface Snapshot {
   navigator: {
     summaryTime: string;
     summary: string;
-    projects: {title: string; health: Health; text: string}[];
+    projects: {id: string; title: string; health: Health; text: string}[];
     nextSteps: string[];
-    questions: {question: string; answer: string}[];
+    questions: {id: string; question: string; answer: string}[];
   };
 }

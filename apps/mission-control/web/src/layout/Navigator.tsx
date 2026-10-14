@@ -31,7 +31,7 @@ export function Navigator({navigator}: {navigator: Snapshot['navigator']}) {
 
       <div className="navigator__projects">
         {navigator.projects.map(project => (
-          <div key={project.title} className="navigator__project">
+          <div key={project.id} className="navigator__project">
             <div className="navigator__project-head">
               <span
                 className={`dot dot--${project.health}`}
@@ -50,8 +50,8 @@ export function Navigator({navigator}: {navigator: Snapshot['navigator']}) {
       <div className="navigator__section">
         <h3>{t('navigator.nextSteps')}</h3>
         <ol className="navigator__steps">
-          {navigator.nextSteps.map(step => (
-            <li key={step}>{step}</li>
+          {navigator.nextSteps.map((step, index) => (
+            <li key={index}>{step}</li>
           ))}
         </ol>
       </div>
@@ -61,7 +61,7 @@ export function Navigator({navigator}: {navigator: Snapshot['navigator']}) {
         <div className="chips">
           {navigator.questions.map((entry, index) => (
             <button
-              key={entry.question}
+              key={entry.id}
               type="button"
               className="chip"
               aria-pressed={index === selectedQuestion}
