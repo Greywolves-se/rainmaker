@@ -1,0 +1,27 @@
+# Build output
+target/
+dist/
+build/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Mission Control generated snapshot and reports (contain internal data, never commit)
+apps/mission-control/out/
+
+# Secrets and local settings
+.env
+.env.*
+!.env.example
+*.pem
+
+# IDEs and OS
+.idea/
+*.iml
+# Folder ignored with /* (not /) so single files can be shared again.
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.log
