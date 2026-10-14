@@ -1,0 +1,173 @@
+# Rainmaker - Claude Code instructions
+
+These instructions apply to every Claude Code session in this repository.
+Module-specific rules live in the module's own `CLAUDE.md` and take precedence
+for that module.
+
+## Project context
+Rainmaker is a contextual performance marketplace for digital news publishers.
+A script tag on the publisher's site shows a small, labelled panel with relevant
+commercial links when a reader hovers a headline. AI suggests the links, an editor
+approves them, and every click is tracked for settlement.
+
+- Before starting a task, read the GitHub issue, the README of the folder you work in,
+  and `/docs/START_HERE.md` once it exists (Mission Control will generate it, #25).
+- Source of truth for architecture: *Rainmaker Solution Architecture v0.5*.
+- Milestones: technically ready in UAT by 18 Dec 2026, external pilot ~7 Jan 2027.
+
+### Repository layout
+| Folder | What | Build | Status |
+|---|---|---|---|
+| `apps/mission-control/` | Internal status app: `collector/` (Java) + `web/` (React) | Maven aggregator + npm | **In progress** (#1–#32) |
+| `services/<name>/` | One logical service each (S1–S10, table below) | Maven module | Empty – later |
+| `apps/g1`–`g4-*-app/` | Deployable Spring Boot apps that assemble services | Maven module | Not created yet |
+| `widget/` | rainmaker.js (TypeScript) | npm | Empty – later |
+| `portals/` | React apps for publishers and admins | npm | Empty – later |
+| `docs/` | START_HERE.md, architecture decision records | – | Empty – later |
+
+Build all Maven modules with `./mvnw verify` from the root (parent `pom.xml`, JDK 21
+or newer; code targets Java 21).
+Each Maven module is listed in its nearest aggregator POM: the root `pom.xml`, or an
+aggregator such as `apps/mission-control/pom.xml` for modules inside it. A module's
+`<parent>` is that same aggregator.
+
+Planned services and apps (folder names to use when they are created):
+
+| Group (app folder) | Services (folder under `services/`) |
+|---|---|
+| G1 Reader & clicks (`g1-reader-app`) | S1 Widget Delivery (`widget-delivery`), S2 Tracking & Click (`tracking-click`) |
+| G2 Content & AI (`g2-content-app`) | S5 Content Ingestion (`content-ingestion`), S6 Content & Intent (`content-intent`), S7 Matching & Ranking (`matching-ranking`) |
+| G3 Publisher & marketplace (`g3-publisher-app`) | S3 Publisher Control (`publisher-control`), S4 Advertiser Marketplace (`advertiser-marketplace`), S8 Inventory Integration (`inventory-integration`) |
+| G4 Measurement & money (`g4-money-app`) | S9 Analytics & QTI (`analytics-qti`), S10 Clearing House (`clearing-house`) |
+
+Base package per service: `se.rainmaker.<folder without dashes>` (e.g.
+`se.rainmaker.clearinghouse`). Other modules may only use its `.api` sub-package.
+Mission Control: `se.rainmaker.missioncontrol.<module>` (e.g.
+`se.rainmaker.missioncontrol.collector`).
+
+## Claude behaviour
+
+### Working on a task
+- Work from a GitHub issue. If the acceptance criteria are missing or ambiguous,
+  stop and ask. Do not guess requirements.
+- Stay within the scope of the issue. Note unrelated problems you find in the
+  summary; do not fix them in the same change.
+- Follow the existing patterns in the module before introducing new ones.
+- Do not invent APIs, library methods, configuration keys or AWS services.
+  If you are unsure something exists, check the code or the docs, or say so.
+- Do not add new dependencies without stating why and asking first.
+
+### Be critical of your own code
+Before presenting any change, review it as a strict senior reviewer would:
+- Does it actually meet every acceptance criterion? Map each one to code and a test.
+- Edge cases: nulls, empty collections, duplicates, retries, timeouts, concurrency.
+- Error handling: no swallowed exceptions, no generic `catch (Exception e)`
+  without a reason, failures are logged with context.
+- Security: input validation, authorisation checks, no secrets, no personal data
+  in logs.
+- Does it break any rule in this file, especially the product rules?
+- Is there a simpler way? Remove dead code, duplication and speculative abstractions.
+
+State the weaknesses, assumptions and open risks you found. Never present code
+as finished or "production-ready" without this review.
+
+### Verify, don't assume
+- Run the build, formatter and relevant tests before saying a change works.
+- Report results honestly: if tests fail, are skipped or could not be run, say so
+  with the output.
+- Never weaken, skip, delete or `@Disabled` a test to make the build pass.
+- Never bypass hooks or checks (`--no-verify`, disabling Checkstyle, etc.).
+
+### Pull requests
+- When opening a PR, add a summary comment that explains:
+  1. **What the code does** - behaviour in plain language, not a file list.
+  2. **Why** - the linked issue and acceptance criteria it covers.
+  3. **How it was verified** - tests added/run and their result.
+  4. **Risks and open points** - assumptions, known limitations, follow-ups.
+  5. **AI involvement** - what Claude generated and what the developer changed.
+- Claude **never approves or merges a pull request**, on any branch.
+- Final approval of every PR to `main` is given by a human reviewer.
+- Claude never pushes directly to `main`, `develop` or `release/*`.
+
+## Code standards
+- Java 21 + Spring Boot 3.x, Google Java Style Guide (google-java-format, Checkstyle).
+  The build enforces both once #39 is merged; until then, follow the style guide by hand
+  and do not claim that a format or Checkstyle check has passed.
+- TypeScript (React portals, rainmaker.js widget) follows Google TypeScript style (gts;
+  set up for Mission Control in #8).
+- Use constructor injection. NEVER `@Autowired` on fields.
+- Descriptive names. No abbreviations or names like `helper2`.
+- Small classes and methods with a single responsibility. No god classes.
+- No `TODO` without a linked issue number (`// TODO(#123): ...`).
+- Never commit secrets, API keys, or passwords. Secrets live in AWS Secrets Manager.
+- No hard-coded UI text, category names or pick-list values. Everything comes from
+  Swedish/English translation files.
+- Database changes only through versioned Flyway migrations. Never edit a
+  migration that has been merged.
+
+## Testing
+- Tests first: write tests from the acceptance criteria before implementation.
+- Unit tests: JUnit 5, AssertJ, Mockito. Minimum 80 % coverage on domain logic
+  (JaCoCo gate added in #39).
+- Integration tests: Spring Boot Test + Testcontainers (PostgreSQL, Redis, LocalStack).
+- Contract tests for REST APIs and event schemas. A breaking change fails the build.
+- External APIs are mocked with WireMock, never called from tests.
+- Tests must be deterministic: no sleeps, no dependency on test order or wall clock.
+
+## Architecture rules
+- Each module owns its own database. Never read another module's database.
+- A module may only use another module's public `api` package, never its internals.
+- Each app (G1-G4) assembles services. Services do not depend on apps.
+- Inside a group: interfaces + Spring events (outbox pattern). Between groups:
+  REST for queries, EventBridge + SQS for events.
+- External calls use timeouts, retries with back-off and circuit breakers (Resilience4j).
+- ArchUnit tests will enforce these boundaries (set up in #39); until then reviewers check them.
+
+## Product rules (do not break)
+- Red articles and blocked categories NEVER get suggestions or a panel.
+- Fail open for the reader: if Rainmaker fails, the publisher's page must load normally.
+- Fail closed for money: clicks are idempotent on `click_id`, never lost, never
+  counted twice.
+- Rank by relevance and quality. Price (CPC) only breaks ties.
+- Never write to the publisher's CMS. Ingestion is read-only.
+- Respect reader consent (TCF). No reader profiles, no personal data in logs.
+- Every zone override, activation and money movement is audit-logged.
+
+## Logging and monitoring
+- All log output must be structured JSON with `trace_id` and `correlation_id`.
+- Never log reader IPs, e-mails or free text from readers.
+- Never use `trace_id`, `click_id`, URLs or user IDs as metric labels.
+- A service is not done until it has RED metrics, structured logs, a dashboard
+  and at least one alert with a runbook link.
+
+## Git and PR rules
+- Git Flow: `feature/<issue-number>-short-name` from `develop` (e.g.
+  `feature/12-github-issues-source`); `release/x.y.0` and `hotfix/x.y.z` per the
+  branching strategy.
+- Conventional Commits with the GitHub issue number (`feat(#12): ...`, `fix:`,
+  `test:`, `chore:`). AI-assisted commits carry a `Co-Authored-By` trailer for Claude.
+- PRs under ~400 changed lines. Split larger work.
+- Every PR needs at least one approval from a developer other than the author,
+  green CI and all conversations resolved.
+- Senior review required for: G4 money logic (S9, S10), authentication (Cognito),
+  security code and infrastructure (CDK).
+
+## Definition of done
+- Acceptance criteria met and demonstrated.
+- Tests written and passing in CI; no new critical static-analysis findings
+  (once a static-analysis tool is added).
+- Logging, metrics and translations in place.
+- Docs updated (module README, `START_HERE.md` if status or decisions changed).
+- PR summary written, reviewed and approved by a human.
+
+## Infrastructure
+- All AWS resources are created with AWS CDK (Java) through the pipeline.
+  Never suggest creating resources by hand in the AWS console.
+- Every infrastructure PR includes the `cdk diff` output.
+- Region: eu-north-1 (Stockholm). Use the smallest sizes in dev and UAT.
+
+## Changing these rules
+- When the same review comment appears more than once, propose it as a rule here
+  (or in the module's own `CLAUDE.md` if it only applies to that module).
+- Changes to this file go through a normal PR and are reviewed at the Wednesday
+  AI workshop.

@@ -1,0 +1,107 @@
+# Builds the Mission Control Docker images and pushes them to Docker Hub.
+# - Pull requests: build only (proves the Dockerfiles work), nothing is pushed.
+# - Push to develop or main: build and push.
+# An image is skipped (with a notice) until its source exists: collector #7, web #8.
+#
+# Repository secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN (Docker Hub access token, Read & Write).
+
+name: Docker
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - "apps/mission-control/**"
+      - "pom.xml"
+      - "mvnw"
+      - ".mvn/**"
+      - ".dockerignore"
+      - ".github/workflows/docker.yml"
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "apps/mission-control/**"
+      - "pom.xml"
+      - "mvnw"
+      - ".mvn/**"
+      - ".dockerignore"
+      - ".github/workflows/docker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose:
+    name: Validate docker-compose.yml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f apps/mission-control/docker-compose.yml config --quiet
+
+  image:
+    name: Image (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: collector
+            dockerfile: apps/mission-control/collector/Dockerfile
+            source: apps/mission-control/collector/pom.xml
+          - image: web
+            dockerfile: apps/mission-control/web/Dockerfile
+            source: apps/mission-control/web/package.json
+    env:
+      # Only develop and main publish images; pull requests and other branches only build.
+      PUSH: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') }}
+      # Fallback keeps the image name valid for pull requests from forks, which get no secrets.
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME || 'local' }}/rainmaker-mission-control-${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that the source exists
+        id: source
+        run: |
+          if [ -f "${{ matrix.source }}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=${{ matrix.image }} image skipped::${{ matrix.source }} does not exist yet, so there is nothing to build."
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+        if: steps.source.outputs.present == 'true'
+
+      - uses: docker/login-action@v3
+        if: steps.source.outputs.present == 'true' && env.PUSH == 'true'
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        if: steps.source.outputs.present == 'true'
+        with:
+          images: ${{ env.IMAGE }}
+          # develop -> :develop, main -> :main and :latest, every build -> :sha-<short sha>
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        if: steps.source.outputs.present == 'true'
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

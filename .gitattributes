@@ -1,0 +1,13 @@
+# Normalise line endings in the repository; Windows scripts keep CRLF on checkout.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+mvnw text eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.jar binary
