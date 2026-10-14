@@ -26,6 +26,7 @@ approves them, and every click is tracked for settlement.
 | `widget/` | rainmaker.js (TypeScript) | npm | Empty – later |
 | `portals/` | React apps for publishers and admins | npm | Empty – later |
 | `docs/` | START_HERE.md, architecture decision records | – | Empty – later |
+| `docs/adr/` | Architecture decision records, one Markdown file per decision | – | Not created yet (first ADR in #6) |
 
 Build all Maven modules with `./mvnw verify` from the root (parent `pom.xml`, JDK 21
 or newer; code targets Java 21).
@@ -61,7 +62,12 @@ Mission Control: `se.rainmaker.missioncontrol.<module>` (e.g.
 - Use the domain terms defined in `docs/CONTEXT.md` (once it exists) in code, tests
   and issues. Do not use the synonyms it lists as ones to avoid.
 - If a change contradicts an architecture decision record in `docs/adr/`, say so
-  explicitly. Do not silently override it.
+  explicitly and ask before proceeding. Do not silently override it.
+- Never read, print or echo secret values into the session, whatever the source:
+  environment variables (`env`, `printenv`), `.env` files (`cat .env`), Secrets Manager
+  (`aws secretsmanager get-secret-value`), SSM SecureString parameters
+  (`--with-decryption`) or `cdk synth` output. Reference secrets by name or ARN; in CDK
+  use `SecretValue.secretsManager(...)`.
 
 ### Be critical of your own code
 Before presenting any change, review it as a strict senior reviewer would:
@@ -79,8 +85,11 @@ as finished or "production-ready" without this review.
 
 ### Verify, don't assume
 - Run the build, formatter and relevant tests before saying a change works.
-- While iterating, build only the module you change:
-  `./mvnw -pl <module path> -am verify`, or a single test with `-Dtest=ClassName#method`.
+- While iterating, build only the module you change, optionally with a single test:
+  `./mvnw -pl apps/mission-control/collector -am verify -Dtest=ClassName#method -Dsurefire.failIfNoSpecifiedTests=false`.
+  `-am` also builds the modules it depends on, which do not have that test; without the
+  last flag they fail with "No tests matching pattern". With it, a misspelled test name
+  passes silently, so check that `Tests run:` in the output includes your test.
   Run the full `./mvnw verify` from the root before saying the change is done.
 - Report results honestly: if tests fail, are skipped or could not be run, say so
   with the output.
@@ -97,6 +106,11 @@ as finished or "production-ready" without this review.
 - Claude **never approves or merges a pull request**, on any branch.
 - Final approval of every PR to `main` is given by a human reviewer.
 - Claude never pushes directly to `main`, `develop` or `release/*`.
+- Claude may commit to the current feature branch, and push a `feature/*` branch it
+  created for the task once the module build passes. Never force-push, and never push
+  a branch someone else is working on.
+- Claude opens a PR only when asked, and then as a draft (`gh pr create --draft`). The
+  developer completes the "AI involvement" section and marks the PR ready for review.
 
 ## Code standards
 - Java 21 + Spring Boot 4.1, Google Java Style Guide (google-java-format, Checkstyle).
@@ -115,8 +129,6 @@ as finished or "production-ready" without this review.
 - Small classes and methods with a single responsibility. No god classes.
 - No `TODO` without a linked issue number (`// TODO(#123): ...`).
 - Never commit secrets, API keys, or passwords. Secrets live in AWS Secrets Manager.
-- Never read secret values into the session (no `aws secretsmanager get-secret-value`).
-  Reference secrets by name or ARN; in CDK use `SecretValue.secretsManager(...)`.
 - No hard-coded UI text, category names or pick-list values. Everything comes from
   Swedish/English translation files.
 - Database changes only through versioned Flyway migrations. Never edit a
