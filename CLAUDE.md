@@ -90,9 +90,15 @@ as finished or "production-ready" without this review.
 - Claude never pushes directly to `main`, `develop` or `release/*`.
 
 ## Code standards
-- Java 21 + Spring Boot 3.x, Google Java Style Guide (google-java-format, Checkstyle).
+- Java 21 + Spring Boot 4.1, Google Java Style Guide (google-java-format, Checkstyle).
   The build enforces both once #39 is merged; until then, follow the style guide by hand
   and do not claim that a format or Checkstyle check has passed.
+- Spring Boot 4 differs from Boot 3, and most examples online are still Boot 3. Check the
+  Boot 4 reference docs and migration guide instead of copying old examples:
+  - Starters are split per technology, with matching test starters (e.g.
+    `spring-boot-starter-webmvc` + `spring-boot-starter-webmvc-test`).
+  - JSON uses Jackson 3 (package `tools.jackson`, not `com.fasterxml.jackson`).
+  - Mock beans in tests with `@MockitoBean`; `@MockBean` is gone.
 - TypeScript (React portals, rainmaker.js widget) follows Google TypeScript style (gts;
   set up for Mission Control in #8).
 - Use constructor injection. NEVER `@Autowired` on fields.
