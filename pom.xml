@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.6</version>
+    <version>3.5.16</version>
     <relativePath/>
   </parent>
 
@@ -34,16 +34,21 @@
         <artifactId>maven-enforcer-plugin</artifactId>
         <executions>
           <execution>
-            <id>enforce-java-21</id>
+            <id>enforce-build-environment</id>
             <goals>
               <goal>enforce</goal>
             </goals>
             <configuration>
               <rules>
+                <!-- Code targets Java 21 (java.version above); any newer JDK can compile it. -->
                 <requireJavaVersion>
                   <version>[21,)</version>
                   <message>Rainmaker needs JDK 21 or newer.</message>
                 </requireJavaVersion>
+                <requireMavenVersion>
+                  <version>[3.9.0,)</version>
+                  <message>Use the Maven Wrapper (./mvnw) or Maven 3.9 or newer.</message>
+                </requireMavenVersion>
               </rules>
             </configuration>
           </execution>
