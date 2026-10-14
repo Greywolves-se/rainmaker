@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import en from './en.json';
+import sv from './sv.json';
 import {
   formatAlternatives,
   formatMonth,
@@ -16,6 +17,12 @@ function leafValues(value: unknown, path = ''): [string, unknown][] {
   );
 }
 
+function keyPaths(translations: unknown): string[] {
+  return leafValues(translations)
+    .map(([path]) => path)
+    .sort();
+}
+
 describe('translation file', () => {
   it('has no empty or non-string texts', () => {
     const invalid = leafValues(en)
@@ -23,6 +30,10 @@ describe('translation file', () => {
       .map(([path]) => path);
 
     expect(invalid).toEqual([]);
+  });
+
+  it('has the same keys in Swedish and English', () => {
+    expect(keyPaths(sv)).toEqual(keyPaths(en));
   });
 });
 
