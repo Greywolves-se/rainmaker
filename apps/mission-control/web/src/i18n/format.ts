@@ -68,6 +68,15 @@ export function daysUntil(isoDate: string, now: number): number {
   return Math.round((Date.parse(isoDate) - Date.parse(today)) / 86_400_000);
 }
 
+/** "2026-10-26" → "26 Oct" / "26 okt.". */
+export function formatDay(isoDate: string, language: string): string {
+  return new Intl.DateTimeFormat(localeFor(language), {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(Date.parse(isoDate)));
+}
+
 /** "2026-10" → "October" / "oktober". (Example)*/
 export function formatMonth(yearMonth: string, language: string): string {
   const [year, month] = yearMonth.split('-').map(Number);

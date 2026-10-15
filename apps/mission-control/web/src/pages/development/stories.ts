@@ -7,69 +7,57 @@ export const STORY_STATUSES: readonly StoryStatus[] = [
   'done',
 ];
 
-const ID_PREFIX = 'MC-';
-
-/** Next id after the highest existing `MC-nn` (not the count, so gaps never cause duplicates). */
-export function nextStoryId(stories: readonly Story[]): string {
-  const highest = stories.reduce((max, story) => {
-    const number = Number(story.id.slice(ID_PREFIX.length));
-    return story.id.startsWith(ID_PREFIX) && Number.isInteger(number)
-      ? Math.max(max, number)
-      : max;
-  }, 0);
-  return ID_PREFIX + String(highest + 1).padStart(2, '0');
+export interface StoryFilters {
+  /** Only stories this person is assigned to; null = everyone. */
+  assignee: string | null;
+  /** Only stories with this label; null = any label. */
+  label: string | null;
+  currentSprintOnly: boolean;
 }
 
-export interface StoryDraft {
-  title: string;
-  owner: string;
-  status: StoryStatus;
-}
+export const DEFAULT_FILTERS: StoryFilters = {
+  assignee: null,
+  label: null,
+  currentSprintOnly: true,
+};
 
-/** Returns the stories with the draft appended, or the same list when the title is blank. */
-export function addStory(
+export function filterStories(
   stories: readonly Story[],
-  draft: StoryDraft
+  {assignee, label, currentSprintOnly}: StoryFilters
 ): Story[] {
-  const title = draft.title.trim();
-  if (!title) {
-    return [...stories];
-  }
-  return [
-    ...stories,
-    {
-      id: nextStoryId(stories),
-      title,
-      owner: draft.owner.trim(),
-      status: draft.status,
-    },
-  ];
+  return stories.filter(
+    story =>
+      (!currentSprintOnly || story.inCurrentSprint) &&
+      (assignee === null || story.assignees.includes(assignee)) &&
+      (label === null || story.labels.includes(label))
+  );
 }
 
-export function setStoryStatus(
-  stories: readonly Story[],
-  id: string,
-  status: StoryStatus
-): Story[] {
-  return stories.map(story => (story.id === id ? {...story, status} : story));
-}
-
-export function removeStory(stories: readonly Story[], id: string): Story[] {
-  return stories.filter(story => story.id !== id);
-}
-
-export interface StoryProgress {
+export interface SprintProgress {
   total: number;
-  done: number;
-  blocked: number;
+  byStatus: Record<StoryStatus, number>;
   percentDone: number;
 }
 
-export function storyProgress(stories: readonly Story[]): StoryProgress {
-  const done = stories.filter(story => story.status === 'done').length;
-  const blocked = stories.filter(story => story.status === 'blocked').length;
-  const percentDone = stories.length
-    ? Math.round((done / stories.length) * 100)
+/** Progress of the current sprint, whatever the filters show. */
+export function sprintProgress(stories: readonly Story[]): SprintProgress {
+  const sprint = stories.filter(story => story.inCurrentSprint);
+  const byStatus = {todo: 0, inProgress: 0, blocked: 0, done: 0};
+  for (const story of sprint) {
+    byStatus[story.status] += 1;
+  }
+  const percentDone = sprint.length
+    ? Math.round((byStatus.done / sprint.length) * 100)
     : 0;
-  return {total: stories.length, done, blocked, percentDone};
+  return {total: sprint.length, byStatus, percentDone};
+}
+
+/** The choices for the assignee filter: each person once, sorted. */
+export function assigneesOf(stories: readonly Story[]): string[] {
+  return [...new Set(stories.flatMap(story => story.assignees))].sort();
+}
+
+/** The choices for the label filter: each label once, sorted. */
+export function labelsOf(stories: readonly Story[]): string[] {
+  return [...new Set(stories.flatMap(story => story.labels))].sort();
 }

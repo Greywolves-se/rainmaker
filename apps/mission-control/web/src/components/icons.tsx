@@ -118,16 +118,6 @@ export function TrendIcon() {
   );
 }
 
-export function TrashIcon() {
-  return (
-    <Svg size={16}>
-      <path d="M4 7 H20" />
-      <path d="M9 7 V4 H15 V7" />
-      <path d="M6 7 L7 20 H17 L18 7" />
-    </Svg>
-  );
-}
-
 export function SparkleIcon() {
   return (
     <svg

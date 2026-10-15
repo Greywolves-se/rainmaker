@@ -1,35 +1,34 @@
 import {useState} from 'react';
 import {useTranslation} from 'react-i18next';
-import {TrashIcon} from '../../components/icons';
+import {SourceLink} from '../../components/SourceLink';
 import {STORY_STATUS_TONE} from '../../data/statusTone';
-import type {Snapshot, Story, StoryStatus} from '../../data/types';
-import {StoryForm} from './StoryForm';
+import type {Snapshot, Story} from '../../data/types';
+import {formatAge, formatDay} from '../../i18n/format';
+import {useNow} from '../../layout/useNow';
 import {
-  STORY_STATUSES,
-  addStory,
-  removeStory,
-  setStoryStatus,
-  storyProgress,
-  type StoryDraft,
+  DEFAULT_FILTERS,
+  assigneesOf,
+  filterStories,
+  labelsOf,
+  sprintProgress,
+  type StoryFilters,
 } from './stories';
 
-/** Sprint stories. Edits live in component state only; nothing is saved in V1. */
+/**
+ * The sprint and its stories from GitHub, read-only. Only the filter choice is kept in state;
+ * the stories always come straight from the snapshot.
+ */
 export function StoryBoard({
   sprint,
-  initialStories,
+  stories,
 }: {
   sprint: Snapshot['development']['sprint'];
-  initialStories: Story[];
+  stories: Story[];
 }) {
-  const {t} = useTranslation();
-  const [stories, setStories] = useState(initialStories);
-  const [showForm, setShowForm] = useState(false);
-  const progress = storyProgress(stories);
-
-  function add(draft: StoryDraft) {
-    setStories(current => addStory(current, draft));
-    setShowForm(false);
-  }
+  const {t, i18n} = useTranslation();
+  const [filters, setFilters] = useState<StoryFilters>(DEFAULT_FILTERS);
+  const progress = sprintProgress(stories);
+  const shown = filterStories(stories, filters);
 
   return (
     <section className="card">
@@ -39,103 +38,145 @@ export function StoryBoard({
             {sprint
               ? t('development.sprintHeading', {
                   name: sprint.name,
-                  dates: sprint.dates,
+                  dates: `${formatDay(sprint.startDate, i18n.language)} – ${formatDay(sprint.endDate, i18n.language)}`,
                 })
               : t('development.noSprint')}
           </h2>
           <span className="kpi__note">
-            {t('development.storySummary', {...progress})}
+            {t('development.storySummary', {
+              total: progress.total,
+              done: progress.byStatus.done,
+              blocked: progress.byStatus.blocked,
+            })}
           </span>
         </div>
-        <div className="story-board__controls">
-          <div className="story-board__progress">
-            <div className="progress progress--thick">
-              <div
-                className="progress__bar"
-                style={{width: `${progress.percentDone}%`}}
-              />
-            </div>
-            <span className="mono">
-              {t('development.progress', {percent: progress.percentDone})}
-            </span>
+        <div className="story-board__progress">
+          <div className="progress progress--thick">
+            <div
+              className="progress__bar"
+              style={{width: `${progress.percentDone}%`}}
+            />
           </div>
-          <button
-            type="button"
-            className="button button--primary"
-            aria-expanded={showForm}
-            onClick={() => setShowForm(!showForm)}
-          >
-            {t('development.addStory')}
-          </button>
+          <span className="mono">
+            {t('development.progress', {percent: progress.percentDone})}
+          </span>
         </div>
       </div>
 
-      {showForm && (
-        <StoryForm onAdd={add} onCancel={() => setShowForm(false)} />
-      )}
+      <StoryFilterBar
+        stories={stories}
+        filters={filters}
+        onChange={setFilters}
+      />
 
-      <div className="table-scroll">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t('development.columnId')}</th>
-              <th>{t('development.columnStory')}</th>
-              <th>{t('development.columnOwner')}</th>
-              <th>{t('development.columnStatus')}</th>
-              <th>
-                <span className="sr-only">
-                  {t('development.columnActions')}
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {stories.map(story => (
-              <tr key={story.id}>
-                <td className="nowrap mono">{story.id}</td>
-                <td>{story.title}</td>
-                <td className="nowrap">
-                  {story.owner || t('development.unassigned')}
-                </td>
-                <td className="table__compact">
-                  <select
-                    className={`pill pill--select pill--${STORY_STATUS_TONE[story.status]}`}
-                    aria-label={t('development.statusOf', {id: story.id})}
-                    value={story.status}
-                    onChange={event =>
-                      setStories(current =>
-                        setStoryStatus(
-                          current,
-                          story.id,
-                          event.target.value as StoryStatus
-                        )
-                      )
-                    }
-                  >
-                    {STORY_STATUSES.map(status => (
-                      <option key={status} value={status}>
-                        {t(`storyStatus.${status}`)}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="table__compact align-right">
-                  <button
-                    type="button"
-                    className="icon-button"
-                    aria-label={t('development.remove', {id: story.id})}
-                    onClick={() =>
-                      setStories(current => removeStory(current, story.id))
-                    }
-                  >
-                    <TrashIcon />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {shown.length === 0 ? (
+        <p className="item__meta">{t('development.noMatches')}</p>
+      ) : (
+        <StoryTable stories={shown} />
+      )}
     </section>
+  );
+}
+
+function StoryFilterBar({
+  stories,
+  filters,
+  onChange,
+}: {
+  stories: Story[];
+  filters: StoryFilters;
+  onChange: (filters: StoryFilters) => void;
+}) {
+  const {t} = useTranslation();
+  return (
+    <div className="story-filters">
+      <label className="field">
+        <span className="field__label">{t('development.filterAssignee')}</span>
+        <select
+          className="field__input"
+          value={filters.assignee ?? ''}
+          onChange={event =>
+            onChange({...filters, assignee: event.target.value || null})
+          }
+        >
+          <option value="">{t('development.filterAll')}</option>
+          {assigneesOf(stories).map(name => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span className="field__label">{t('development.filterLabel')}</span>
+        <select
+          className="field__input"
+          value={filters.label ?? ''}
+          onChange={event =>
+            onChange({...filters, label: event.target.value || null})
+          }
+        >
+          <option value="">{t('development.filterAll')}</option>
+          {labelsOf(stories).map(label => (
+            <option key={label} value={label}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="story-filters__check">
+        <input
+          type="checkbox"
+          checked={filters.currentSprintOnly}
+          onChange={event =>
+            onChange({...filters, currentSprintOnly: event.target.checked})
+          }
+        />
+        {t('development.filterSprint')}
+      </label>
+    </div>
+  );
+}
+
+function StoryTable({stories}: {stories: Story[]}) {
+  const {t, i18n} = useTranslation();
+  const now = useNow();
+  return (
+    <div className="table-scroll">
+      <table className="table">
+        <thead>
+          <tr>
+            <th>{t('development.columnId')}</th>
+            <th>{t('development.columnStory')}</th>
+            <th>{t('development.columnOwner')}</th>
+            <th>{t('development.columnStatus')}</th>
+            <th>{t('development.columnAge')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {stories.map(story => (
+            <tr key={story.id}>
+              <td className="nowrap mono">#{story.id}</td>
+              <td>
+                <SourceLink url={story.url}>{story.title}</SourceLink>
+              </td>
+              <td>
+                {story.assignees.join(', ') || t('development.unassigned')}
+              </td>
+              <td className="table__compact">
+                <span
+                  className={`pill pill--${STORY_STATUS_TONE[story.status]}`}
+                >
+                  {t(`storyStatus.${story.status}`)}
+                </span>
+              </td>
+              <td className="nowrap muted">
+                {formatAge(story.createdAt, now, i18n.language)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

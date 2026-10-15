@@ -13,10 +13,7 @@ export function DevelopmentPage() {
   const {development} = useSnapshot();
   return (
     <div className="stack">
-      <StoryBoard
-        sprint={development.sprint}
-        initialStories={development.stories}
-      />
+      <StoryBoard sprint={development.sprint} stories={development.stories} />
       <div className="grid">
         <PullRequests pullRequests={development.pullRequests} />
         <LatestBuild build={development.build} />

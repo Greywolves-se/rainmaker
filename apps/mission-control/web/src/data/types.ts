@@ -33,11 +33,17 @@ export type StatusCode =
 
 export type StoryStatus = 'todo' | 'inProgress' | 'blocked' | 'done';
 
+/** A GitHub work item on the Development page (read-only). */
 export interface Story {
+  /** The issue number, e.g. "101". */
   id: string;
   title: string;
-  owner: string;
+  assignees: string[];
+  labels: string[];
   status: StoryStatus;
+  inCurrentSprint: boolean;
+  createdAt: string;
+  url: string | null;
 }
 
 /** Every list item has an id so React keys stay unique when titles repeat. */
@@ -97,7 +103,13 @@ export interface Snapshot {
     events: SourceEvent[];
   };
   development: {
-    sprint: {name: string; dates: string} | null;
+    sprint: {
+      name: string;
+      startDate: string;
+      endDate: string;
+      url: string | null;
+    } | null;
+    /** All work items, so the "only current sprint" filter can be switched off. */
     stories: Story[];
     pullRequests: (StatusItem & {number: string})[];
     build: {

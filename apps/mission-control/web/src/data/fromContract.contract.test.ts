@@ -37,23 +37,29 @@ describe('fromContract', () => {
       url: 'https://github.com/example-org/example-repo/milestone/4',
     });
     expect(page.overview.blocked.map(item => item.id)).toEqual(['102']);
-    expect(page.development.stories).toEqual([
-      {
-        id: '#101',
-        title: 'Load the snapshot in the web app',
-        owner: 'Alex Berg',
-        status: 'inProgress',
-      },
-      {
-        id: '#102',
-        title: 'GitHub source for issues',
-        owner: '',
-        status: 'blocked',
-      },
+    expect(page.development.stories[0]).toEqual({
+      id: '101',
+      title: 'Load the snapshot in the web app',
+      assignees: ['Alex Berg'],
+      labels: ['area: web'],
+      status: 'inProgress',
+      inCurrentSprint: true,
+      createdAt: '2026-10-20T09:12:00Z',
+      url: 'https://github.com/example-org/example-repo/issues/101',
+    });
+    // All work items, not only the sprint: the page filters them.
+    expect(
+      page.development.stories.map(s => [s.id, s.status, s.inCurrentSprint])
+    ).toEqual([
+      ['101', 'inProgress', true],
+      ['102', 'blocked', true],
+      ['97', 'done', false],
     ]);
     expect(page.development.sprint).toEqual({
       name: 'Sprint 4',
-      dates: '2026-10-26 – 2026-11-06',
+      startDate: '2026-10-26',
+      endDate: '2026-11-06',
+      url: 'https://github.com/example-org/example-repo/milestone/4',
     });
   });
 

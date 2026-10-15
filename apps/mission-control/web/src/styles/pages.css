@@ -6,13 +6,6 @@
   gap: 10px;
 }
 
-.story-board__controls {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
 .story-board__progress {
   display: flex;
   align-items: center;
@@ -20,28 +13,24 @@
   min-width: 200px;
 }
 
-.story-form {
+/* Wraps onto several lines on a phone; every control keeps a 40px touch height. */
+.story-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 10px;
-  padding: 14px;
-  background: var(--color-blue-soft);
-  border-radius: var(--radius-inner);
+  gap: 10px 16px;
 }
 
-.story-form__title {
-  flex: 1 1 260px;
+.story-filters .field {
+  flex: 1 1 160px;
 }
 
-.story-form__owner {
-  width: 160px;
-}
-
-.story-form__hint {
-  flex-basis: 100%;
-  font-size: 12px;
-  color: var(--color-text-soft);
+.story-filters__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  cursor: pointer;
 }
 
 .build__badge {
