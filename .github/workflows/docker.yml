@@ -1,10 +1,14 @@
-# Builds the Mission Control Docker images and pushes them to Docker Hub.
-# - Pull requests: build only (proves the Dockerfiles work), nothing is pushed.
-# - Push to develop or main: build and push.
-# An image is skipped (with a notice) until its source exists. The web image (#8) is built;
-# the collector image is skipped until the collector exists (#7).
+# Builds the Mission Control Docker images and pushes them to Amazon ECR.
+# - Pull requests: build only (proves the Dockerfiles work), nothing is pushed and no AWS access.
+# - Push to develop: build and push to ECR in the staging account (GitHub environment "staging").
+# - Push to main: build and push to ECR in the production account (GitHub environment "production",
+#   which requires a reviewer to approve the run before it starts).
+# An image is skipped (with a notice) until its source exists: collector #7, web #8.
 #
-# Repository secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN (Docker Hub access token, Read & Write).
+# AWS access uses GitHub OIDC, so no AWS keys are stored in GitHub. Each environment has the
+# variables AWS_ROLE_ARN (the github-actions-rainmaker role in that account) and AWS_REGION.
+# The role may only push to the ECR repositories rainmaker-mission-control-collector and
+# rainmaker-mission-control-web in its own account.
 
 name: Docker
 
@@ -47,6 +51,12 @@ jobs:
   image:
     name: Image (${{ matrix.image }})
     runs-on: ubuntu-latest
+    # develop -> staging, main -> production. Pull requests and other branches run without an
+    # environment, so they cannot assume either AWS role.
+    environment: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/develop' && 'staging' || github.ref == 'refs/heads/main' && 'production') || '' }}
+    permissions:
+      contents: read
+      id-token: write # lets the job request a GitHub OIDC token to assume the AWS role
     strategy:
       fail-fast: false
       matrix:
@@ -60,8 +70,7 @@ jobs:
     env:
       # Only develop and main publish images; pull requests and other branches only build.
       PUSH: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') }}
-      # Fallback keeps the image name valid for pull requests from forks, which get no secrets.
-      IMAGE: ${{ secrets.DOCKERHUB_USERNAME || 'local' }}/rainmaker-mission-control-${{ matrix.image }}
+      REPOSITORY: rainmaker-mission-control-${{ matrix.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -78,17 +87,22 @@ jobs:
       - uses: docker/setup-buildx-action@v3
         if: steps.source.outputs.present == 'true'
 
-      - uses: docker/login-action@v3
+      - uses: aws-actions/configure-aws-credentials@v4
         if: steps.source.outputs.present == 'true' && env.PUSH == 'true'
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        if: steps.source.outputs.present == 'true' && env.PUSH == 'true'
 
       - id: meta
         uses: docker/metadata-action@v5
         if: steps.source.outputs.present == 'true'
         with:
-          images: ${{ env.IMAGE }}
+          # Builds that do not push have no registry; "local" keeps the image name valid.
+          images: ${{ steps.ecr.outputs.registry || 'local' }}/${{ env.REPOSITORY }}
           # develop -> :develop, main -> :main and :latest, every build -> :sha-<short sha>
           tags: |
             type=ref,event=branch

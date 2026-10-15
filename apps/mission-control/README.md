@@ -23,6 +23,9 @@ A Java collector reads GitHub and YAML data files, writes one JSON snapshot, and
 
 The web app is built with npm inside `web/`.
 
+## CI
+`.github/workflows/mission-control-ci.yml` runs on pull requests and pushes to `develop` and `main` that change `apps/mission-control/**`. The web job (lint, typecheck, tests, build on Node 22) only runs when `web/` or `contract/` changed. A collector job is added once the collector has a `pom.xml` (#7).
+
 ## Run with Docker
 Needs only Docker; no local Java, Maven or Node. Run from this folder:
 
