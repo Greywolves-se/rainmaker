@@ -105,6 +105,53 @@ class GithubIssuesSourceTest {
   }
 
   @Test
+  void overdueMilestoneLeftOpenDoesNotHideTheNextSprint() {
+    stubIssues(List.of());
+    stubMilestones(
+        List.of(
+            milestone(1, "Sprint 1", "2026-10-10T07:00:00Z", null),
+            milestone(2, "Sprint 2", "2026-10-23T07:00:00Z", null)));
+
+    assertThat(run().sprint().name()).isEqualTo("Sprint 2");
+  }
+
+  @Test
+  void milestoneDueTodayIsStillTheCurrentSprint() {
+    stubIssues(List.of());
+    stubMilestones(
+        List.of(
+            milestone(2, "Sprint 2", "2026-10-15T07:00:00Z", null),
+            milestone(3, "Sprint 3", "2026-10-29T07:00:00Z", null)));
+
+    assertThat(run().sprint().name()).isEqualTo("Sprint 2");
+  }
+
+  @Test
+  void whenEveryMilestoneIsOverdueTheMostRecentOneIsTheSprint() {
+    stubIssues(List.of());
+    stubMilestones(
+        List.of(
+            milestone(1, "Sprint 1", "2026-10-01T07:00:00Z", null),
+            milestone(2, "Sprint 2", "2026-10-10T07:00:00Z", null)));
+
+    assertThat(run().sprint().name()).isEqualTo("Sprint 2");
+  }
+
+  @Test
+  void issuesClosedMoreThanThirtyDaysAgoAreDropped() {
+    stubIssues(
+        List.of(
+            closedIssue(1, NOW.minus(Duration.ofDays(29))),
+            closedIssue(2, NOW.minus(Duration.ofDays(31))),
+            issue(3, "open", List.of(), false, null, false)));
+    stubMilestones(List.of());
+
+    assertThat(run().workItems())
+        .extracting(WorkItem::id)
+        .containsExactly("gh-rainmaker-1", "gh-rainmaker-3");
+  }
+
+  @Test
   void noMilestoneWithDueDateMeansNoSprint() {
     stubIssues(List.of());
     stubMilestones(List.of(milestone(9, "Backlog", null, null)));

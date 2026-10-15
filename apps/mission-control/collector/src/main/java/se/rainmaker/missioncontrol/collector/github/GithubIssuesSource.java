@@ -139,16 +139,28 @@ public class GithubIssuesSource implements SourceCollector {
     return "gh-" + name + "-" + number;
   }
 
+  /**
+   * The open milestone due today or later with the nearest due date. If every open milestone is
+   * overdue (a sprint left open by mistake), the most recently overdue one. Milestones without a
+   * due date are not sprints.
+   */
   private Optional<SprintMilestone> currentSprint() {
-    return properties.repositories().stream()
-        .flatMap(
-            repository ->
-                client
-                    .getAll("/repos/" + repository + "/milestones", Map.of("state", "open"))
-                    .stream()
-                    .filter(milestone -> instant(milestone, "due_on") != null)
-                    .map(milestone -> toSprint(repository, milestone)))
-        .min(Comparator.comparing(found -> found.sprint().endDate()));
+    List<SprintMilestone> candidates =
+        properties.repositories().stream()
+            .flatMap(
+                repository ->
+                    client
+                        .getAll("/repos/" + repository + "/milestones", Map.of("state", "open"))
+                        .stream()
+                        .filter(milestone -> instant(milestone, "due_on") != null)
+                        .map(milestone -> toSprint(repository, milestone)))
+            .toList();
+    LocalDate today = date(clock.instant());
+    Comparator<SprintMilestone> byDueDate = Comparator.comparing(found -> found.sprint().endDate());
+    return candidates.stream()
+        .filter(found -> !found.sprint().endDate().isBefore(today))
+        .min(byDueDate)
+        .or(() -> candidates.stream().max(byDueDate));
   }
 
   private static SprintMilestone toSprint(String repository, JsonNode milestone) {

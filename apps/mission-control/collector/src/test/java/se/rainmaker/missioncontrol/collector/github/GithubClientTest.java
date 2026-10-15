@@ -175,6 +175,33 @@ class GithubClientTest {
   }
 
   @Test
+  void unreadableRetryAfterIsNotTreatedAsRateLimit() {
+    github.stubFor(
+        get(urlPathEqualTo(ISSUES))
+            .willReturn(aResponse().withStatus(403).withHeader("Retry-After", "soon")));
+
+    assertThatThrownBy(() -> client("t").getAll(ISSUES, Map.of()))
+        .isInstanceOf(SourceException.class)
+        .hasMessageStartingWith("GitHub denied access (HTTP 403)");
+    github.verify(1, getRequestedFor(urlPathEqualTo(ISSUES)));
+  }
+
+  @Test
+  void movedRepositorySaysWhatToUpdate() {
+    github.stubFor(
+        get(urlPathEqualTo(ISSUES))
+            .willReturn(
+                aResponse()
+                    .withStatus(301)
+                    .withHeader("Location", github.baseUrl() + "/repositories/42/issues")));
+
+    assertThatThrownBy(() -> client("t").getAll(ISSUES, Map.of()))
+        .isInstanceOf(SourceException.class)
+        .hasMessageContaining("has moved (HTTP 301)")
+        .hasMessageContaining("mission-control.collector.github.repositories");
+  }
+
+  @Test
   void withoutTokenNothingIsSent() {
     assertThatThrownBy(() -> client(" ").getAll(ISSUES, Map.of()))
         .isInstanceOf(SourceException.class)

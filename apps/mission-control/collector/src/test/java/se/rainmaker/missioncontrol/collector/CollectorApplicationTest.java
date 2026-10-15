@@ -54,9 +54,7 @@ class CollectorApplicationTest {
   private ConfigurableApplicationContext run() {
     return SpringApplication.run(
         CollectorApplication.class,
-        "--mission-control.collector.output=" + folder.resolve("snapshot.json"),
-        // Tests never call the real GitHub API (CLAUDE.md), even if a token is set.
-        "--mission-control.collector.sources.github.enabled=false");
+        "--mission-control.collector.output=" + folder.resolve("snapshot.json"));
   }
 
   private static String correlationId(String line) {

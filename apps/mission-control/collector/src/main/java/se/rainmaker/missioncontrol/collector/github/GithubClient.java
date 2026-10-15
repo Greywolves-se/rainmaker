@@ -10,7 +10,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -159,6 +161,16 @@ public class GithubClient {
     if (status == 404) {
       throw new SourceException("GitHub found nothing at " + path + " (HTTP 404)");
     }
+    if (status == 301 || status == 307 || status == 308) {
+      // Redirects are not followed, so the token never goes to another address.
+      throw new SourceException(
+          "GitHub says "
+              + path
+              + " has moved (HTTP "
+              + status
+              + "); the repository may be renamed, so update"
+              + " mission-control.collector.github.repositories");
+    }
     if (status >= 500) {
       log.atWarn()
           .addKeyValue("path", path)
@@ -177,23 +189,39 @@ public class GithubClient {
     String retryAfter = headers.getFirst("Retry-After");
     String remaining = headers.getFirst("X-RateLimit-Remaining");
     String reset = headers.getFirst("X-RateLimit-Reset");
-    long waitMillis;
-    Instant resetAt;
+    Instant resetAt = null;
     if (retryAfter != null) {
-      waitMillis = Long.parseLong(retryAfter.strip()) * 1000;
-      resetAt = clock.instant().plusMillis(waitMillis);
-    } else if ("0".equals(remaining) && reset != null) {
+      resetAt = retryAfterTime(retryAfter.strip());
+    } else if ("0".equals(remaining) && reset != null && reset.strip().matches("\\d+")) {
       resetAt = Instant.ofEpochSecond(Long.parseLong(reset.strip()));
-      waitMillis = Math.max(0, resetAt.toEpochMilli() - clock.millis());
-    } else {
+    }
+    if (resetAt == null) {
+      // Not a rate-limit answer we can read; handled like any other 403/429.
       return null;
     }
+    long waitMillis = Math.max(0, resetAt.toEpochMilli() - clock.millis());
     if (waitMillis <= properties.rateLimitMaxWait().toMillis()) {
       log.atWarn().addKeyValue("waitMillis", waitMillis).log("GitHub rate limit; waiting");
       return new RetryableGithubException("rate limit, HTTP " + status, waitMillis);
     }
     return new SourceException(
         "GitHub rate limit reached; it resets at " + RESET_TIME.format(resetAt) + " UTC");
+  }
+
+  /**
+   * When a {@code Retry-After} value says we may try again: seconds (e.g. {@code 30}) or an HTTP
+   * date. Null for anything else, so a malformed header never crashes the run.
+   */
+  private Instant retryAfterTime(String value) {
+    if (value.matches("\\d+")) {
+      return clock.instant().plusSeconds(Long.parseLong(value));
+    }
+    try {
+      return ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
+    } catch (DateTimeParseException e) {
+      log.atWarn().log("GitHub sent a Retry-After header that is not a number or a date");
+      return null;
+    }
   }
 
   /** The next page from the Link header, only when it is on the same host as {@code apiUrl}. */

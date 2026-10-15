@@ -31,8 +31,6 @@ class CollectorRunTest {
     // The real data-file source (#15) is part of every run; an empty folder keeps it predictable.
     registry.add(
         "mission-control.collector.data-files.folder", () -> folder.resolve("data").toString());
-    // Tests never call the real GitHub API (CLAUDE.md), even if a token is set.
-    registry.add("mission-control.collector.sources.github.enabled", () -> "false");
   }
 
   @Test

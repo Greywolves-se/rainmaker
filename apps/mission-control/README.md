@@ -50,7 +50,7 @@ Settings live in `collector/src/main/resources/application.properties` and can b
   4. otherwise → `todo`.
 
   Labels are compared without case.
-- **Sprint:** the open milestone with the nearest due date. Its start date is the day the milestone was created, and its goal is the first line of the description.
+- **Sprint:** the open milestone due today or later with the nearest due date. If every open milestone is overdue, the most recently overdue one is used. Its start date is the day the milestone was created, and its goal is the first line of the description. **Milestones without a due date are not sprints**, so give each sprint milestone a due date, or the sprint card stays empty. (Today the only milestone, "Mission Control V1", has none.)
 - **Events:** issues closed in the last 7 days also appear as events.
 - **Token:** read from `MC_GITHUB_TOKEN`, else `GITHUB_TOKEN`; it is never logged. Use a fine-grained, read-only token for the listed repositories. Without one, the source shows `error` ("No GitHub token") and the rest of the run continues.
 
