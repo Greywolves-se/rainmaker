@@ -40,22 +40,26 @@ describe('translation file', () => {
 
 describe('format', () => {
   it('shows the snapshot time in Stockholm time', () => {
-    expect(formatTimestamp('2026-10-14T08:24:00Z')).toMatch(
-      /14 Oct 2026 · 10:24$/
-    );
+    const timestamp = '2026-10-14T08:24:00Z';
+    expect(formatTimestamp(timestamp, 'en')).toMatch(/14 Oct 2026 · 10:24$/);
+    expect(formatTimestamp(timestamp, 'sv')).toMatch(/14 okt\. 2026 · 10:24$/);
   });
 
   it('names the month', () => {
-    expect(formatMonth('2026-10')).toBe('October');
-    expect(formatMonth('not-a-month')).toBe('not-a-month');
+    expect(formatMonth('2026-10', 'en')).toBe('October');
+    expect(formatMonth('2026-10', 'sv')).toBe('oktober');
+    expect(formatMonth('not-a-month', 'sv')).toBe('not-a-month');
   });
 
   it('joins alternatives with or', () => {
-    expect(formatAlternatives(['Peter', 'Staffan'])).toBe('Peter or Staffan');
+    const names = ['Peter', 'Staffan'];
+    expect(formatAlternatives(names, 'en')).toBe('Peter or Staffan');
+    expect(formatAlternatives(names, 'sv')).toBe('Peter eller Staffan');
   });
 
   it('formats SEK amounts without decimals', () => {
-    expect(formatSek(1234)).toMatch(/SEK\s?1,234$/);
+    expect(formatSek(1234, 'en')).toMatch(/SEK\s?1,234$/);
+    expect(formatSek(1234, 'sv')).toMatch(/^1\s234\s?kr$/);
   });
 });
 

@@ -3,7 +3,7 @@ import {SearchIcon} from '../components/icons';
 import {formatTimestamp} from '../i18n/format';
 
 export function TopBar({generatedAt}: {generatedAt: string}) {
-  const {t} = useTranslation();
+  const {t, i18n} = useTranslation();
   return (
     <header className="top-bar">
       <div className="search">
@@ -22,7 +22,7 @@ export function TopBar({generatedAt}: {generatedAt: string}) {
         />
       </div>
       <time className="clock" dateTime={generatedAt}>
-        {formatTimestamp(generatedAt)}
+        {formatTimestamp(generatedAt, i18n.language)}
       </time>
     </header>
   );
