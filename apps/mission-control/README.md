@@ -15,13 +15,22 @@ A Java collector reads GitHub and YAML data files, writes one JSON snapshot, and
 | `out/` | Generated snapshot and reports – git-ignored, never commit | |
 
 ## Build
-`pom.xml` in this folder groups Mission Control's Java modules (today: none; `collector` is added in #7). Each module inside lists this POM (`mission-control`, `../pom.xml`) as its `<parent>`. Build only Mission Control from the repository root:
+`pom.xml` in this folder groups Mission Control's Java modules (today: `collector`). Each module inside lists this POM (`mission-control`, `../pom.xml`) as its `<parent>`. Build only Mission Control from the repository root:
 
 ```
 ./mvnw -f apps/mission-control/pom.xml verify
 ```
 
 The web app is built with npm inside `web/`.
+
+### Run the collector
+The collector is a command-line app (Spring Boot, no web server): it runs once and exits with code 0 on success. Every run logs JSON lines that share one `correlation_id`. From the repository root, after the build above:
+
+```
+java -jar apps/mission-control/collector/target/collector-0.1.0-SNAPSHOT.jar
+```
+
+Today it only logs `collector started`; fetching data and writing the snapshot come in #11 onward.
 
 ## CI
 `.github/workflows/mission-control-ci.yml` runs on pull requests and pushes to `develop` and `main` that change `apps/mission-control/**`. The web job (lint, typecheck, tests, build on Node 22) only runs when `web/` or `contract/` changed. A collector job is added once the collector has a `pom.xml` (#7).
