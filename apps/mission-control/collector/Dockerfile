@@ -14,6 +14,8 @@ COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 COPY apps/mission-control/pom.xml apps/mission-control/
 COPY apps/mission-control/collector/ apps/mission-control/collector/
+# The snapshot schema is packed into the jar (see collector/pom.xml).
+COPY apps/mission-control/contract/snapshot.schema.json apps/mission-control/contract/
 # Tests run in CI (#9); the image build only packages the jar.
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -q -f apps/mission-control/pom.xml -pl collector -am package -DskipTests \

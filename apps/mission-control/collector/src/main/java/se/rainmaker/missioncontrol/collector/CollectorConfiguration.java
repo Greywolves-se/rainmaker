@@ -1,0 +1,19 @@
+package se.rainmaker.missioncontrol.collector;
+
+import java.time.Clock;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
+
+/** Beans the collector needs besides its components. */
+@Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(CollectorProperties.class)
+class CollectorConfiguration {
+
+  /** UTC clock for timestamps; tests replace it with a fixed one. */
+  @Bean
+  Clock clock() {
+    return Clock.systemUTC();
+  }
+}
