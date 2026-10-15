@@ -36,10 +36,12 @@ export function StoryBoard({
       <div className="card__header story-board__header">
         <div className="item">
           <h2 className="card__title">
-            {t('development.sprintHeading', {
-              name: sprint.name,
-              dates: sprint.dates,
-            })}
+            {sprint
+              ? t('development.sprintHeading', {
+                  name: sprint.name,
+                  dates: sprint.dates,
+                })
+              : t('development.noSprint')}
           </h2>
           <span className="kpi__note">
             {t('development.storySummary', {...progress})}

@@ -13,6 +13,18 @@
     "dataSources": "Data sources",
     "synced": "{{synced}} of {{total}} synced"
   },
+  "common": {
+    "noData": "No data yet"
+  },
+  "snapshot": {
+    "loading": "Loading the snapshot …",
+    "errorTitle": "Could not load the snapshot",
+    "errorHelp": "Run the collector so it writes snapshot.json, then reload the page.",
+    "errorDetails": "Technical details",
+    "stale": "The data is more than 24 hours old. Run the collector to refresh it.",
+    "sourceFailed": "{{name}} could not be updated: {{message}}",
+    "sourceFailedNoMessage": "{{name}} could not be updated."
+  },
   "sampleData": {
     "banner": "Sample data – not real project status"
   },
@@ -20,7 +32,8 @@
     "searchLabel": "Search",
     "searchPlaceholder": "Search Drive, GitHub, Slack, AWS …",
     "notAvailable": "Not available in V1",
-    "timestamp": "Last updated: {{day}} · {{time}}"
+    "timestamp": "Last updated: {{day}} · {{time}}",
+    "updatedAgo": "Updated {{ago}}"
   },
   "language": {
     "label": "Language",
@@ -58,7 +71,9 @@
     "ok": "OK",
     "error": "Error",
     "blocker": "Blocker",
-    "question": "Question"
+    "question": "Question",
+    "superseded": "Superseded",
+    "disabled": "Disabled"
   },
   "storyStatus": {
     "todo": "To do",
@@ -82,6 +97,7 @@
     "inProgressCount": "In progress · {{count}}",
     "blockedCount": "Blocked · {{count}}",
     "decisionsFor": "Decisions needing {{names}}",
+    "decisionsPending": "Decisions waiting for an owner",
     "open": "Open",
     "risksPilotsCost": "Risks, pilots and cost",
     "risk": "Risk: {{title}}",
@@ -122,6 +138,8 @@
     "staging": "Staging",
     "techDecisions": "Technical decisions and dependencies",
     "questionsFor": "Blockers and questions for {{audience}}",
+    "questions": "Blockers and questions",
+    "noSprint": "No active sprint",
     "environments": "Environments, logs and documentation",
     "buildMeta": "{{age}} · {{duration}}",
     "stepPassed": "✓ {{step}}"

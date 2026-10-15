@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useTranslation} from 'react-i18next';
 import {ItemText} from '../components/ItemText';
+import {NoData} from '../components/NoData';
 import {SourceTile} from '../components/SourceTile';
 import {StatusPill} from '../components/StatusPill';
 import {UnavailableAction} from '../components/UnavailableAction';
@@ -56,34 +57,58 @@ export function KpiCards({overview}: {overview: Overview}) {
     <div className="grid grid--kpi">
       <section className="card card--kpi">
         <h2 className="kpi__label">{t('overview.projectStatus')}</h2>
-        <KpiStatus status={project.status} />
-        <span className="kpi__note">
-          {t('overview.sprintProgress', {
-            sprint: project.sprint,
-            percent: project.percentDone,
-          })}
-        </span>
-        <div className="progress">
-          <div
-            className="progress__bar"
-            style={{width: `${project.percentDone}%`}}
-          />
-        </div>
+        {project ? (
+          <>
+            <KpiStatus status={project.status} />
+            <span className="kpi__note">
+              {t('overview.sprintProgress', {
+                sprint: project.sprint,
+                percent: project.percentDone,
+              })}
+            </span>
+            <div className="progress">
+              <div
+                className="progress__bar"
+                style={{width: `${project.percentDone}%`}}
+              />
+            </div>
+          </>
+        ) : (
+          <NoData />
+        )}
       </section>
       <section className="card card--kpi">
         <h2 className="kpi__label">{t('overview.operations')}</h2>
-        <KpiStatus status={operations.status} />
-        <span className="kpi__note">{operations.note}</span>
+        {operations ? (
+          <>
+            <KpiStatus status={operations.status} />
+            <span className="kpi__note">{operations.note}</span>
+          </>
+        ) : (
+          <NoData />
+        )}
       </section>
       <section className="card card--kpi">
         <h2 className="kpi__label">{t('overview.businessStatus')}</h2>
-        <KpiStatus status={business.status} icon={<TrendIcon />} />
-        <span className="kpi__note">{business.note}</span>
+        {business ? (
+          <>
+            <KpiStatus status={business.status} icon={<TrendIcon />} />
+            <span className="kpi__note">{business.note}</span>
+          </>
+        ) : (
+          <NoData />
+        )}
       </section>
       <section className="card card--kpi">
         <h2 className="kpi__label">{t('overview.activePilots')}</h2>
-        <div className="kpi__value">{pilots.active}</div>
-        <span className="kpi__note">{pilots.note}</span>
+        {pilots ? (
+          <>
+            <div className="kpi__value">{pilots.active}</div>
+            <span className="kpi__note">{pilots.note}</span>
+          </>
+        ) : (
+          <NoData />
+        )}
       </section>
     </div>
   );
@@ -154,7 +179,12 @@ function Decisions({overview}: {overview: Overview}) {
   const names = formatAlternatives(overview.decisionMakers, i18n.language);
   return (
     <section className="card">
-      <h2 className="card__title">{t('overview.decisionsFor', {names})}</h2>
+      <h2 className="card__title">
+        {names
+          ? t('overview.decisionsFor', {names})
+          : t('overview.decisionsPending')}
+      </h2>
+      {overview.decisions.length === 0 && <NoData />}
       {overview.decisions.map(decision => (
         <div key={decision.id} className="row row--top">
           <span className="avatar" aria-hidden="true">
@@ -174,34 +204,39 @@ function Decisions({overview}: {overview: Overview}) {
 
 function RisksPilotsCost({overview}: {overview: Overview}) {
   const {t, i18n} = useTranslation();
-  const {awsCost, risk} = overview;
-  const amount =
-    awsCost.amountSek === null
-      ? t('overview.amountUnknown')
-      : formatSek(awsCost.amountSek, i18n.language);
+  const {awsCost, risk, pilotList} = overview;
   return (
     <section className="card">
       <h2 className="card__title">{t('overview.risksPilotsCost')}</h2>
-      {overview.pilotList.map(pilot => (
+      {pilotList.length === 0 && !risk && !awsCost && <NoData />}
+      {pilotList.map(pilot => (
         <div key={pilot.id} className="row row--spread">
           <ItemText title={pilot.title} meta={pilot.meta} />
           <StatusPill status={pilot.status} />
         </div>
       ))}
-      <div className="callout">
-        <span className="callout__title">
-          {t('overview.risk', {title: risk.title})}
-        </span>
-        <span className="callout__text">{risk.text}</span>
-      </div>
-      <div className="row row--spread">
-        <span className="muted">
-          {t('overview.awsCost', {
-            month: formatMonth(awsCost.month, i18n.language),
-          })}
-        </span>
-        <span className="mono">{amount}</span>
-      </div>
+      {risk && (
+        <div className="callout">
+          <span className="callout__title">
+            {t('overview.risk', {title: risk.title})}
+          </span>
+          <span className="callout__text">{risk.text}</span>
+        </div>
+      )}
+      {awsCost && (
+        <div className="row row--spread">
+          <span className="muted">
+            {t('overview.awsCost', {
+              month: formatMonth(awsCost.month, i18n.language),
+            })}
+          </span>
+          <span className="mono">
+            {awsCost.amountSek === null
+              ? t('overview.amountUnknown')
+              : formatSek(awsCost.amountSek, i18n.language)}
+          </span>
+        </div>
+      )}
     </section>
   );
 }
@@ -211,6 +246,19 @@ function LatestRelease({release}: {release: Overview['release']}) {
   return (
     <section className="card card--dark">
       <h2 className="card__title">{t('overview.latestVersion')}</h2>
+      {release ? <ReleaseDetails release={release} /> : <NoData />}
+    </section>
+  );
+}
+
+function ReleaseDetails({
+  release,
+}: {
+  release: NonNullable<Overview['release']>;
+}) {
+  const {t} = useTranslation();
+  return (
+    <>
       <div className="release">
         <span className="release__version">{release.version}</span>
         <span className="release__badge">{release.badge}</span>
@@ -224,7 +272,7 @@ function LatestRelease({release}: {release: Overview['release']}) {
           {t('overview.releaseNotes')}
         </UnavailableAction>
       </div>
-    </section>
+    </>
   );
 }
 
@@ -236,6 +284,7 @@ function RecentEvents({events}: {events: Overview['events']}) {
         <h2 className="card__title">{t('overview.recentEvents')}</h2>
         <UnavailableAction>{t('overview.viewAll')}</UnavailableAction>
       </div>
+      {events.length === 0 && <NoData />}
       {events.map(event => (
         <div key={event.id} className="row row--plain">
           <SourceTile code={event.source} size="medium" />

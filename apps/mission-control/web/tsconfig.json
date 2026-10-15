@@ -27,6 +27,7 @@
     "vite.config.ts"
   ],
   "exclude": [
-    "src/**/*.contract.test.ts"
+    "src/**/*.contract.test.ts",
+    "src/**/*.contract.test.tsx"
   ]
 }

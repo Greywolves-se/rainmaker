@@ -13,6 +13,18 @@
     "dataSources": "Datakällor",
     "synced": "{{synced}} av {{total}} synkade"
   },
+  "common": {
+    "noData": "Inga data ännu"
+  },
+  "snapshot": {
+    "loading": "Läser in ögonblicksbilden …",
+    "errorTitle": "Det gick inte att läsa in ögonblicksbilden",
+    "errorHelp": "Kör insamlaren så att den skriver snapshot.json och ladda sedan om sidan.",
+    "errorDetails": "Tekniska detaljer",
+    "stale": "Uppgifterna är mer än 24 timmar gamla. Kör insamlaren för att uppdatera dem.",
+    "sourceFailed": "{{name}} kunde inte uppdateras: {{message}}",
+    "sourceFailedNoMessage": "{{name}} kunde inte uppdateras."
+  },
   "sampleData": {
     "banner": "Exempeldata – inte verklig projektstatus"
   },
@@ -20,7 +32,8 @@
     "searchLabel": "Sök",
     "searchPlaceholder": "Sök i Drive, GitHub, Slack, AWS …",
     "notAvailable": "Finns inte i V1",
-    "timestamp": "Senast uppdaterad: {{day}} · {{time}}"
+    "timestamp": "Senast uppdaterad: {{day}} · {{time}}",
+    "updatedAgo": "Uppdaterad {{ago}}"
   },
   "language": {
     "label": "Språk",
@@ -58,7 +71,9 @@
     "ok": "OK",
     "error": "Fel",
     "blocker": "Blockerare",
-    "question": "Fråga"
+    "question": "Fråga",
+    "superseded": "Ersatt",
+    "disabled": "Avstängd"
   },
   "storyStatus": {
     "todo": "Att göra",
@@ -82,6 +97,7 @@
     "inProgressCount": "Pågår · {{count}}",
     "blockedCount": "Blockerat · {{count}}",
     "decisionsFor": "Beslut som behöver {{names}}",
+    "decisionsPending": "Beslut som väntar på en ägare",
     "open": "Öppna",
     "risksPilotsCost": "Risker, piloter och kostnad",
     "risk": "Risk: {{title}}",
@@ -122,6 +138,8 @@
     "staging": "Staging",
     "techDecisions": "Tekniska beslut och beroenden",
     "questionsFor": "Blockerare och frågor till {{audience}}",
+    "questions": "Blockerare och frågor",
+    "noSprint": "Ingen aktiv sprint",
     "environments": "Miljöer, loggar och dokumentation",
     "buildMeta": "{{age}} · {{duration}}",
     "stepPassed": "✓ {{step}}"

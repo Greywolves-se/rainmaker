@@ -33,6 +33,29 @@ export function formatTimestamp(
   return {day, time};
 }
 
+/** "5 minutes ago" / "för 5 minuter sedan"; hours from 1 hour, days from 2 days. */
+export function formatAge(
+  isoTimestamp: string,
+  now: number,
+  language: string
+): string {
+  const minutes = Math.max(
+    0,
+    Math.round((now - Date.parse(isoTimestamp)) / 60_000)
+  );
+  const format = new Intl.RelativeTimeFormat(localeFor(language), {
+    numeric: 'auto',
+  });
+  if (minutes < 60) {
+    return format.format(-minutes, 'minute');
+  }
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) {
+    return format.format(-hours, 'hour');
+  }
+  return format.format(-Math.round(hours / 24), 'day');
+}
+
 /** "2026-10" → "October" / "oktober". (Example)*/
 export function formatMonth(yearMonth: string, language: string): string {
   const [year, month] = yearMonth.split('-').map(Number);

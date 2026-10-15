@@ -1,5 +1,6 @@
 import {useTranslation} from 'react-i18next';
 import {ItemText} from '../../components/ItemText';
+import {NoData} from '../../components/NoData';
 import {StatusPill} from '../../components/StatusPill';
 import {CheckIcon} from '../../components/icons';
 import type {Snapshot} from '../../data/types';
@@ -41,6 +42,7 @@ function PullRequests({
   return (
     <section className="card">
       <h2 className="card__title">{t('development.pullRequests')}</h2>
+      {pullRequests.length === 0 && <NoData />}
       {pullRequests.map(pullRequest => (
         <div key={pullRequest.id} className="row row--spread">
           <ItemText
@@ -64,6 +66,15 @@ function LatestBuild({build}: {build: Development['build']}) {
   return (
     <section className="card">
       <h2 className="card__title">{t('development.latestBuild')}</h2>
+      {build ? <BuildDetails build={build} /> : <NoData />}
+    </section>
+  );
+}
+
+function BuildDetails({build}: {build: NonNullable<Development['build']>}) {
+  const {t} = useTranslation();
+  return (
+    <>
       <div className="row row--plain">
         <span className="build__badge">
           <CheckIcon size={20} strokeWidth={2.6} />
@@ -93,7 +104,7 @@ function LatestBuild({build}: {build: Development['build']}) {
           <li key={index}>{t('development.stepPassed', {step})}</li>
         ))}
       </ul>
-    </section>
+    </>
   );
 }
 
@@ -111,6 +122,7 @@ function TechDecisions({decisions}: {decisions: Development['techDecisions']}) {
   return (
     <section className="card">
       <h2 className="card__title">{t('development.techDecisions')}</h2>
+      {decisions.length === 0 && <NoData />}
       {decisions.map(decision => (
         <div key={decision.id} className="row row--top row--spread">
           <ItemText title={decision.title} meta={decision.meta} />
@@ -125,15 +137,18 @@ function Questions({
   audience,
   questions,
 }: {
-  audience: string;
+  audience: string | null;
   questions: Development['questions'];
 }) {
   const {t} = useTranslation();
   return (
     <section className="card">
       <h2 className="card__title">
-        {t('development.questionsFor', {audience})}
+        {audience
+          ? t('development.questionsFor', {audience})
+          : t('development.questions')}
       </h2>
+      {questions.length === 0 && <NoData />}
       {questions.map(question => (
         <div key={question.id} className="row row--top question">
           <div className="question__tags">
@@ -152,6 +167,7 @@ function Environments({links}: {links: Development['links']}) {
   return (
     <section className="card">
       <h2 className="card__title">{t('development.environments')}</h2>
+      {links.length === 0 && <NoData />}
       <div className="link-grid">
         {links.map(link => (
           <div key={link.id} className="link-tile">

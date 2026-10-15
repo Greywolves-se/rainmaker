@@ -1,8 +1,7 @@
-import {SAMPLE_SNAPSHOT} from './sampleSnapshot';
+import {useLoadedSnapshot} from './SnapshotProvider';
 import type {Snapshot} from './types';
 
-/** The single place components get their data from, so the source can be swapped in one spot. */
+/** The single place components get their page data from (real snapshot or demo sample). */
 export function useSnapshot(): Snapshot {
-  // TODO(#10): load the collector's snapshot instead of the fictional sample.
-  return SAMPLE_SNAPSHOT;
+  return useLoadedSnapshot().page;
 }

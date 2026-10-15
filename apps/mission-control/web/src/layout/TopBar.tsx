@@ -1,9 +1,9 @@
 import {useTranslation} from 'react-i18next';
 import {SearchIcon} from '../components/icons';
-import {formatTimestamp} from '../i18n/format';
+import {formatAge, formatTimestamp} from '../i18n/format';
 import {LanguageSwitch} from './LanguageSwitch';
 
-export function TopBar({generatedAt}: {generatedAt: string}) {
+export function TopBar({generatedAt, now}: {generatedAt: string; now: number}) {
   const {t, i18n} = useTranslation();
   return (
     <header className="top-bar">
@@ -25,6 +25,11 @@ export function TopBar({generatedAt}: {generatedAt: string}) {
       <time className="clock" dateTime={generatedAt}>
         {t('topBar.timestamp', formatTimestamp(generatedAt, i18n.language))}
       </time>
+      <span className="clock">
+        {t('topBar.updatedAgo', {
+          ago: formatAge(generatedAt, now, i18n.language),
+        })}
+      </span>
       <LanguageSwitch />
     </header>
   );
