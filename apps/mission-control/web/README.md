@@ -30,10 +30,14 @@ they have a backend or real URLs.
 
 ## Text and translations
 
-The app is English only for now. Every UI text, status and label still lives in
+The app is in Swedish and English; Swedish is the default. The switch in the top bar
+changes the language, and the choice is saved in the browser (`localStorage`), so it
+survives a reload. Dates, months, amounts and lists follow the chosen language.
+
+Every UI text, status, label and separator lives in `src/i18n/sv.json` and
 `src/i18n/en.json` and is read through react-i18next; components never hard-code text.
-Adding Swedish later means adding `sv.json` and a language switch, with no component
-changes.
+A test fails if the two files do not have exactly the same keys, so a new text must be
+added to both.
 
 Content from the data (titles, names, notes) is shown as it comes.
 
