@@ -20,7 +20,8 @@ class DataFilesPropertiesTest {
             CollectorApplication.class,
             "--GITHUB_SHA=abc1234",
             "--mission-control.collector.output=" + folder.resolve("snapshot.json"),
-            "--mission-control.collector.data-files.folder=" + folder)) {
+            "--mission-control.collector.data-files.folder=" + folder,
+            "--mission-control.collector.sources.github.enabled=false")) {
       assertThat(context.getBean(DataFilesProperties.class).filesUrl())
           .isEqualTo(
               "https://github.com/Greywolves-se/rainmaker/blob/abc1234/apps/mission-control/data");
