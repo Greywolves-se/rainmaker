@@ -89,6 +89,25 @@ describe('fromContract', () => {
     ]);
   });
 
+  it('sorts events by time, not by text', () => {
+    // As text, "…30.5Z" sorts before "…30Z", although it is half a second later.
+    const events = [
+      {
+        ...sample.events[0],
+        id: 'whole-second',
+        occurredAt: '2026-11-01T16:09:30Z',
+      },
+      {...sample.events[0], id: 'later', occurredAt: '2026-11-01T16:09:30.5Z'},
+    ];
+
+    const sorted = fromContract(parseSnapshot({...sample, events}));
+
+    expect(sorted.overview.events.map(event => event.id)).toEqual([
+      'later',
+      'whole-second',
+    ]);
+  });
+
   it('maps pull requests, links, events and sources', () => {
     expect(
       page.development.pullRequests.map(pr => [pr.number, pr.status])

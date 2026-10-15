@@ -39,7 +39,7 @@ describe('Overview page with the sample snapshot', () => {
       'https://github.com/example-org/example-repo/milestone/4'
     );
 
-    const blocked = card('Blocked items');
+    const blocked = card('Blocked in this sprint');
     expect(blocked).toHaveTextContent('1');
     expect(within(blocked).getByRole('link')).toHaveAttribute(
       'href',
@@ -90,7 +90,7 @@ describe('Overview page with the sample snapshot', () => {
     });
 
     expect(card('Sprint progress')).toHaveTextContent('No active sprint');
-    expect(card('Blocked items')).toHaveTextContent('0');
+    expect(card('Blocked in this sprint')).toHaveTextContent('0');
     expect(card('Latest release')).toHaveTextContent('No release yet');
     expect(card('Current status')).toHaveTextContent('No blockers');
     expect(card('Current status')).toHaveTextContent('Nothing in progress');

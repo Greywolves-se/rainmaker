@@ -56,7 +56,7 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
       awsCost: null,
       release: latestRelease(snapshot.releases),
       events: [...snapshot.events]
-        .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+        .sort((a, b) => newestFirst(a.occurredAt, b.occurredAt))
         .map(event => ({
           id: event.id,
           title: event.title,
@@ -172,10 +172,15 @@ function toLinkedItem(item: WorkItem): LinkedItem {
   };
 }
 
+/** Compares timestamps by time, so "…30.5Z" and "…30Z" sort correctly (text order would not). */
+function newestFirst(a: string, b: string): number {
+  return Date.parse(b) - Date.parse(a);
+}
+
 /** The most recently published release, in any environment. */
 function latestRelease(releases: ContractSnapshot['releases']) {
   const [latest] = [...releases].sort((a, b) =>
-    b.publishedAt.localeCompare(a.publishedAt)
+    newestFirst(a.publishedAt, b.publishedAt)
   );
   return latest
     ? {

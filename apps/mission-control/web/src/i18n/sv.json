@@ -93,7 +93,7 @@
   "overview": {
     "sprintProgress": "Sprintens framsteg",
     "sprintDone": "{{done}} av {{total}} klara",
-    "blockedItems": "Blockerade ärenden",
+    "blockedItems": "Blockerat i sprinten",
     "seeDevelopment": "Se sidan Utveckling",
     "latestRelease": "Senaste release",
     "noRelease": "Ingen release än",
@@ -104,7 +104,7 @@
     "milestonePassed": "Passerat",
     "nothingDone": "Inget klart än",
     "nothingInProgress": "Inget pågår",
-    "noBlockers": "Inga blockerare",
+    "noBlockers": "Inget blockerat",
     "noEvents": "Inga händelser än",
     "eventMeta": "{{source}} · {{ago}}",
     "noPilots": "Inga piloter än",

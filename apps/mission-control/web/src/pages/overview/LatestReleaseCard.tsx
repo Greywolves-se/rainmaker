@@ -1,5 +1,5 @@
 import {useTranslation} from 'react-i18next';
-import {SourceLink} from '../../components/SourceLink';
+import {isWebUrl} from '../../components/SourceLink';
 import {UnavailableAction} from '../../components/UnavailableAction';
 import type {Snapshot} from '../../data/types';
 import {formatAge} from '../../i18n/format';
@@ -40,11 +40,20 @@ function ReleaseDetails({release}: {release: NonNullable<Release>}) {
         <UnavailableAction className="button button--primary">
           {t('overview.openDemo')}
         </UnavailableAction>
-        <SourceLink url={release.url}>
-          <span className="button button--ghost-dark">
+        {isWebUrl(release.url) ? (
+          <a
+            className="button button--ghost-dark"
+            href={release.url}
+            target="_blank"
+            rel="noreferrer"
+          >
             {t('overview.releaseNotes')}
-          </span>
-        </SourceLink>
+          </a>
+        ) : (
+          <UnavailableAction className="button button--ghost-dark">
+            {t('overview.releaseNotes')}
+          </UnavailableAction>
+        )}
       </div>
     </>
   );

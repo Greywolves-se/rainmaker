@@ -47,7 +47,7 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     inProgress: [
       {
         id: 'progress-1',
-        title: 'Sprint 2 – 75% done',
+        title: 'Sprint 2 – 2 of 7 stories done',
         meta: 'GitHub · 7 stories',
         url: null,
       },
@@ -505,13 +505,13 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
   navigator: {
     summaryTime: '10:20',
     summary:
-      'Rainmaker: green. Sprint 2 is 75% done. Two open blockers. New architecture file from Simon in Drive. Three PRs awaiting review. Pilot starts in 6 days. No critical outage.',
+      'Rainmaker: green. Sprint 2: 2 of 7 stories done. Two open blockers. New architecture file from Simon in Drive. Three PRs awaiting review. Pilot starts in 6 days. No critical outage.',
     projects: [
       {
         id: 'nav-project-1',
         title: 'Rainmaker',
         health: 'green',
-        text: 'Sprint 2 is 75% done. Three PRs awaiting review.',
+        text: 'Sprint 2: 2 of 7 stories done. Three PRs awaiting review.',
       },
       {
         id: 'nav-project-2',

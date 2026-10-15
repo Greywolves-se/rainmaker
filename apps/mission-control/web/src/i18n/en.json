@@ -93,7 +93,7 @@
   "overview": {
     "sprintProgress": "Sprint progress",
     "sprintDone": "{{done}} of {{total}} done",
-    "blockedItems": "Blocked items",
+    "blockedItems": "Blocked in this sprint",
     "seeDevelopment": "See the Development page",
     "latestRelease": "Latest release",
     "noRelease": "No release yet",

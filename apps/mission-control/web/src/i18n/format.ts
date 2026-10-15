@@ -56,15 +56,16 @@ export function formatAge(
   return format.format(-Math.round(hours / 24), 'day');
 }
 
-/** Whole days from today (UTC calendar day of `now`) to a date like "2026-12-18"; negative when passed. */
+/** Whole days from today in Stockholm to a date like "2026-12-18"; negative when passed. */
 export function daysUntil(isoDate: string, now: number): number {
-  const today = new Date(now);
-  const startOfToday = Date.UTC(
-    today.getUTCFullYear(),
-    today.getUTCMonth(),
-    today.getUTCDate()
-  );
-  return Math.round((Date.parse(isoDate) - startOfToday) / 86_400_000);
+  // sv-SE writes dates as YYYY-MM-DD, so this is today's Stockholm date in the same form.
+  const today = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+  return Math.round((Date.parse(isoDate) - Date.parse(today)) / 86_400_000);
 }
 
 /** "2026-10" → "October" / "oktober". (Example)*/

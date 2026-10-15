@@ -2,6 +2,7 @@
  * Shape of the data the pages render. The contract snapshot is mapped to it in fromContract.ts;
  * null means the contract has no data for that part yet and the page shows an empty state.
  */
+import type {Release} from '../contract/snapshot';
 
 /** Short code shown in a source tile (GH, GD …). Open-ended, like the contract's sources. */
 export type SourceCode = string;
@@ -87,7 +88,8 @@ export interface Snapshot {
     awsCost: {month: string; amountSek: number | null} | null;
     release: {
       version: string;
-      environment: string;
+      /** The contract's values (dev, uat, prod), so a new one fails the type check. */
+      environment: Release['environment'];
       publishedAt: string;
       url: string | null;
     } | null;

@@ -8,7 +8,7 @@ import {useNow} from '../../layout/useNow';
 
 type Overview = Snapshot['overview'];
 
-/** Sprint progress, blocked items, latest release and one countdown per key date. */
+/** Sprint progress, items blocked in this sprint, latest release and one countdown per key date. */
 export function KpiCards({overview}: {overview: Overview}) {
   const {t} = useTranslation();
   const {sprint, release} = overview;
