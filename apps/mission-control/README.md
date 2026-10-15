@@ -38,7 +38,7 @@ docker compose down           # stop; add -v to also delete the snapshot volume
 
 The collector runs once and writes `snapshot.json` to a shared volume; the web container (nginx, port 8080) serves it at `/snapshot.json`. Both containers run as non-root users. `data/` is mounted read-only into the collector.
 
-Images are built from the repository root (`collector/Dockerfile`, `web/Dockerfile`). The workflow `.github/workflows/docker.yml` builds them on pull requests and pushes them to Docker Hub on `develop` and `main` (repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`). An image is skipped until its source exists (#7, #8).
+Images are built from the repository root (`collector/Dockerfile`, `web/Dockerfile`). The workflow `.github/workflows/docker.yml` builds them on pull requests and pushes them to Docker Hub on `develop` and `main` (repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`). An image is skipped until its source exists: the web image is built, the collector image is skipped until the collector exists (#7).
 
 ## Work
 All issues have the label `mission-control` and the milestone "Mission Control V1". Epics: #1 Foundation, #2 Data collection, #3 Dashboard, #4 Summaries and onboarding, #5 Quality and docs. Later work: #32.

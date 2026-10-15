@@ -10,7 +10,8 @@ import {
   ClockIcon,
   TrendIcon,
 } from '../components/icons';
-import type {Snapshot, TitledItem} from '../data/types';
+import {STATUS_TONE} from '../data/statusTone';
+import type {Snapshot, StatusCode, TitledItem} from '../data/types';
 import {useSnapshot} from '../data/useSnapshot';
 import {formatAlternatives, formatMonth, formatSek} from '../i18n/format';
 
@@ -34,17 +35,28 @@ export function OverviewPage() {
   );
 }
 
-function KpiCards({overview}: {overview: Overview}) {
+/** Big status text in a KPI card. Colour follows STATUS_TONE; the icon defaults to a dot. */
+function KpiStatus({status, icon}: {status: StatusCode; icon?: ReactNode}) {
+  const {t} = useTranslation();
+  const tone = STATUS_TONE[status];
+  return (
+    <div className={`kpi__value kpi__value--${tone}`}>
+      {icon ?? (
+        <span className={`dot dot--large dot--${tone}`} aria-hidden="true" />
+      )}
+      {t(`status.${status}`)}
+    </div>
+  );
+}
+
+export function KpiCards({overview}: {overview: Overview}) {
   const {t} = useTranslation();
   const {project, operations, business, pilots} = overview;
   return (
     <div className="grid grid--kpi">
       <section className="card card--kpi">
         <h2 className="kpi__label">{t('overview.projectStatus')}</h2>
-        <div className="kpi__value kpi__value--green">
-          <span className="dot dot--large dot--green" aria-hidden="true" />
-          {t(`status.${project.status}`)}
-        </div>
+        <KpiStatus status={project.status} />
         <span className="kpi__note">
           {t('overview.sprintProgress', {
             sprint: project.sprint,
@@ -60,18 +72,12 @@ function KpiCards({overview}: {overview: Overview}) {
       </section>
       <section className="card card--kpi">
         <h2 className="kpi__label">{t('overview.operations')}</h2>
-        <div className="kpi__value kpi__value--green">
-          <span className="dot dot--large dot--green" aria-hidden="true" />
-          {t(`status.${operations.status}`)}
-        </div>
+        <KpiStatus status={operations.status} />
         <span className="kpi__note">{operations.note}</span>
       </section>
       <section className="card card--kpi">
         <h2 className="kpi__label">{t('overview.businessStatus')}</h2>
-        <div className="kpi__value kpi__value--blue">
-          <TrendIcon />
-          {t(`status.${business.status}`)}
-        </div>
+        <KpiStatus status={business.status} icon={<TrendIcon />} />
         <span className="kpi__note">{business.note}</span>
       </section>
       <section className="card card--kpi">
@@ -137,7 +143,7 @@ function StatusColumn({
         {heading}
       </h3>
       {items.map(item => (
-        <ItemText key={item.title} title={item.title} meta={item.meta} />
+        <ItemText key={item.id} title={item.title} meta={item.meta} />
       ))}
     </div>
   );
@@ -150,7 +156,7 @@ function Decisions({overview}: {overview: Overview}) {
     <section className="card">
       <h2 className="card__title">{t('overview.decisionsFor', {names})}</h2>
       {overview.decisions.map(decision => (
-        <div key={decision.title} className="row row--top">
+        <div key={decision.id} className="row row--top">
           <span className="avatar" aria-hidden="true">
             {decision.initial}
           </span>
@@ -177,7 +183,7 @@ function RisksPilotsCost({overview}: {overview: Overview}) {
     <section className="card">
       <h2 className="card__title">{t('overview.risksPilotsCost')}</h2>
       {overview.pilotList.map(pilot => (
-        <div key={pilot.title} className="row row--spread">
+        <div key={pilot.id} className="row row--spread">
           <ItemText title={pilot.title} meta={pilot.meta} />
           <StatusPill status={pilot.status} />
         </div>
@@ -229,7 +235,7 @@ function RecentEvents({events}: {events: Overview['events']}) {
         <UnavailableAction>{t('overview.viewAll')}</UnavailableAction>
       </div>
       {events.map(event => (
-        <div key={event.title} className="row row--plain">
+        <div key={event.id} className="row row--plain">
           <SourceTile code={event.source} size="medium" />
           <div className="row__grow">
             <ItemText title={event.title} meta={event.meta} />
