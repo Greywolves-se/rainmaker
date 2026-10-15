@@ -83,7 +83,9 @@ describe('App', () => {
       'Översikt'
     );
     expect(document.title).toBe('Översikt – Mission Control');
-    expect(screen.getByText('ons 14 okt. 2026 · 10:24')).toBeInTheDocument();
+    expect(
+      screen.getByText('Senast uppdaterad: ons 14 okt. 2026 · 10:24')
+    ).toBeInTheDocument();
     expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('sv');
   });
 });

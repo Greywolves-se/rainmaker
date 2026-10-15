@@ -20,7 +20,7 @@
     "searchLabel": "Search",
     "searchPlaceholder": "Search Drive, GitHub, Slack, AWS …",
     "notAvailable": "Not available in V1",
-    "timestamp": "{{day}} · {{time}}"
+    "timestamp": "Last updated: {{day}} · {{time}}"
   },
   "language": {
     "label": "Language",
