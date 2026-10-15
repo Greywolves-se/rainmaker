@@ -11,15 +11,22 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties.SourceSettings;
+import se.rainmaker.missioncontrol.collector.snapshot.ContractFiles;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
+import se.rainmaker.missioncontrol.collector.snapshot.SnapshotValidator;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
 import se.rainmaker.missioncontrol.collector.snapshot.WorkItem;
 
+@ExtendWith(OutputCaptureExtension.class)
 class CollectorPipelineTest {
 
   private static final Instant NOW = Instant.parse("2026-10-15T06:00:00Z");
   private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
+  private static final SnapshotValidator VALIDATOR = new SnapshotValidator();
 
   @Test
   void oneFailingSourceDoesNotStopTheOthers() {
@@ -122,10 +129,75 @@ class CollectorPipelineTest {
         .hasMessageContaining("GitHub");
   }
 
+  @Test
+  void refusesSourceWithoutName() {
+    SourceCollector nameless =
+        new SourceCollector() {
+          @Override
+          public String id() {
+            return "nameless";
+          }
+
+          @Override
+          public String name() {
+            return " ";
+          }
+
+          @Override
+          public void collect(SnapshotBuilder snapshot) {}
+        };
+
+    assertThatThrownBy(() -> pipeline(Map.of(), nameless))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("nameless");
+  }
+
+  @Test
+  void sourceWithDataThatBreaksTheContractIsAnErrorAndOthersAreKept() {
+    FakeSource good = FakeSource.withId("alpha").withWorkItem("1");
+    FakeSource bad = FakeSource.withId("beta").withWorkItem("2").withInvalidWorkItem("3");
+
+    Snapshot snapshot = pipeline(Map.of(), good, bad).run();
+
+    assertThat(snapshot.workItems()).extracting(WorkItem::id).containsExactly("1");
+    Source result = snapshot.sources().get(1);
+    assertThat(result.status()).isEqualTo(Source.Status.ERROR);
+    assertThat(result.message())
+        .contains("invalid data at")
+        .contains("/workItems/1/url")
+        .contains("format")
+        .doesNotContain("ghp_secret");
+  }
+
+  @Test
+  void sourceExceptionWithoutMessageStillGetsOne() {
+    FakeSource broken = FakeSource.withId("broken").failingWith(new SourceException(" "));
+
+    assertThat(pipeline(Map.of(), broken).run().sources().getFirst().message())
+        .isEqualTo("Source failed");
+  }
+
+  @Test
+  void warnsAboutSettingsForSourcesThatDoNotExist(CapturedOutput output) {
+    pipeline(Map.of("githb", new SourceSettings(false)), FakeSource.withId("github"));
+
+    assertThat(output.getOut())
+        .contains("settings name sources that do not exist")
+        .contains("githb");
+  }
+
+  @Test
+  void sourceIdPatternIsTheSameAsInTheSchema() {
+    String schemaPattern =
+        ContractFiles.schemaTree().get("$defs").get("sourceId").get("pattern").asString();
+
+    assertThat(CollectorPipeline.SOURCE_ID.pattern()).isEqualTo(schemaPattern);
+  }
+
   private static CollectorPipeline pipeline(
       Map<String, SourceSettings> settings, SourceCollector... sources) {
     CollectorProperties properties =
         new CollectorProperties("Example project", Path.of("unused.json"), settings);
-    return new CollectorPipeline(List.of(sources), properties, CLOCK);
+    return new CollectorPipeline(List.of(sources), properties, VALIDATOR, CLOCK);
   }
 }

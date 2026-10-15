@@ -47,13 +47,12 @@
         <version>${archunit.version}</version>
         <scope>test</scope>
       </dependency>
-      <!-- Contract tests against JSON Schemas (e.g. the Mission Control snapshot, #10).
-           Uses Jackson 3, like Spring Boot 4. -->
+      <!-- Validation against JSON Schemas (e.g. the Mission Control snapshot, #10, #11).
+           Uses Jackson 3, like Spring Boot 4. No scope here: modules choose test or runtime. -->
       <dependency>
         <groupId>com.networknt</groupId>
         <artifactId>json-schema-validator</artifactId>
         <version>${json-schema-validator.version}</version>
-        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>

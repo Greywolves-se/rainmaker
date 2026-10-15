@@ -43,7 +43,7 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 **Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method adds items to the `SnapshotBuilder` it is given. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
 
 ## CI
-`.github/workflows/mission-control-ci.yml` runs on pull requests and pushes to `develop` and `main` that change `apps/mission-control/**`. The web job (lint, typecheck, tests, build on Node 22) only runs when `web/` or `contract/` changed. A collector job is added once the collector has a `pom.xml` (#7).
+`.github/workflows/mission-control-ci.yml` runs on pull requests and pushes to `develop` and `main` that change `apps/mission-control/**`. The web job (lint, typecheck, tests, build on Node 22) only runs when `web/` or `contract/` changed. The collector job (format, Checkstyle, tests) runs when `collector/`, `contract/`, `data/` or the Maven setup changed.
 
 ## Run with Docker
 Needs only Docker; no local Java, Maven or Node. Run from this folder:

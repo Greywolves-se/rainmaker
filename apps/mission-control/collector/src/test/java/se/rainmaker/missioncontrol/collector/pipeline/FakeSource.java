@@ -24,18 +24,13 @@ public final class FakeSource implements SourceCollector {
 
   /** Adds a work item with this id when collected. */
   public FakeSource withWorkItem(String workItemId) {
-    workItems.add(
-        new WorkItem(
-            workItemId,
-            "Work item " + workItemId,
-            WorkItem.Status.TODO,
-            List.of(),
-            List.of(),
-            false,
-            Instant.parse("2026-10-15T08:00:00Z"),
-            null,
-            id,
-            "https://github.com/example-org/example-repo/issues/" + workItemId));
+    workItems.add(workItem(workItemId, "https://github.com/example-org/example-repo/issues/1"));
+    return this;
+  }
+
+  /** Adds a work item whose url breaks the contract (and contains a value to keep out of logs). */
+  public FakeSource withInvalidWorkItem(String workItemId) {
+    workItems.add(workItem(workItemId, "not a url ghp_secret"));
     return this;
   }
 
@@ -58,6 +53,20 @@ public final class FakeSource implements SourceCollector {
   @Override
   public String name() {
     return "Fake " + id;
+  }
+
+  private WorkItem workItem(String workItemId, String url) {
+    return new WorkItem(
+        workItemId,
+        "Work item " + workItemId,
+        WorkItem.Status.TODO,
+        List.of(),
+        List.of(),
+        false,
+        Instant.parse("2026-10-15T08:00:00Z"),
+        null,
+        id,
+        url);
   }
 
   @Override

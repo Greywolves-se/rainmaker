@@ -1,5 +1,6 @@
 package se.rainmaker.missioncontrol.collector;
 
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
+import se.rainmaker.missioncontrol.collector.snapshot.SnapshotValidator;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotWriter;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
 
@@ -22,12 +24,17 @@ class CollectorRunner implements CommandLineRunner {
   private static final Logger log = LoggerFactory.getLogger(CollectorRunner.class);
 
   private final CollectorPipeline pipeline;
+  private final SnapshotValidator validator;
   private final SnapshotWriter writer;
   private final CollectorProperties properties;
 
   CollectorRunner(
-      CollectorPipeline pipeline, SnapshotWriter writer, CollectorProperties properties) {
+      CollectorPipeline pipeline,
+      SnapshotValidator validator,
+      SnapshotWriter writer,
+      CollectorProperties properties) {
     this.pipeline = pipeline;
+    this.validator = validator;
     this.writer = writer;
     this.properties = properties;
   }
@@ -38,6 +45,12 @@ class CollectorRunner implements CommandLineRunner {
         MDC.putCloseable("correlation_id", UUID.randomUUID().toString())) {
       log.info("collector started");
       Snapshot snapshot = pipeline.run();
+      // Last line of defence: every source's data was already checked, so this only fails on a
+      // bug in the pipeline itself. Nothing is written then, and the previous snapshot stays.
+      List<String> problems = validator.problems(snapshot);
+      if (!problems.isEmpty()) {
+        throw new IllegalStateException("Snapshot does not match the contract: " + problems);
+      }
       writer.write(snapshot, properties.output());
       log.atInfo()
           .addKeyValue("output", properties.output().toString())

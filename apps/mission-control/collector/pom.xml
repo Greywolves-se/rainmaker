@@ -24,19 +24,34 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-jackson</artifactId>
     </dependency>
+    <!-- Checks every source's data against the snapshot schema before it is written (#11). -->
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.networknt</groupId>
-      <artifactId>json-schema-validator</artifactId>
-    </dependency>
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <!-- The contract schema is packed into the jar (classpath: contract/snapshot.schema.json),
+           so the collector validates against the same file as the tests. -->
+      <resource>
+        <directory>../contract</directory>
+        <includes>
+          <include>snapshot.schema.json</include>
+        </includes>
+        <targetPath>contract</targetPath>
+      </resource>
+    </resources>
     <plugins>
       <!-- Packages an executable jar (java -jar), used by collector/Dockerfile. -->
       <plugin>
