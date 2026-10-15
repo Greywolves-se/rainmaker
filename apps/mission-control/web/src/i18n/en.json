@@ -13,6 +13,9 @@
     "dataSources": "Data sources",
     "synced": "{{synced}} of {{total}} synced"
   },
+  "sampleData": {
+    "banner": "Sample data – not real project status"
+  },
   "topBar": {
     "searchLabel": "Search",
     "searchPlaceholder": "Search Drive, GitHub, Slack, AWS …",

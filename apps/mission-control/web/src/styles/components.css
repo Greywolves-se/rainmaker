@@ -83,6 +83,18 @@
   color: var(--color-link);
 }
 
+.kpi__value--red {
+  color: var(--color-red-text);
+}
+
+.kpi__value--amber {
+  color: var(--color-amber-text);
+}
+
+.kpi__value--grey {
+  color: var(--color-text-muted);
+}
+
 .kpi__note {
   color: var(--color-text-muted);
   font-size: 13px;
@@ -131,8 +143,21 @@
   background: var(--color-green);
 }
 
-.dot--yellow {
+.dot--yellow,
+.dot--amber {
   background: var(--color-amber-dot);
+}
+
+.dot--blue {
+  background: var(--color-primary);
+}
+
+.dot--red {
+  background: #d64534;
+}
+
+.dot--grey {
+  background: #8a97a8;
 }
 
 .status-column {

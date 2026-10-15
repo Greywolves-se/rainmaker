@@ -40,6 +40,18 @@ describe('App', () => {
     );
   });
 
+  it('shows the sample-data banner on every page', async () => {
+    renderApp();
+    const menu = screen.getByRole('navigation', {name: 'Main menu'});
+
+    for (const page of ['Overview', 'Development', 'Sources']) {
+      await userEvent.click(within(menu).getByRole('link', {name: page}));
+      expect(screen.getByRole('note')).toHaveTextContent(
+        'Sample data – not real project status'
+      );
+    }
+  });
+
   it('sends unknown paths to the overview', () => {
     renderApp({path: '/does-not-exist'});
 

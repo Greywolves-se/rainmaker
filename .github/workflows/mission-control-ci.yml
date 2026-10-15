@@ -1,0 +1,82 @@
+# Builds and tests Mission Control on pull requests and on pushes to develop and main.
+# - The workflow only runs when apps/mission-control/** (or this file) changes.
+# - The "changes" job decides which of the jobs below have to run, so a PR that only
+#   touches the web app runs only the web job.
+# - Collector job: added once the collector has a pom.xml (#7).
+
+name: Mission Control CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "apps/mission-control/**"
+      - ".github/workflows/mission-control-ci.yml"
+  push:
+    branches: [develop, main]
+    paths:
+      - "apps/mission-control/**"
+      - ".github/workflows/mission-control-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mission-control-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.diff.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare with the base commit
+        id: diff
+        env:
+          # Pull request: compare with the target branch. Push: compare with the previous commit.
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          # A brand-new branch has no previous commit; then run every job.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "$BASE" "$GITHUB_SHA")
+          echo "Changed files:"
+          echo "$changed"
+          if echo "$changed" | grep -qE '^(apps/mission-control/(web|contract)/|\.github/workflows/mission-control-ci\.yml$)'; then
+            echo "web=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "web=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  web:
+    name: Web (lint, typecheck, test, build)
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mission-control/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mission-control/web/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - run: npm test
+      - name: Build
+        run: npx vite build

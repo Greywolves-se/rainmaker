@@ -42,7 +42,7 @@ function PullRequests({
     <section className="card">
       <h2 className="card__title">{t('development.pullRequests')}</h2>
       {pullRequests.map(pullRequest => (
-        <div key={pullRequest.number} className="row row--spread">
+        <div key={pullRequest.id} className="row row--spread">
           <ItemText
             title={
               <>
@@ -89,8 +89,8 @@ function LatestBuild({build}: {build: Development['build']}) {
         <BuildFact label={t('development.staging')} value={build.staging} />
       </div>
       <ul className="build__steps">
-        {build.steps.map(step => (
-          <li key={step}>{t('development.stepPassed', {step})}</li>
+        {build.steps.map((step, index) => (
+          <li key={index}>{t('development.stepPassed', {step})}</li>
         ))}
       </ul>
     </section>
@@ -112,7 +112,7 @@ function TechDecisions({decisions}: {decisions: Development['techDecisions']}) {
     <section className="card">
       <h2 className="card__title">{t('development.techDecisions')}</h2>
       {decisions.map(decision => (
-        <div key={decision.title} className="row row--top row--spread">
+        <div key={decision.id} className="row row--top row--spread">
           <ItemText title={decision.title} meta={decision.meta} />
           <StatusPill status={decision.status} />
         </div>
@@ -135,7 +135,7 @@ function Questions({
         {t('development.questionsFor', {audience})}
       </h2>
       {questions.map(question => (
-        <div key={question.title} className="row row--top question">
+        <div key={question.id} className="row row--top question">
           <div className="question__tags">
             <StatusPill status={question.status} />
             <span className="item__meta">{question.audience}</span>
@@ -154,7 +154,7 @@ function Environments({links}: {links: Development['links']}) {
       <h2 className="card__title">{t('development.environments')}</h2>
       <div className="link-grid">
         {links.map(link => (
-          <div key={link.title} className="link-tile">
+          <div key={link.id} className="link-tile">
             <span className="strong">{link.title}</span>
             <span className="item__meta">{link.meta}</span>
           </div>

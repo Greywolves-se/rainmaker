@@ -5,13 +5,16 @@
     "documentTitle": "{{page}} – Mission Control"
   },
   "nav": {
-    "mainMenu": "Huvudmeny",
+    "mainMenu": "Huvudmeny Test",
     "overview": "Översikt",
     "development": "Utveckling",
-    "sources": "Källor",
+    "sources": "Källor Test",
     "projects": "Projekt",
     "dataSources": "Datakällor",
     "synced": "{{synced}} av {{total}} synkade"
+  },
+  "sampleData": {
+    "banner": "Exempeldata – inte verklig projektstatus"
   },
   "topBar": {
     "searchLabel": "Sök",
