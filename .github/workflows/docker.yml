@@ -2,6 +2,9 @@
 # - Pull requests: build only (proves the Dockerfiles work), nothing is pushed and no AWS access.
 # - Push to develop: build and push to ECR in the staging account (GitHub environment "staging"),
 #   then roll the ECS service mission-control-web onto the new image (job "deploy-staging").
+#   The staging web image carries a fresh snapshot: the collector runs first and its
+#   snapshot.json is copied into the image (#17). It is also kept as a workflow artifact.
+# - Weekday mornings and manual runs on develop do the same, so staging gets fresh data.
 # - Push to main: build and push to ECR in the production account (GitHub environment "production",
 #   which requires a reviewer to approve the run before it starts). Production is not deployed
 #   automatically.
@@ -34,6 +37,10 @@ on:
       - ".mvn/**"
       - ".dockerignore"
       - ".github/workflows/docker.yml"
+  # Weekday mornings (07:00 Stockholm summer time): rebuild staging with a fresh snapshot (#17).
+  # Scheduled runs use the default branch, develop.
+  schedule:
+    - cron: "0 5 * * 1-5"
   workflow_dispatch:
 
 permissions:
@@ -60,6 +67,7 @@ jobs:
     permissions:
       contents: read
       id-token: write # lets the job request a GitHub OIDC token to assume the AWS role
+      issues: read # the collector's GitHub source reads issues and milestones (#12, #17)
     strategy:
       fail-fast: false
       matrix:
@@ -73,6 +81,9 @@ jobs:
     env:
       # Only develop and main publish images; pull requests and other branches only build.
       PUSH: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') }}
+      # Only the staging web image carries the collector's snapshot (#17). Production and pull
+      # request images never do.
+      BAKE_SNAPSHOT: ${{ matrix.image == 'web' && github.event_name != 'pull_request' && github.ref == 'refs/heads/develop' }}
       REPOSITORY: rainmaker-mission-control-${{ matrix.image }}
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +97,31 @@ jobs:
             echo "present=false" >> "$GITHUB_OUTPUT"
             echo "::notice title=${{ matrix.image }} image skipped::${{ matrix.source }} does not exist yet, so there is nothing to build."
           fi
+
+      - uses: actions/setup-java@v4
+        if: env.BAKE_SNAPSHOT == 'true'
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      # Writes apps/mission-control/out/snapshot.json. If the run fails, the job fails and staging
+      # keeps the image it already runs instead of getting one without data.
+      - name: Collect the snapshot
+        if: env.BAKE_SNAPSHOT == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./mvnw -B -ntp -q -f apps/mission-control/pom.xml -pl collector -am package -DskipTests
+          java -jar apps/mission-control/collector/target/collector-*.jar
+          test -s apps/mission-control/out/snapshot.json
+
+      - uses: actions/upload-artifact@v4
+        if: env.BAKE_SNAPSHOT == 'true'
+        with:
+          name: snapshot
+          path: apps/mission-control/out/snapshot.json
+          retention-days: 14
 
       - uses: docker/setup-buildx-action@v3
         if: steps.source.outputs.present == 'true'
@@ -122,8 +158,13 @@ jobs:
           push: ${{ env.PUSH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          # The staging web image gets the snapshot through its own build context (see
+          # web/Dockerfile); .dockerignore keeps out/ out of the main context.
+          build-contexts: ${{ env.BAKE_SNAPSHOT == 'true' && 'snapshot=apps/mission-control/out' || '' }}
+          # Images with a snapshot use their own cache, so no other build can reuse a layer
+          # that contains one.
+          cache-from: type=gha,scope=${{ matrix.image }}${{ env.BAKE_SNAPSHOT == 'true' && '-staging' || '' }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}${{ env.BAKE_SNAPSHOT == 'true' && '-staging' || '' }}
 
   deploy-staging:
     name: Deploy web to staging
