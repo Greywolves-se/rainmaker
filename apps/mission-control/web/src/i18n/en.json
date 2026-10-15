@@ -18,6 +18,11 @@
     "searchPlaceholder": "Search Drive, GitHub, Slack, AWS …",
     "notAvailable": "Not available in V1"
   },
+  "language": {
+    "label": "Language",
+    "sv": "Svenska",
+    "en": "English"
+  },
   "pages": {
     "overview": {
       "title": "Overview",

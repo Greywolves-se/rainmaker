@@ -1,6 +1,7 @@
 import {useTranslation} from 'react-i18next';
 import {SearchIcon} from '../components/icons';
 import {formatTimestamp} from '../i18n/format';
+import {LanguageSwitch} from './LanguageSwitch';
 
 export function TopBar({generatedAt}: {generatedAt: string}) {
   const {t, i18n} = useTranslation();
@@ -24,6 +25,7 @@ export function TopBar({generatedAt}: {generatedAt: string}) {
       <time className="clock" dateTime={generatedAt}>
         {formatTimestamp(generatedAt, i18n.language)}
       </time>
+      <LanguageSwitch />
     </header>
   );
 }

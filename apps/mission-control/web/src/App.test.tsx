@@ -1,9 +1,14 @@
 import {screen, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it} from 'vitest';
+import {LANGUAGE_STORAGE_KEY} from './i18n/i18n';
 import {renderApp} from './test/renderApp';
 
 describe('App', () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it('starts on the overview page', () => {
     renderApp();
 
@@ -55,5 +60,18 @@ describe('App', () => {
       'aria-pressed',
       'true'
     );
+  });
+
+  it('switches language and remembers the choice', async () => {
+    renderApp();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Svenska'}));
+
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
+      'Översikt'
+    );
+    expect(document.title).toBe('Översikt – Mission Control');
+    expect(screen.getByText(/14 okt\. 2026/)).toBeInTheDocument();
+    expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('sv');
   });
 });
