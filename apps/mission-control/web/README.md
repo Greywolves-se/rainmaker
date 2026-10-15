@@ -17,11 +17,11 @@ Navigator panel on the right.
 
 ## Run it
 
-Needs Node.js 20 or newer.
+Needs Node.js 22 or newer.
 
 ```
-npm install
-npm run dev      # dev server on http://localhost:5173, reloads on save
+npm ci
+npm run dev      # local dev server
 npm run build    # type check + production build into dist/
 npm run lint     # ESLint with the gts (Google TypeScript style) rules
 npm run fix      # auto-fix lint and formatting

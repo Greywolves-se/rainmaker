@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Outlet, useLocation} from 'react-router-dom';
+import {Outlet, useLocation} from 'react-router';
 import {useSnapshot} from '../data/useSnapshot';
 import {Navigator} from './Navigator';
 import {pageForPath} from './pages';

@@ -1,5 +1,5 @@
 import {useTranslation} from 'react-i18next';
-import {NavLink} from 'react-router-dom';
+import {NavLink} from 'react-router';
 import {LogoIcon} from '../components/icons';
 import type {Snapshot} from '../data/types';
 import {PAGES} from './pages';
