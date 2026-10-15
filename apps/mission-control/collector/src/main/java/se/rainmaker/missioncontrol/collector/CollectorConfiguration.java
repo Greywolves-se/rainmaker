@@ -5,11 +5,16 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import se.rainmaker.missioncontrol.collector.datafiles.DataFilesProperties;
+import se.rainmaker.missioncontrol.collector.github.GithubProperties;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 
 /** Beans the collector needs besides its components. */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({CollectorProperties.class, DataFilesProperties.class})
+@EnableConfigurationProperties({
+  CollectorProperties.class,
+  DataFilesProperties.class,
+  GithubProperties.class
+})
 class CollectorConfiguration {
 
   /** UTC clock for timestamps; tests replace it with a fixed one. */
