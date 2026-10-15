@@ -128,6 +128,8 @@ as finished or "production-ready" without this review.
   set up for Mission Control in #8).
 - Use constructor injection. NEVER `@Autowired` on fields.
 - Descriptive names. No abbreviations or names like `helper2`.
+- No one-letter words in method names (`A`, `I`): Checkstyle reads `refusesASource` as the
+  abbreviation `AS` and fails the build. Write `refusesSource` or `refusesUnknownSource`.
 - Small classes and methods with a single responsibility. No god classes.
 - No `TODO` without a linked issue number (`// TODO(#123): ...`).
 - Never commit secrets, API keys, or passwords. Secrets live in AWS Secrets Manager.
