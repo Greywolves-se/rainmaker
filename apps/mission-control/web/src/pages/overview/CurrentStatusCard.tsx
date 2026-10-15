@@ -1,8 +1,9 @@
 import type {ReactNode} from 'react';
 import {useTranslation} from 'react-i18next';
 import {ItemText} from '../../components/ItemText';
+import {SourceLink} from '../../components/SourceLink';
 import {BlockedIcon, CheckIcon, ClockIcon} from '../../components/icons';
-import type {Snapshot, TitledItem} from '../../data/types';
+import type {LinkedItem, Snapshot} from '../../data/types';
 
 type Overview = Snapshot['overview'];
 
@@ -22,6 +23,7 @@ export function CurrentStatusCard({overview}: {overview: Overview}) {
           icon={<CheckIcon />}
           heading={t('overview.doneCount', {count: overview.done.length})}
           items={overview.done}
+          empty={t('overview.nothingDone')}
         />
         <StatusColumn
           variant="progress"
@@ -30,12 +32,14 @@ export function CurrentStatusCard({overview}: {overview: Overview}) {
             count: overview.inProgress.length,
           })}
           items={overview.inProgress}
+          empty={t('overview.nothingInProgress')}
         />
         <StatusColumn
           variant="blocked"
           icon={<BlockedIcon />}
           heading={t('overview.blockedCount', {count: overview.blocked.length})}
           items={overview.blocked}
+          empty={t('overview.noBlockers')}
         />
       </div>
     </section>
@@ -47,11 +51,13 @@ function StatusColumn({
   icon,
   heading,
   items,
+  empty,
 }: {
   variant: 'done' | 'progress' | 'blocked';
   icon: ReactNode;
   heading: string;
-  items: TitledItem[];
+  items: LinkedItem[];
+  empty: string;
 }) {
   return (
     <div className={`status-column status-column--${variant}`}>
@@ -59,8 +65,13 @@ function StatusColumn({
         {icon}
         {heading}
       </h3>
+      {items.length === 0 && <p className="item__meta">{empty}</p>}
       {items.map(item => (
-        <ItemText key={item.id} title={item.title} meta={item.meta} />
+        <ItemText
+          key={item.id}
+          title={<SourceLink url={item.url}>{item.title}</SourceLink>}
+          meta={item.meta}
+        />
       ))}
     </div>
   );

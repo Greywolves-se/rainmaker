@@ -75,6 +75,11 @@
     "superseded": "Superseded",
     "disabled": "Disabled"
   },
+  "environment": {
+    "dev": "Development",
+    "uat": "UAT",
+    "prod": "Production"
+  },
   "storyStatus": {
     "todo": "To do",
     "inProgress": "In progress",
@@ -86,11 +91,25 @@
     "yellow": "yellow"
   },
   "overview": {
-    "projectStatus": "Project status",
-    "sprintProgress": "{{sprint}} · {{percent}}% done",
-    "operations": "Operations",
-    "businessStatus": "Business status",
-    "activePilots": "Active pilots",
+    "sprintProgress": "Sprint progress",
+    "sprintDone": "{{done}} of {{total}} done",
+    "blockedItems": "Blocked items",
+    "seeDevelopment": "See the Development page",
+    "latestRelease": "Latest release",
+    "noRelease": "No release yet",
+    "releaseMeta": "{{environment}} · {{ago}}",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left",
+    "milestoneToday": "Today",
+    "milestonePassed": "Passed",
+    "nothingDone": "Nothing done yet",
+    "nothingInProgress": "Nothing in progress",
+    "noBlockers": "No blockers",
+    "noEvents": "No events yet",
+    "eventMeta": "{{source}} · {{ago}}",
+    "noPilots": "No pilots yet",
+    "awsCostLabel": "AWS cost",
+    "notConnected": "Not connected yet",
     "currentStatus": "Current status",
     "currentStatusSources": "From GitHub, Drive and Slack",
     "doneCount": "Done · {{count}}",
@@ -106,8 +125,7 @@
     "latestVersion": "Latest working version",
     "openDemo": "Open demo",
     "releaseNotes": "Release notes",
-    "recentEvents": "Recent events",
-    "viewAll": "View all"
+    "recentEvents": "Recent events"
   },
   "development": {
     "sprintHeading": "{{name}} · {{dates}}",

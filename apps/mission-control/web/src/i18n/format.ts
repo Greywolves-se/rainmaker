@@ -56,6 +56,17 @@ export function formatAge(
   return format.format(-Math.round(hours / 24), 'day');
 }
 
+/** Whole days from today (UTC calendar day of `now`) to a date like "2026-12-18"; negative when passed. */
+export function daysUntil(isoDate: string, now: number): number {
+  const today = new Date(now);
+  const startOfToday = Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate()
+  );
+  return Math.round((Date.parse(isoDate) - startOfToday) / 86_400_000);
+}
+
 /** "2026-10" → "October" / "oktober". (Example)*/
 export function formatMonth(yearMonth: string, language: string): string {
   const [year, month] = yearMonth.split('-').map(Number);
