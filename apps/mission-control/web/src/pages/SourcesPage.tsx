@@ -1,4 +1,5 @@
 import {useTranslation} from 'react-i18next';
+import {NoData} from '../components/NoData';
 import {SourceTile} from '../components/SourceTile';
 import {StatusPill} from '../components/StatusPill';
 import {UnavailableAction} from '../components/UnavailableAction';
@@ -94,13 +95,15 @@ function SourceCard({card}: {card: Sources['cards'][number]}) {
         <SourceTile code={card.code} size="large" />
         <div className="row__grow item">
           <h3 className="source-card__title">{card.name}</h3>
-          <span className="item__meta">{card.account}</span>
+          {card.account && <span className="item__meta">{card.account}</span>}
         </div>
         <StatusPill status={card.status} />
       </div>
-      <p className="source-card__role">
-        {t('sources.role', {role: card.role})}
-      </p>
+      {card.role && (
+        <p className="source-card__role">
+          {t('sources.role', {role: card.role})}
+        </p>
+      )}
       <ul className="source-card__tags">
         {card.tags.map((tag, index) => (
           <li key={index} className="tag">
@@ -109,24 +112,27 @@ function SourceCard({card}: {card: Sources['cards'][number]}) {
         ))}
       </ul>
       <dl className="source-card__facts">
-        <div className="source-card__fact">
-          <dt>{t('sources.scope')}</dt>
-          <dd>{card.scope}</dd>
-        </div>
-        <div className="source-card__fact">
-          <dt>{t('sources.mapsTo')}</dt>
-          <dd>{card.mapsTo}</dd>
-        </div>
-        <div className="source-card__fact">
-          <dt>{t('sources.updates')}</dt>
-          <dd>{card.updates}</dd>
-        </div>
+        <SourceFact label={t('sources.scope')} value={card.scope} />
+        <SourceFact label={t('sources.mapsTo')} value={card.mapsTo} />
+        <SourceFact label={t('sources.updates')} value={card.updates} />
       </dl>
       <div className="row row--spread source-card__footer">
         <span className="item__meta">{card.lastSync}</span>
         <UnavailableAction>{t('sources.openSource')}</UnavailableAction>
       </div>
     </section>
+  );
+}
+
+function SourceFact({label, value}: {label: string; value: string | null}) {
+  if (!value) {
+    return null;
+  }
+  return (
+    <div className="source-card__fact">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
   );
 }
 
@@ -138,6 +144,7 @@ function Mapping({mapping}: {mapping: Sources['mapping']}) {
         <h2 className="card__title">{t('sources.howTheyConnect')}</h2>
         <span className="kpi__note">{t('sources.howTheyConnectSubtitle')}</span>
       </div>
+      {mapping.length === 0 && <NoData />}
       <div className="table-scroll">
         <table className="table table--wide">
           <thead>
@@ -167,6 +174,7 @@ function SyncLog({entries}: {entries: Sources['syncLog']}) {
   return (
     <section className="card">
       <h2 className="card__title">{t('sources.syncLog')}</h2>
+      {entries.length === 0 && <NoData />}
       {entries.map(entry => (
         <div key={entry.id} className="row sync-log__row">
           <span className="sync-log__time">{entry.time}</span>

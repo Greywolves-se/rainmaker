@@ -42,12 +42,16 @@ export function Sidebar({projects, sourceSummary}: SidebarProps) {
         <span className="project-list__heading">{t('nav.projects')}</span>
         {projects.map(project => (
           <div key={project.id} className="project-list__item">
-            <span
-              className={`dot dot--small dot--${project.health}`}
-              aria-hidden="true"
-            />
+            {project.health && (
+              <span
+                className={`dot dot--small dot--${project.health}`}
+                aria-hidden="true"
+              />
+            )}
             {project.name}
-            <span className="sr-only">{t(`health.${project.health}`)}</span>
+            {project.health && (
+              <span className="sr-only">{t(`health.${project.health}`)}</span>
+            )}
           </div>
         ))}
       </div>

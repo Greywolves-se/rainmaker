@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {useTranslation} from 'react-i18next';
+import {NoData} from '../components/NoData';
 import {SparkleIcon} from '../components/icons';
 import type {Snapshot} from '../data/types';
 
@@ -16,9 +17,11 @@ export function Navigator({navigator}: {navigator: Snapshot['navigator']}) {
         </span>
         <div className="item">
           <h2 className="navigator__title">{t('navigator.title')}</h2>
-          <span className="item__meta">
-            {t('navigator.summaryAt', {time: navigator.summaryTime})}
-          </span>
+          {navigator.summaryTime && (
+            <span className="item__meta">
+              {t('navigator.summaryAt', {time: navigator.summaryTime})}
+            </span>
+          )}
         </div>
       </div>
 
@@ -26,7 +29,7 @@ export function Navigator({navigator}: {navigator: Snapshot['navigator']}) {
         <span className="navigator__summary-label">
           {t('navigator.managementSummary')}
         </span>
-        <p>{navigator.summary}</p>
+        {navigator.summary ? <p>{navigator.summary}</p> : <NoData />}
       </div>
 
       <div className="navigator__projects">
@@ -49,6 +52,7 @@ export function Navigator({navigator}: {navigator: Snapshot['navigator']}) {
 
       <div className="navigator__section">
         <h3>{t('navigator.nextSteps')}</h3>
+        {navigator.nextSteps.length === 0 && <NoData />}
         <ol className="navigator__steps">
           {navigator.nextSteps.map((step, index) => (
             <li key={index}>{step}</li>
@@ -58,6 +62,7 @@ export function Navigator({navigator}: {navigator: Snapshot['navigator']}) {
 
       <div className="navigator__section">
         <h3>{t('navigator.ask')}</h3>
+        {navigator.questions.length === 0 && <NoData />}
         <div className="chips">
           {navigator.questions.map((entry, index) => (
             <button
@@ -71,9 +76,11 @@ export function Navigator({navigator}: {navigator: Snapshot['navigator']}) {
             </button>
           ))}
         </div>
-        <div className="answer" aria-live="polite">
-          {answer}
-        </div>
+        {answer && (
+          <div className="answer" aria-live="polite">
+            {answer}
+          </div>
+        )}
         {/* Free-text questions need an AI backend, which V1 does not have. */}
         <div className="ask-row">
           <label htmlFor="mc-ask" className="sr-only">
