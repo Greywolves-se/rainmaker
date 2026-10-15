@@ -1,4 +1,4 @@
-# Links to environments, dashboards and documents (filled in #16).
+# Links to environments, dashboards and documents.
 # Never put tokens or secrets in a link.
 # One item per link:
 #
@@ -6,4 +6,15 @@
 #   title: Repository
 #   category: document             # environment | dashboard | document | other
 #   url: https://github.com/Greywolves-se/rainmaker
-[]
+- id: repo
+  title: Repository
+  category: document
+  url: https://github.com/Greywolves-se/rainmaker
+- id: drive-project-files
+  title: Google Drive – Project files
+  category: document
+  url: https://drive.google.com/drive/folders/1zh8BBu_31YV7W2a0N_CELxMNXDOf0vBG
+- id: architecture
+  title: Rainmaker Solution Architecture v0.5
+  category: document
+  url: https://drive.google.com/file/d/11kHAGQyanVcWGsoWMC3NahM2XyzEiLux/view

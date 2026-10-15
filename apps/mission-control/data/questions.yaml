@@ -1,4 +1,4 @@
-# Open questions for the owners and the team (architecture section 13; filled in #16).
+# Open questions for the owners and the team (architecture section 13).
 # One item per question:
 #
 # - id: Q-1                        # unique
@@ -7,4 +7,162 @@
 #   neededBy: 2026-10-30           # optional, YYYY-MM-DD; overdue when passed and still open
 #   status: open                   # open | answered
 #   critical: true                 # optional, default false
-[]
+- id: C1
+  title: 'LIA period: 6 months, with the possibility to extend. (Needed by: Before start.)'
+  owner: Customer
+  status: answered
+- id: C2
+  title: 'Is UNT formally confirmed as pilot publisher, and who owns the decision there? Which CMS is used, and is there RSS, sitemap or API, and permission to add a script? (Needed by: Before start.)'
+  owner: Customer
+  status: open
+  critical: true
+- id: C3
+  title: 'How should the widget and the commercial link work on mobile? (Needed by: Before start.)'
+  owner: Customer
+  status: open
+  critical: true
+- id: C4
+  title: 'Revenue split between Rainmaker, publisher and partners in the different revenue tracks. (Needed by: Before Stripe.)'
+  owner: Customer (Staffan)
+  status: open
+- id: C5
+  title: 'How many AI suggestions and active links per article? (Proposal: configurable per publisher and pilot; default 3 suggestions / 2 links.) (Needed by: Nov.)'
+  owner: Customer
+  status: open
+- id: C6
+  title: 'How are green, yellow and red articles defined, and who approves the policy? Can the publisher provide about 200 labelled example articles? (Needed by: Nov.)'
+  owner: Customer
+  status: open
+- id: C7
+  title: 'How is QTI defined, which signals are included, and what minimum data volume is needed? (Needed by: Dec.)'
+  owner: Customer
+  status: open
+- id: C8
+  title: 'How are ads and commercial links labelled, in Swedish and possibly English? (Needed by: Nov.)'
+  owner: Customer
+  status: open
+- id: C9
+  title: 'Who is data controller and processor, and which rules apply for consent, cookies and retention? (Needed by: Nov.)'
+  owner: Customer (Staffan)
+  status: open
+- id: C10
+  title: 'Which affiliate network is tested first, and who owns the agreement? (After the pilot.) (Needed by: Feb.)'
+  owner: Customer (Staffan)
+  status: open
+- id: C11
+  title: 'Is the first pilot invoiced via Aurora, and in which currency? Stripe and automated settlement are evaluated after the business flow is verified. (Needed by: Dec.)'
+  owner: Customer (Staffan)
+  status: open
+- id: C12
+  title: 'Accounts and budget: Claude, ChatGPT and AWS accounts via Aurora where suitable, with budget alarms before use; monthly budget for cloud and AI (see 6.7). (Needed by: Before start.)'
+  owner: Customer (Staffan) / Simon
+  status: open
+- id: C13
+  title: 'Are NDA, student agreements and transfer of intellectual property complete before code or sensitive material is shared? (Needed by: Before start.)'
+  owner: Customer / Simon
+  status: open
+- id: C14
+  title: 'Friction Intelligence: yes – separate product and code base, pilot at Friskis & Svettis Uppsala; the main team can start in January.'
+  owner: Customer
+  status: answered
+- id: C15
+  title: 'Which advertisers or destinations are used in the pilot, and do they accept unpaid or manually settled traffic at first? (Needed by: Nov.)'
+  owner: Customer
+  status: open
+- id: C16
+  title: 'Support and on-call during the first pilot weeks, and the budget for monitoring. (Needed by: Dec.)'
+  owner: Customer
+  status: open
+- id: C17
+  title: 'Which editors and end users join the feedback group? (Needed by: Nov.)'
+  owner: Customer
+  status: open
+- id: C18
+  title: 'When is the pilot agreement ready, and exactly what is included in the pilot licence? (Needed by: Mid-Nov.)'
+  owner: Customer (Staffan)
+  status: open
+  critical: true
+- id: C19
+  title: 'Monetisation after the pilot: Stripe, full settlement and advertiser self-service – when, and by whom, given the team moves to Friction Intelligence? (Needed by: Feb.)'
+  owner: Customer
+  status: open
+- id: C20
+  title: 'Mission Control V1 scope: confirm the limited V1 in 10.6. (Needed by: Before start.)'
+  owner: Customer
+  status: open
+- id: C21
+  title: 'Contact persons at the pilot publisher for editorial, advertising, technology, legal and invoicing (8.3). (Needed by: Before start.)'
+  owner: Customer
+  status: open
+- id: D1
+  title: 'Deployable form for the 10 logical services → four deployable groups (modular monoliths), 5.2. (Needed by: Before start.)'
+  owner: Senior Dev
+  status: open
+- id: D2
+  title: 'ECS Fargate or EKS → ECS Fargate: no cluster to operate; EKS adds platform work the team does not need in the pilot. (Needed by: Before start.)'
+  owner: Senior Dev
+  status: open
+- id: D3
+  title: 'EventBridge + SQS or Kafka → EventBridge + SQS, only between groups. No concrete need for Kafka; revisit if event volume or replay needs grow. (Needed by: Sprint 0.)'
+  owner: Senior Dev
+  status: open
+- id: D4
+  title: 'PostgreSQL + pgvector or OpenSearch → pgvector. Revisit OpenSearch only if full-text search or vector volume (millions) requires it. (Needed by: Oct.)'
+  owner: Senior Dev
+  status: open
+- id: D5
+  title: 'Claude via Bedrock or Anthropic API directly → Bedrock: data stays in the AWS EU region, IAM access control, one AWS invoice via Aurora. Use an EU cross-region inference profile if a model is not offered in Stockholm. Compare cost and features again in the pilot. (Needed by: Sprint 0.)'
+  owner: Senior Dev
+  status: open
+- id: D6
+  title: 'Integration method for CMS and GAM → CMS: RSS/news sitemap first, CMS API if needed, page crawl as fallback. GAM: REST Ad Manager API first, SOAP only for gaps – and only if the pilot publisher uses GAM and grants access. (Needed by: Nov.)'
+  owner: Senior Dev
+  status: open
+- id: D7
+  title: 'Repository: monorepo with one module per logical service.'
+  owner: Senior Dev
+  status: answered
+- id: D8
+  title: 'Front end: React + TypeScript.'
+  owner: Senior Dev
+  status: answered
+- id: D9
+  title: 'Idempotency, fraud and reconciliation for clicks and settlement → pilot: append-only click records with idempotency key = click_id, monthly settlement basis report reconciled against click totals. Full double-entry ledger when Stripe/prepaid is introduced. (Needed by: Nov.)'
+  owner: Senior Dev
+  status: open
+- id: D10
+  title: 'Fraud rules for the pilot → signed click tokens (HMAC), 30-minute dedupe per session and link, known-bot user-agent list, rate limit per hashed IP; review weekly in the pilot. (Needed by: Nov.)'
+  owner: Senior Dev
+  status: open
+- id: D11
+  title: 'Infrastructure as code → AWS CDK in Java (same language as the code). (Needed by: Sprint 0.)'
+  owner: Senior Dev
+  status: open
+- id: D12
+  title: 'Policy for AI-generated code → all code through PR, automatic tests and human review; PRs ≤ ≈ 400 changed lines; senior review mandatory for G4 money logic, security, authentication and infrastructure. AI may not approve security-critical or financial logic. (Needed by: Before start.)'
+  owner: Senior Dev
+  status: open
+- id: D13
+  title: 'Where Grafana and telemetry run; retention and sampling → AWS-managed (Managed Grafana, Managed Prometheus, CloudWatch Logs, X-Ray); logs 30 days, traces 14 days, metrics 13 months; 20 % trace sampling in prod plus all errors (section 12). (Needed by: Sprint 0.)'
+  owner: Senior Dev
+  status: open
+- id: D14
+  title: 'Metrics path → Micrometer /actuator/prometheus scraped by the Collector. (Needed by: Sprint 0.)'
+  owner: Senior Dev
+  status: open
+- id: D16
+  title: 'Database: one RDS instance, one database per logical module.'
+  owner: Senior Dev
+  status: answered
+- id: D17
+  title: 'Cost forecast and automatic budget guard-rails → preliminary picture in 6.7; budgets with automatic deny-create actions in dev/UAT; Pricing Calculator estimate approved before installation. (Needed by: Before start.)'
+  owner: Senior Dev
+  status: open
+- id: D18
+  title: 'Coding standards and shared instructions for ChatGPT and Claude Code → Google style guides enforced in CI (7.2), one shared CLAUDE.md and one shared ChatGPT instruction set, maintained at the Wednesday workshops. (Needed by: Before start.)'
+  owner: Senior Dev
+  status: open
+- id: D19
+  title: 'Verifiable go/no-go criteria for January → the seven criteria in 10.5; evidence prepared by Senior Dev, decision by Peter in the week of 4 January. (Needed by: Dec.)'
+  owner: Senior Dev / Peter
+  status: open
