@@ -11,7 +11,7 @@ are created with CDK through the pipeline, never by hand in the console.
 
 | Stack | What | Issue |
 |---|---|---|
-| `GithubDeployAccess-staging` | GitHub OIDC provider, the `github-actions-rainmaker` role and its `ecr-push-mission-control` policy. Only jobs in the GitHub environment `staging` of `Greywolves-se/rainmaker` can assume the role. `docker.yml` uses it to push images to ECR. | #61 |
+| `GithubDeployAccess-staging` | GitHub OIDC provider and the `github-actions-rainmaker` role with two inline policies: `ecr-push-mission-control` (push the images) and `ecs-deploy-mission-control-web` (roll out the web service). Only jobs in the GitHub environment `staging` of `Greywolves-se/rainmaker` can assume the role. `docker.yml` uses it. | #61, #82 |
 
 ECR repositories and the ECS service follow in #62.
 
@@ -43,10 +43,20 @@ Windows, run `cdk` from WSL; plain `cmd.exe` cannot run `../mvnw`.
 
 Never print or commit secret values. Reference secrets by name or ARN (see CLAUDE.md).
 
-## Still to do for #61 (needs admin access to staging)
+## Importing the existing role (#82, needs admin access to staging)
 
-1. `cdk bootstrap aws://659947636280/eu-north-1` (once; record who ran it and the output in
-   the PR).
-2. Compare the stack with the resources created by hand in #59 (ECR actions in the policy,
-   OIDC thumbprints), then `cdk import` them into `GithubDeployAccess-staging`.
-3. `cdk diff` must show no changes, and `docker.yml` must still push to ECR.
+The stack already matches the provider and role in AWS (compared with `aws iam get-role` and
+`get-role-policy` on 15 Oct 2026). Both have `DeletionPolicy: Retain`, which `cdk import`
+requires and which keeps them if the stack is ever deleted.
+
+1. `cdk bootstrap aws://659947636280/eu-north-1` (once; the account is not bootstrapped yet).
+   Record who ran it and the output in the PR.
+2. `cdk import GithubDeployAccess-staging`. Identifiers: the provider ARN
+   `arn:aws:iam::659947636280:oidc-provider/token.actions.githubusercontent.com` and the role
+   name `github-actions-rainmaker`. The inline policies come in with the role.
+3. `cdk diff GithubDeployAccess-staging` must show no changes. CloudFormation does not compare
+   the template with the real resources during an import, so also run drift detection
+   (`aws cloudformation detect-stack-drift`) and check that nothing has drifted.
+4. After the next merge to `develop`, `docker.yml` must still push to ECR and deploy staging.
+
+Never run `cdk deploy` on this stack before steps 1–3 are clean.

@@ -10,10 +10,21 @@ import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.assertions.Match;
 import software.amazon.awscdk.assertions.Template;
 
+/**
+ * Checks the stack against the role and provider that exist in the staging account. The expected
+ * values are copied from {@code aws iam get-role}, {@code get-role-policy} and {@code
+ * get-open-id-connect-provider} (15 Oct 2026), so {@code cdk import} adopts them unchanged.
+ */
 class GithubDeployAccessStackTest {
 
-  /** The only GitHub OIDC subject that may assume the role in staging. */
-  private static final String STAGING_SUBJECT = "repo:Greywolves-se/rainmaker:environment:staging";
+  /** The only GitHub OIDC subjects that may assume the role in staging (name- and ID-based). */
+  private static final List<String> STAGING_SUBJECTS =
+      List.of(
+          "repo:Greywolves-se/rainmaker:environment:staging",
+          "repo:Greywolves-se@341957527/rainmaker@1416917981:environment:staging");
+
+  private static final String ECR_REPOSITORY_ARN =
+      "arn:aws:ecr:eu-north-1:659947636280:repository/";
 
   private Template template;
 
@@ -53,23 +64,98 @@ class GithubDeployAccessStackTest {
                                             "token.actions.githubusercontent.com:aud",
                                             "sts.amazonaws.com",
                                             "token.actions.githubusercontent.com:sub",
-                                            STAGING_SUBJECT))))))))));
+                                            STAGING_SUBJECTS))))))))));
   }
 
   @Test
   void trustsTheGithubActionsOidcProvider() {
     template.hasResourceProperties(
         "AWS::IAM::OIDCProvider",
-        Map.of(
-            "Url",
-            "https://token.actions.githubusercontent.com",
-            "ClientIdList",
-            List.of("sts.amazonaws.com")));
+        Match.exact(
+            Map.of(
+                "Url",
+                "https://token.actions.githubusercontent.com",
+                "ClientIdList",
+                List.of("sts.amazonaws.com"),
+                "ThumbprintList",
+                List.of("ab9d0263244dd0326eb67015705a667e79cfe998"))));
   }
 
   @Test
-  void attachesTheEcrPushPolicy() {
+  void roleHasTheEcrAndEcsPoliciesInline() {
     template.hasResourceProperties(
-        "AWS::IAM::ManagedPolicy", Map.of("ManagedPolicyName", "ecr-push-mission-control"));
+        "AWS::IAM::Role",
+        Map.of(
+            "Policies",
+            Match.exact(
+                List.of(
+                    Map.of(
+                        "PolicyName",
+                        "ecr-push-mission-control",
+                        "PolicyDocument",
+                        Map.of(
+                            "Version",
+                            "2012-10-17",
+                            "Statement",
+                            List.of(
+                                Map.of(
+                                    "Sid",
+                                    "EcrLogin",
+                                    "Effect",
+                                    "Allow",
+                                    "Action",
+                                    "ecr:GetAuthorizationToken",
+                                    "Resource",
+                                    "*"),
+                                Map.of(
+                                    "Sid",
+                                    "EcrPushMissionControl",
+                                    "Effect",
+                                    "Allow",
+                                    "Action",
+                                    List.of(
+                                        "ecr:BatchCheckLayerAvailability",
+                                        "ecr:BatchGetImage",
+                                        "ecr:GetDownloadUrlForLayer",
+                                        "ecr:InitiateLayerUpload",
+                                        "ecr:UploadLayerPart",
+                                        "ecr:CompleteLayerUpload",
+                                        "ecr:PutImage"),
+                                    "Resource",
+                                    List.of(
+                                        ECR_REPOSITORY_ARN + "rainmaker-mission-control-collector",
+                                        ECR_REPOSITORY_ARN + "rainmaker-mission-control-web"))))),
+                    Map.of(
+                        "PolicyName",
+                        "ecs-deploy-mission-control-web",
+                        "PolicyDocument",
+                        Map.of(
+                            "Version",
+                            "2012-10-17",
+                            "Statement",
+                            List.of(
+                                Map.of(
+                                    "Sid",
+                                    "DeployMissionControlWebStaging",
+                                    "Effect",
+                                    "Allow",
+                                    "Action",
+                                    List.of("ecs:UpdateService", "ecs:DescribeServices"),
+                                    "Resource",
+                                    "arn:aws:ecs:eu-north-1:659947636280:service/default/"
+                                        + "mission-control-web"))))))));
+  }
+
+  @Test
+  void hasNoManagedPolicy() {
+    template.resourceCountIs("AWS::IAM::ManagedPolicy", 0);
+  }
+
+  @Test
+  void keepsTheRoleAndProviderIfTheStackIsDeleted() {
+    Map<String, Object> retained =
+        Map.of("DeletionPolicy", "Retain", "UpdateReplacePolicy", "Retain");
+    template.hasResource("AWS::IAM::Role", retained);
+    template.hasResource("AWS::IAM::OIDCProvider", retained);
   }
 }
