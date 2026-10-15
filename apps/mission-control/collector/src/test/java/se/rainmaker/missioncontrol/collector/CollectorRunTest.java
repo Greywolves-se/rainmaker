@@ -44,7 +44,8 @@ class CollectorRunTest {
         .containsExactly(
             tuple("broken", Source.Status.ERROR),
             tuple("data-files", Source.Status.OK),
-            tuple("github", Source.Status.OK));
+            tuple("fake-ok", Source.Status.OK),
+            tuple("github", Source.Status.DISABLED));
     assertThat(ContractFiles.schema().validate(SnapshotJson.mapper().readTree(output.toFile())))
         .isEmpty();
   }
@@ -53,8 +54,8 @@ class CollectorRunTest {
   static class TwoFakeSources {
 
     @Bean
-    SourceCollector github() {
-      return FakeSource.withId("github").withWorkItem("1");
+    SourceCollector fakeOk() {
+      return FakeSource.withId("fake-ok").withWorkItem("1");
     }
 
     @Bean

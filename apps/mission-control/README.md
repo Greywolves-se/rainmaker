@@ -42,6 +42,18 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 
 **Data files (#15):** decisions, risks, questions, links, the change log and the project's key dates live as YAML in `data/`. Each file starts with a comment that explains its fields. Edit them in a pull request (the GitHub web editor is fine); a test checks the real files in CI. It names the file, line and field of every mistake, so a bad edit fails the PR instead of the dashboard. Each item links back to its line on GitHub.
 
+**GitHub (#12):** issues from the repositories in `mission-control.collector.github.repositories` (default `Greywolves-se/rainmaker`) become work items with the id `gh-<repo>-<number>`. Pull requests are left out (#13), and closed issues older than 30 days are dropped.
+- **Status rules, in this order:**
+  1. closed → `done`;
+  2. label `blocked` → `blocked`;
+  3. label `status: in progress`, or open with an assignee → `in_progress`;
+  4. otherwise → `todo`.
+
+  Labels are compared without case.
+- **Sprint:** the open milestone due today or later with the nearest due date. If every open milestone is overdue, the most recently overdue one is used. Its start date is the day the milestone was created, and its goal is the first line of the description. **Milestones without a due date are not sprints**, so give each sprint milestone a due date, or the sprint card stays empty. (Today the only milestone, "Mission Control V1", has none.)
+- **Events:** issues closed in the last 7 days also appear as events.
+- **Token:** read from `MC_GITHUB_TOKEN`, else `GITHUB_TOKEN`; it is never logged. Use a fine-grained, read-only token for the listed repositories. Without one, the source shows `error` ("No GitHub token") and the rest of the run continues.
+
 **Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method adds items to the `SnapshotBuilder` it is given. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
 
 ## CI

@@ -34,11 +34,24 @@
       <groupId>com.networknt</groupId>
       <artifactId>json-schema-validator</artifactId>
     </dependency>
+    <!-- GitHub REST API client (#12): RestClient, plus retries with back-off. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-retry</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
     </dependency>
   </dependencies>
 
