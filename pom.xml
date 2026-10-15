@@ -28,6 +28,7 @@
     <checkstyle.version>14.3.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
     <archunit.version>1.5.1</archunit.version>
+    <json-schema-validator.version>3.0.8</json-schema-validator.version>
 
     <!-- Coverage gate, off by default. A module switches it on for its domain code with
          <jacoco.check.skip>false</jacoco.check.skip> and, optionally, a package pattern in
@@ -44,6 +45,14 @@
         <groupId>com.tngtech.archunit</groupId>
         <artifactId>archunit-junit5</artifactId>
         <version>${archunit.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <!-- Contract tests against JSON Schemas (e.g. the Mission Control snapshot, #10).
+           Uses Jackson 3, like Spring Boot 4. -->
+      <dependency>
+        <groupId>com.networknt</groupId>
+        <artifactId>json-schema-validator</artifactId>
+        <version>${json-schema-validator.version}</version>
         <scope>test</scope>
       </dependency>
     </dependencies>

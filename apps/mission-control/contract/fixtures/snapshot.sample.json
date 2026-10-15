@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-02T06:00:00Z",
+  "project": {
+    "name": "Example project",
+    "milestones": [
+      {"id": "goal-1", "title": "Technically ready in UAT", "date": "2026-12-18"},
+      {"id": "pilot", "title": "External pilot starts", "date": "2027-01-07"}
+    ]
+  },
+  "sources": [
+    {"id": "github", "name": "GitHub", "status": "ok", "fetchedAt": "2026-11-02T05:59:41Z", "message": null},
+    {"id": "data-files", "name": "Data files", "status": "error", "fetchedAt": "2026-11-01T06:00:12Z", "message": "risks.yaml: line 14 has no owner"}
+  ],
+  "sprint": {
+    "name": "Sprint 4",
+    "startDate": "2026-10-26",
+    "endDate": "2026-11-06",
+    "goal": "Show real data on the overview page",
+    "source": "github",
+    "url": "https://github.com/example-org/example-repo/milestone/4"
+  },
+  "workItems": [
+    {"id": "101", "title": "Load the snapshot in the web app", "status": "in_progress", "assignees": ["Alex Berg"], "labels": ["area: web"], "inCurrentSprint": true, "createdAt": "2026-10-20T09:12:00Z", "closedAt": null, "source": "github", "url": "https://github.com/example-org/example-repo/issues/101"},
+    {"id": "102", "title": "GitHub source for issues", "status": "blocked", "assignees": [], "labels": ["area: collector", "prio: must"], "inCurrentSprint": true, "createdAt": "2026-10-20T09:15:00Z", "closedAt": null, "source": "github", "url": "https://github.com/example-org/example-repo/issues/102"},
+    {"id": "97", "title": "Collector project skeleton", "status": "done", "assignees": ["Sam Lind"], "labels": ["area: collector"], "inCurrentSprint": false, "createdAt": "2026-10-14T08:00:00Z", "closedAt": "2026-10-29T15:40:00Z", "source": "github", "url": "https://github.com/example-org/example-repo/issues/97"}
+  ],
+  "pullRequests": [
+    {"id": "PR_kwDOexample1", "number": 110, "title": "feat(#101): load the snapshot", "author": "Alex Berg", "draft": false, "state": "open", "review": "pending", "checks": "passing", "createdAt": "2026-10-30T13:00:00Z", "mergedAt": null, "source": "github", "url": "https://github.com/example-org/example-repo/pull/110"},
+    {"id": "PR_kwDOexample2", "number": 108, "title": "feat(#97): collector skeleton", "author": "Sam Lind", "draft": false, "state": "merged", "review": "approved", "checks": "passing", "createdAt": "2026-10-27T10:00:00Z", "mergedAt": "2026-10-29T15:38:00Z", "source": "github", "url": "https://github.com/example-org/example-repo/pull/108"}
+  ],
+  "builds": [
+    {"id": "9001", "workflow": "CI", "branch": "develop", "status": "failure", "startedAt": "2026-11-01T16:02:00Z", "finishedAt": "2026-11-01T16:09:30Z", "source": "github", "url": "https://github.com/example-org/example-repo/actions/runs/9001"},
+    {"id": "9002", "workflow": "CI", "branch": "main", "status": "running", "startedAt": "2026-11-02T05:58:00Z", "finishedAt": null, "source": "github", "url": "https://github.com/example-org/example-repo/actions/runs/9002"}
+  ],
+  "releases": [
+    {"id": "rel-dev-0.3.0", "version": "0.3.0", "environment": "dev", "publishedAt": "2026-10-31T12:00:00Z", "source": "github", "url": "https://github.com/example-org/example-repo/releases/tag/v0.3.0"}
+  ],
+  "decisions": [
+    {"id": "B-12", "title": "Use one snapshot file instead of a backend in V1", "owner": "Kim Ek", "date": "2026-10-15", "status": "decided", "needsOwnerDecision": false, "reference": "Architecture 10.6", "source": "data-files", "url": "https://github.com/example-org/example-repo/blob/develop/data/decisions.yaml#L1"},
+    {"id": "B-13", "title": "Pilot price model", "owner": "Kim Ek", "date": "2026-10-28", "status": "proposed", "needsOwnerDecision": true, "reference": null, "source": "data-files", "url": "https://github.com/example-org/example-repo/blob/develop/data/decisions.yaml#L9"}
+  ],
+  "risks": [
+    {"id": "R-3", "title": "Pilot publisher not signed in time", "level": "red", "owner": "Kim Ek", "mitigation": "Weekly follow-up with two backup publishers", "source": "data-files", "url": "https://github.com/example-org/example-repo/blob/develop/data/risks.yaml#L1"},
+    {"id": "R-5", "title": "Test coverage below target", "level": "yellow", "owner": "Sam Lind", "mitigation": "Coverage gate on domain packages", "source": "data-files", "url": "https://github.com/example-org/example-repo/blob/develop/data/risks.yaml#L8"}
+  ],
+  "questions": [
+    {"id": "Q-7", "title": "Which reader consent text do pilot publishers use?", "owner": "Kim Ek", "neededBy": "2026-10-30", "status": "open", "critical": true, "source": "data-files", "url": "https://github.com/example-org/example-repo/blob/develop/data/questions.yaml#L1"},
+    {"id": "Q-8", "title": "Do we need a UAT copy of the decision log?", "owner": "Alex Berg", "neededBy": null, "status": "answered", "critical": false, "source": "data-files", "url": "https://github.com/example-org/example-repo/blob/develop/data/questions.yaml#L7"}
+  ],
+  "links": [
+    {"id": "staging", "title": "Staging", "category": "environment", "source": "data-files", "url": "https://staging.example.org"},
+    {"id": "architecture", "title": "Architecture document", "category": "document", "source": "data-files", "url": "https://docs.example.org/architecture"}
+  ],
+  "changes": [
+    {"id": "C-2", "date": "2026-10-29", "title": "Load balancer added in front of staging", "owner": "Sam Lind", "rollbackPlan": "Point the DNS record back to the previous address", "source": "data-files", "url": "https://github.com/example-org/example-repo/blob/develop/data/changes.yaml#L1"}
+  ],
+  "events": [
+    {"id": "ev-3", "occurredAt": "2026-11-01T16:09:30Z", "title": "CI failed on develop", "source": "github", "url": "https://github.com/example-org/example-repo/actions/runs/9001"},
+    {"id": "ev-2", "occurredAt": "2026-10-29T15:38:00Z", "title": "PR #108 merged", "source": "github", "url": "https://github.com/example-org/example-repo/pull/108"},
+    {"id": "ev-1", "occurredAt": "2026-10-29T09:00:00Z", "title": "Change C-2: load balancer added", "source": "data-files", "url": "https://github.com/example-org/example-repo/blob/develop/data/changes.yaml#L1"}
+  ]
+}
