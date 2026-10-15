@@ -3,6 +3,8 @@ target/
 dist/
 build/
 coverage/
+# CDK synth output (infra/)
+cdk.out/
 
 # Dependencies
 node_modules/

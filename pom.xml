@@ -30,6 +30,10 @@
     <archunit.version>1.5.1</archunit.version>
     <json-schema-validator.version>3.0.8</json-schema-validator.version>
 
+    <!-- AWS CDK for the infra/ module (#61). -->
+    <aws-cdk-lib.version>2.273.0</aws-cdk-lib.version>
+    <constructs.version>10.8.1</constructs.version>
+
     <!-- Coverage gate, off by default. A module switches it on for its domain code with
          <jacoco.check.skip>false</jacoco.check.skip> and, optionally, a package pattern in
          <jacoco.check.packages>, e.g. se.rainmaker.clearinghouse.domain*. -->
@@ -54,6 +58,17 @@
         <artifactId>json-schema-validator</artifactId>
         <version>${json-schema-validator.version}</version>
       </dependency>
+      <!-- AWS CDK v2 for the infra/ module (#61). -->
+      <dependency>
+        <groupId>software.amazon.awscdk</groupId>
+        <artifactId>aws-cdk-lib</artifactId>
+        <version>${aws-cdk-lib.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.constructs</groupId>
+        <artifactId>constructs</artifactId>
+        <version>${constructs.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -61,6 +76,7 @@
   <!-- Services (services/*) and apps G1–G4 (apps/g1-*-app ...) come later. -->
   <modules>
     <module>apps/mission-control</module>
+    <module>infra</module>
   </modules>
 
   <build>
