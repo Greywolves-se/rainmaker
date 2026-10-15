@@ -28,6 +28,9 @@ class CollectorRunTest {
   static void writeToTemporaryFolder(DynamicPropertyRegistry registry) {
     registry.add(
         "mission-control.collector.output", () -> folder.resolve("snapshot.json").toString());
+    // The real data-file source (#15) is part of every run; an empty folder keeps it predictable.
+    registry.add(
+        "mission-control.collector.data-files.folder", () -> folder.resolve("data").toString());
   }
 
   @Test
@@ -38,7 +41,10 @@ class CollectorRunTest {
 
     assertThat(snapshot.sources())
         .extracting(Source::id, Source::status)
-        .containsExactly(tuple("broken", Source.Status.ERROR), tuple("github", Source.Status.OK));
+        .containsExactly(
+            tuple("broken", Source.Status.ERROR),
+            tuple("data-files", Source.Status.OK),
+            tuple("github", Source.Status.OK));
     assertThat(ContractFiles.schema().validate(SnapshotJson.mapper().readTree(output.toFile())))
         .isEmpty();
   }
