@@ -1,6 +1,6 @@
 import {Navigate, Route, Routes} from 'react-router';
 import {Layout} from './layout/Layout';
-import {OverviewPage} from './pages/OverviewPage';
+import {OverviewPage} from './pages/overview/OverviewPage';
 import {SourcesPage} from './pages/SourcesPage';
 import {DevelopmentPage} from './pages/development/DevelopmentPage';
 

@@ -3,6 +3,7 @@ import en from './en.json';
 import sv from './sv.json';
 import {LANGUAGE_STORAGE_KEY, createI18n, saveLanguage} from './i18n';
 import {
+  daysUntil,
   formatAlternatives,
   formatMonth,
   formatSek,
@@ -49,6 +50,14 @@ describe('format', () => {
       day: 'ons 14 okt. 2026',
       time: '10:24',
     });
+  });
+
+  it('counts days to a date by the Stockholm calendar day', () => {
+    // 23:30 UTC on 1 Nov is already 00:30 on 2 Nov in Stockholm.
+    const justAfterMidnight = Date.parse('2026-11-01T23:30:00Z');
+    expect(daysUntil('2026-12-18', justAfterMidnight)).toBe(46);
+    expect(daysUntil('2026-11-02', justAfterMidnight)).toBe(0);
+    expect(daysUntil('2026-11-01', justAfterMidnight)).toBe(-1);
   });
 
   it('names the month', () => {

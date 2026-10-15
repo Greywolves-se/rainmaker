@@ -5,23 +5,23 @@ import type {
   WorkItem,
 } from '../contract/snapshot';
 import type {
+  LinkedItem,
   Snapshot as PageSnapshot,
   SourceCode,
   StatusCode,
   StoryStatus,
-  TitledItem,
 } from './types';
 
 /**
  * Turns the domain-shaped contract snapshot into the page-shaped data the components render.
- * This is the only place that knows both shapes. Parts the contract has no data for (KPIs,
- * pilots, AWS cost, Navigator texts …) become null or empty, never invented values.
+ * This is the only place that knows both shapes. Parts the contract has no data for (pilots,
+ * AWS cost, Navigator texts …) become null or empty, never invented values.
  */
 export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
   const sourceName = new Map(snapshot.sources.map(s => [s.id, s.name]));
   const sprintItems = snapshot.workItems.filter(item => item.inCurrentSprint);
   const byStatus = (status: WorkItem['status']) =>
-    sprintItems.filter(item => item.status === status).map(toTitledItem);
+    sprintItems.filter(item => item.status === status).map(toLinkedItem);
   const needOwner = snapshot.decisions.filter(d => d.needsOwnerDecision);
   const sprint = snapshot.sprint;
 
@@ -34,10 +34,13 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
       note: snapshot.sources.find(s => s.message)?.message ?? null,
     },
     overview: {
-      project: null,
-      operations: null,
-      business: null,
-      pilots: null,
+      sprint: sprint && {
+        name: sprint.name,
+        done: sprintItems.filter(item => item.status === 'done').length,
+        total: sprintItems.length,
+        url: sprint.url,
+      },
+      milestones: snapshot.project.milestones,
       done: byStatus('done'),
       inProgress: byStatus('in_progress'),
       blocked: byStatus('blocked'),
@@ -51,13 +54,17 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
       pilotList: [],
       risk: mostSeriousRisk(snapshot.risks),
       awsCost: null,
-      release: null,
-      events: snapshot.events.map(event => ({
-        id: event.id,
-        title: event.title,
-        meta: sourceName.get(event.source) ?? event.source,
-        source: tileCode(event.source),
-      })),
+      release: latestRelease(snapshot.releases),
+      events: [...snapshot.events]
+        .sort((a, b) => newestFirst(a.occurredAt, b.occurredAt))
+        .map(event => ({
+          id: event.id,
+          title: event.title,
+          source: tileCode(event.source),
+          sourceName: sourceName.get(event.source) ?? event.source,
+          occurredAt: event.occurredAt,
+          url: event.url,
+        })),
     },
     development: {
       sprint: sprint && {
@@ -156,8 +163,33 @@ function tileCode(sourceId: string): SourceCode {
   return KNOWN_TILE_CODES[sourceId] ?? sourceId.slice(0, 2).toUpperCase();
 }
 
-function toTitledItem(item: WorkItem): TitledItem {
-  return {id: item.id, title: item.title, meta: item.assignees.join(', ')};
+function toLinkedItem(item: WorkItem): LinkedItem {
+  return {
+    id: item.id,
+    title: item.title,
+    meta: item.assignees.join(', '),
+    url: item.url,
+  };
+}
+
+/** Compares timestamps by time, so "…30.5Z" and "…30Z" sort correctly (text order would not). */
+function newestFirst(a: string, b: string): number {
+  return Date.parse(b) - Date.parse(a);
+}
+
+/** The most recently published release, in any environment. */
+function latestRelease(releases: ContractSnapshot['releases']) {
+  const [latest] = [...releases].sort((a, b) =>
+    newestFirst(a.publishedAt, b.publishedAt)
+  );
+  return latest
+    ? {
+        version: latest.version,
+        environment: latest.environment,
+        publishedAt: latest.publishedAt,
+        url: latest.url,
+      }
+    : null;
 }
 
 function toQuestion(question: Question) {

@@ -75,6 +75,11 @@
     "superseded": "Ersatt",
     "disabled": "Avstängd"
   },
+  "environment": {
+    "dev": "Utveckling",
+    "uat": "UAT",
+    "prod": "Produktion"
+  },
   "storyStatus": {
     "todo": "Att göra",
     "inProgress": "Pågår",
@@ -86,11 +91,25 @@
     "yellow": "gul"
   },
   "overview": {
-    "projectStatus": "Projektstatus",
-    "sprintProgress": "{{sprint}} · {{percent}} % klart",
-    "operations": "Drift",
-    "businessStatus": "Affärsstatus",
-    "activePilots": "Aktiva piloter",
+    "sprintProgress": "Sprintens framsteg",
+    "sprintDone": "{{done}} av {{total}} klara",
+    "blockedItems": "Blockerat i sprinten",
+    "seeDevelopment": "Se sidan Utveckling",
+    "latestRelease": "Senaste release",
+    "noRelease": "Ingen release än",
+    "releaseMeta": "{{environment}} · {{ago}}",
+    "daysLeft_one": "{{count}} dag kvar",
+    "daysLeft_other": "{{count}} dagar kvar",
+    "milestoneToday": "I dag",
+    "milestonePassed": "Passerat",
+    "nothingDone": "Inget klart än",
+    "nothingInProgress": "Inget pågår",
+    "noBlockers": "Inget blockerat",
+    "noEvents": "Inga händelser än",
+    "eventMeta": "{{source}} · {{ago}}",
+    "noPilots": "Inga piloter än",
+    "awsCostLabel": "AWS-kostnad",
+    "notConnected": "Inte ansluten än",
     "currentStatus": "Nuläge",
     "currentStatusSources": "Från GitHub, Drive och Slack",
     "doneCount": "Klart · {{count}}",
@@ -106,8 +125,7 @@
     "latestVersion": "Senaste fungerande version",
     "openDemo": "Öppna demo",
     "releaseNotes": "Versionsinformation",
-    "recentEvents": "Senaste händelser",
-    "viewAll": "Visa alla"
+    "recentEvents": "Senaste händelser"
   },
   "development": {
     "sprintHeading": "{{name}} · {{dates}}",

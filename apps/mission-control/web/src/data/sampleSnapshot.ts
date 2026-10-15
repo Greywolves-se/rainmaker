@@ -13,48 +13,61 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
   ],
   sourceSummary: {synced: 5, total: 6, note: 'AWS awaiting permissions'},
   overview: {
-    project: {status: 'onTrack', sprint: 'Sprint 2', percentDone: 75},
-    operations: {status: 'stable', note: 'No critical incidents'},
-    business: {status: 'growing', note: 'Traffic +12% this week'},
-    pilots: {active: 3, note: '2 running · 1 starts in 6 days'},
+    sprint: {name: 'Sprint 2', done: 2, total: 7, url: null},
+    milestones: [
+      {id: 'goal-1', title: 'Technically ready in UAT', date: '2026-12-18'},
+      {id: 'pilot', title: 'External pilot starts', date: '2027-01-07'},
+    ],
     done: [
       {
         id: 'done-1',
         title: 'Release v0.8.1 in production',
         meta: 'GitHub · yesterday',
+        url: null,
       },
       {
         id: 'done-2',
         title: 'Architecture v2.1',
         meta: 'Drive · Simon · 1 hr ago',
+        url: null,
       },
-      {id: 'done-3', title: 'Pilot plan Q1', meta: 'Drive · Peter · 3 hrs ago'},
+      {
+        id: 'done-3',
+        title: 'Pilot plan Q1',
+        meta: 'Drive · Peter · 3 hrs ago',
+        url: null,
+      },
       {
         id: 'done-4',
         title: 'PR #233 Update documentation',
         meta: 'GitHub · merged',
+        url: null,
       },
     ],
     inProgress: [
       {
         id: 'progress-1',
-        title: 'Sprint 2 – 75% done',
+        title: 'Sprint 2 – 2 of 7 stories done',
         meta: 'GitHub · 7 stories',
+        url: null,
       },
       {
         id: 'progress-2',
         title: 'Pilot – Retail customer',
         meta: 'Friction · started 12 Jan',
+        url: null,
       },
       {
         id: 'progress-3',
         title: 'Pilot – Industrial customer',
         meta: 'Friction · started 7 Jan',
+        url: null,
       },
       {
         id: 'progress-4',
         title: 'Material for Friday customer meeting',
         meta: 'Drive · Caroline',
+        url: null,
       },
     ],
     blocked: [
@@ -62,11 +75,13 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
         id: 'blocked-1',
         title: 'AWS health is missing an IAM role',
         meta: 'Slack #tech · Erik',
+        url: null,
       },
       {
         id: 'blocked-2',
         title: 'Pilot data from Service company missing',
         meta: 'Slack #friction · Caroline',
+        url: null,
       },
     ],
     decisionMakers: ['Peter', 'Staffan'],
@@ -117,40 +132,50 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     awsCost: {month: '2026-10', amountSek: null},
     release: {
       version: 'v0.8.1',
-      badge: 'Production · yesterday',
-      notes:
-        'Campaign view, pilot overview and a fix for the login error. Tests passing on main.',
+      environment: 'prod',
+      publishedAt: '2026-10-13T15:00:00Z',
+      url: null,
     },
     events: [
       {
         id: 'event-1',
         source: 'GH',
+        sourceName: 'GitHub',
         title: 'PR #234 ready for review',
-        meta: 'GitHub · 12 min ago',
+        occurredAt: '2026-10-14T08:12:00Z',
+        url: null,
       },
       {
         id: 'event-2',
         source: 'GD',
+        sourceName: 'Google Drive',
         title: 'New architecture file added',
-        meta: 'Drive · Simon · 1 hr ago',
+        occurredAt: '2026-10-14T07:24:00Z',
+        url: null,
       },
       {
         id: 'event-3',
         source: 'SL',
+        sourceName: 'Slack',
         title: 'Discussion about pilot start',
-        meta: 'Slack · 2 hrs ago',
+        occurredAt: '2026-10-14T06:24:00Z',
+        url: null,
       },
       {
         id: 'event-4',
         source: 'AWS',
+        sourceName: 'AWS',
         title: 'CPU usage back to normal',
-        meta: 'AWS · 3 hrs ago',
+        occurredAt: '2026-10-14T05:24:00Z',
+        url: null,
       },
       {
         id: 'event-5',
         source: 'FI',
+        sourceName: 'Friction Intelligence',
         title: 'New pilot activated',
-        meta: 'Friction Intelligence · 4 hrs ago',
+        occurredAt: '2026-10-14T04:24:00Z',
+        url: null,
       },
     ],
   },
@@ -480,13 +505,13 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
   navigator: {
     summaryTime: '10:20',
     summary:
-      'Rainmaker: green. Sprint 2 is 75% done. Two open blockers. New architecture file from Simon in Drive. Three PRs awaiting review. Pilot starts in 6 days. No critical outage.',
+      'Rainmaker: green. Sprint 2: 2 of 7 stories done. Two open blockers. New architecture file from Simon in Drive. Three PRs awaiting review. Pilot starts in 6 days. No critical outage.',
     projects: [
       {
         id: 'nav-project-1',
         title: 'Rainmaker',
         health: 'green',
-        text: 'Sprint 2 is 75% done. Three PRs awaiting review.',
+        text: 'Sprint 2: 2 of 7 stories done. Three PRs awaiting review.',
       },
       {
         id: 'nav-project-2',

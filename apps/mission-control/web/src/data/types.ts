@@ -2,6 +2,7 @@
  * Shape of the data the pages render. The contract snapshot is mapped to it in fromContract.ts;
  * null means the contract has no data for that part yet and the page shows an empty state.
  */
+import type {Release} from '../contract/snapshot';
 
 /** Short code shown in a source tile (GH, GD …). Open-ended, like the contract's sources. */
 export type SourceCode = string;
@@ -50,8 +51,18 @@ export interface StatusItem extends TitledItem {
   status: StatusCode;
 }
 
-export interface SourceEvent extends TitledItem {
+/** An item that links to its details (a GitHub issue, a pull request …); url is null without one. */
+export interface LinkedItem extends TitledItem {
+  url: string | null;
+}
+
+export interface SourceEvent {
+  id: string;
+  title: string;
   source: SourceCode;
+  sourceName: string;
+  occurredAt: string;
+  url: string | null;
 }
 
 export interface Snapshot {
@@ -59,19 +70,30 @@ export interface Snapshot {
   projects: {id: string; name: string; health: Health | null}[];
   sourceSummary: {synced: number; total: number; note: string | null};
   overview: {
-    project: {status: StatusCode; sprint: string; percentDone: number} | null;
-    operations: {status: StatusCode; note: string} | null;
-    business: {status: StatusCode; note: string} | null;
-    pilots: {active: number; note: string} | null;
-    done: TitledItem[];
-    inProgress: TitledItem[];
-    blocked: TitledItem[];
+    sprint: {
+      name: string;
+      done: number;
+      total: number;
+      url: string | null;
+    } | null;
+    /** Key dates (Goal 1, pilot start), shown as countdowns. */
+    milestones: {id: string; title: string; date: string}[];
+    done: LinkedItem[];
+    inProgress: LinkedItem[];
+    blocked: LinkedItem[];
     decisionMakers: string[];
     decisions: (TitledItem & {initial: string})[];
     pilotList: StatusItem[];
     risk: {title: string; text: string} | null;
     awsCost: {month: string; amountSek: number | null} | null;
-    release: {version: string; badge: string; notes: string} | null;
+    release: {
+      version: string;
+      /** The contract's values (dev, uat, prod), so a new one fails the type check. */
+      environment: Release['environment'];
+      publishedAt: string;
+      url: string | null;
+    } | null;
+    /** Newest first. */
     events: SourceEvent[];
   };
   development: {
