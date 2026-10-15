@@ -20,7 +20,7 @@
     "searchLabel": "Sök",
     "searchPlaceholder": "Sök i Drive, GitHub, Slack, AWS …",
     "notAvailable": "Finns inte i V1",
-    "timestamp": "{{day}} · {{time}}"
+    "timestamp": "Senast uppdaterad: {{day}} · {{time}}"
   },
   "language": {
     "label": "Språk",
