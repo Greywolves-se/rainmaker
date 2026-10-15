@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:rainmaker:mission-control:snapshot:1",
+  "title": "Mission Control snapshot",
+  "description": "Everything the Mission Control dashboard shows, written by the collector in one run. Every field is required; a value that is unknown is null, never missing. Every item that comes from a source has `source` (a sources[].id) and a `url` back to the details.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "project", "sources", "sprint", "workItems", "pullRequests", "builds", "releases", "decisions", "risks", "questions", "links", "changes", "events"],
+  "properties": {
+    "schemaVersion": {"const": 1, "description": "Version of this contract. Bumped only for breaking changes."},
+    "generatedAt": {"$ref": "#/$defs/timestamp", "description": "When the collector wrote this snapshot."},
+    "project": {"$ref": "#/$defs/project"},
+    "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}, "description": "One entry per source the collector knows, including failed and disabled ones."},
+    "sprint": {"oneOf": [{"$ref": "#/$defs/sprint"}, {"type": "null"}], "description": "The current sprint, or null when no sprint is running."},
+    "workItems": {"type": "array", "items": {"$ref": "#/$defs/workItem"}, "description": "Issues and stories."},
+    "pullRequests": {"type": "array", "items": {"$ref": "#/$defs/pullRequest"}, "description": "Open pull requests and those merged or closed recently."},
+    "builds": {"type": "array", "items": {"$ref": "#/$defs/build"}, "description": "Latest CI runs, newest first."},
+    "releases": {"type": "array", "items": {"$ref": "#/$defs/release"}, "description": "Which version runs in which environment."},
+    "decisions": {"type": "array", "items": {"$ref": "#/$defs/decision"}, "description": "Decision log."},
+    "risks": {"type": "array", "items": {"$ref": "#/$defs/risk"}, "description": "Project risks."},
+    "questions": {"type": "array", "items": {"$ref": "#/$defs/question"}, "description": "Open and answered questions for owners and the team."},
+    "links": {"type": "array", "items": {"$ref": "#/$defs/link"}, "description": "Environments, dashboards and documents."},
+    "changes": {"type": "array", "items": {"$ref": "#/$defs/change"}, "description": "Change log for infrastructure and DNS changes."},
+    "events": {"type": "array", "items": {"$ref": "#/$defs/event"}, "description": "Recent events from all sources, newest first."}
+  },
+  "$defs": {
+    "timestamp": {"type": "string", "format": "date-time", "description": "UTC instant, ISO 8601 (e.g. 2026-10-15T07:30:00Z)."},
+    "nullableTimestamp": {"oneOf": [{"$ref": "#/$defs/timestamp"}, {"type": "null"}]},
+    "date": {"type": "string", "format": "date", "description": "Calendar date, ISO 8601 (e.g. 2026-12-18)."},
+    "text": {"type": "string", "minLength": 1},
+    "nullableText": {"oneOf": [{"$ref": "#/$defs/text"}, {"type": "null"}]},
+    "id": {"type": "string", "minLength": 1, "description": "Stable id, unique within its array (e.g. an issue number or B-12)."},
+    "sourceId": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "Id of an entry in `sources` (e.g. github, data-files). Open-ended: new sources need no schema change."},
+    "url": {"type": "string", "format": "uri", "description": "Link to the item in its source system."},
+    "person": {"type": "string", "minLength": 1, "description": "Name or GitHub login of a team member."},
+
+    "project": {
+      "type": "object", "additionalProperties": false, "required": ["name", "milestones"],
+      "properties": {
+        "name": {"$ref": "#/$defs/text"},
+        "milestones": {"type": "array", "items": {"$ref": "#/$defs/milestone"}, "description": "Key dates, e.g. Goal 1 and pilot start."}
+      }
+    },
+    "milestone": {
+      "type": "object", "additionalProperties": false, "required": ["id", "title", "date"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "title": {"$ref": "#/$defs/text"}, "date": {"$ref": "#/$defs/date"}}
+    },
+    "source": {
+      "type": "object", "additionalProperties": false, "required": ["id", "name", "status", "fetchedAt", "message"],
+      "properties": {
+        "id": {"$ref": "#/$defs/sourceId"},
+        "name": {"$ref": "#/$defs/text", "description": "Display name, e.g. GitHub."},
+        "status": {"enum": ["ok", "error", "disabled"], "description": "Result of this run: ok, error (data may be missing) or disabled (not configured)."},
+        "fetchedAt": {"$ref": "#/$defs/nullableTimestamp", "description": "When data was last fetched successfully; null if never."},
+        "message": {"$ref": "#/$defs/nullableText", "description": "Short explanation when status is error or disabled. Never contains secrets."}
+      }
+    },
+    "sprint": {
+      "type": "object", "additionalProperties": false, "required": ["name", "startDate", "endDate", "goal", "source", "url"],
+      "properties": {
+        "name": {"$ref": "#/$defs/text"},
+        "startDate": {"$ref": "#/$defs/date"},
+        "endDate": {"$ref": "#/$defs/date"},
+        "goal": {"$ref": "#/$defs/nullableText", "description": "Sprint goal, if one is set."},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url"}
+      }
+    },
+    "workItem": {
+      "type": "object", "additionalProperties": false, "required": ["id", "title", "status", "assignees", "labels", "inCurrentSprint", "createdAt", "closedAt", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "title": {"$ref": "#/$defs/text"},
+        "status": {"enum": ["todo", "in_progress", "blocked", "done"]},
+        "assignees": {"type": "array", "items": {"$ref": "#/$defs/person"}},
+        "labels": {"type": "array", "items": {"$ref": "#/$defs/text"}},
+        "inCurrentSprint": {"type": "boolean"},
+        "createdAt": {"$ref": "#/$defs/timestamp"},
+        "closedAt": {"$ref": "#/$defs/nullableTimestamp", "description": "When it was closed; used by the weekly summary. Null while open."},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url"}
+      }
+    },
+    "pullRequest": {
+      "type": "object", "additionalProperties": false, "required": ["id", "number", "title", "author", "draft", "state", "review", "checks", "createdAt", "mergedAt", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "number": {"type": "integer", "minimum": 1},
+        "title": {"$ref": "#/$defs/text"},
+        "author": {"$ref": "#/$defs/person"},
+        "draft": {"type": "boolean"},
+        "state": {"enum": ["open", "merged", "closed"]},
+        "review": {"enum": ["pending", "approved", "changes_requested"], "description": "Overall review state."},
+        "checks": {"enum": ["passing", "failing", "pending", "none"], "description": "Combined result of the CI checks."},
+        "createdAt": {"$ref": "#/$defs/timestamp"},
+        "mergedAt": {"$ref": "#/$defs/nullableTimestamp", "description": "When it was merged; used by the weekly summary. Null unless merged."},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url"}
+      }
+    },
+    "build": {
+      "type": "object", "additionalProperties": false, "required": ["id", "workflow", "branch", "status", "startedAt", "finishedAt", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "workflow": {"$ref": "#/$defs/text", "description": "CI workflow name."},
+        "branch": {"$ref": "#/$defs/text"},
+        "status": {"enum": ["success", "failure", "running", "cancelled"]},
+        "startedAt": {"$ref": "#/$defs/timestamp"},
+        "finishedAt": {"$ref": "#/$defs/nullableTimestamp", "description": "Null while running."},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url"}
+      }
+    },
+    "release": {
+      "type": "object", "additionalProperties": false, "required": ["id", "version", "environment", "publishedAt", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "version": {"$ref": "#/$defs/text"},
+        "environment": {"enum": ["dev", "uat", "prod"]},
+        "publishedAt": {"$ref": "#/$defs/timestamp"},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url"}
+      }
+    },
+    "decision": {
+      "type": "object", "additionalProperties": false, "required": ["id", "title", "owner", "date", "status", "needsOwnerDecision", "reference", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id", "description": "Decision log id, e.g. B-12."},
+        "title": {"$ref": "#/$defs/text"},
+        "owner": {"$ref": "#/$defs/person"},
+        "date": {"$ref": "#/$defs/date"},
+        "status": {"enum": ["proposed", "decided", "superseded"]},
+        "needsOwnerDecision": {"type": "boolean", "description": "True when the product owners (Peter, Staffan) must decide."},
+        "reference": {"$ref": "#/$defs/nullableText", "description": "Where it is described, e.g. an architecture section."},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url"}
+      }
+    },
+    "risk": {
+      "type": "object", "additionalProperties": false, "required": ["id", "title", "level", "owner", "mitigation", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "title": {"$ref": "#/$defs/text"},
+        "level": {"enum": ["green", "yellow", "red"]},
+        "owner": {"$ref": "#/$defs/person"},
+        "mitigation": {"$ref": "#/$defs/text"},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url"}
+      }
+    },
+    "question": {
+      "type": "object", "additionalProperties": false, "required": ["id", "title", "owner", "neededBy", "status", "critical", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "title": {"$ref": "#/$defs/text", "description": "The question itself."},
+        "owner": {"$ref": "#/$defs/person"},
+        "neededBy": {"oneOf": [{"$ref": "#/$defs/date"}, {"type": "null"}], "description": "Date the answer is needed; overdue when passed and still open."},
+        "status": {"enum": ["open", "answered"]},
+        "critical": {"type": "boolean"},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url"}
+      }
+    },
+    "link": {
+      "type": "object", "additionalProperties": false, "required": ["id", "title", "category", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "title": {"$ref": "#/$defs/text"},
+        "category": {"enum": ["environment", "dashboard", "document", "other"]},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url", "description": "Where the link points."}
+      }
+    },
+    "change": {
+      "type": "object", "additionalProperties": false, "required": ["id", "date", "title", "owner", "rollbackPlan", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "date": {"$ref": "#/$defs/date"},
+        "title": {"$ref": "#/$defs/text"},
+        "owner": {"$ref": "#/$defs/person"},
+        "rollbackPlan": {"$ref": "#/$defs/text"},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url"}
+      }
+    },
+    "event": {
+      "type": "object", "additionalProperties": false, "required": ["id", "occurredAt", "title", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "occurredAt": {"$ref": "#/$defs/timestamp"},
+        "title": {"$ref": "#/$defs/text", "description": "One-line summary, e.g. \"PR #66 merged\"."},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url"}
+      }
+    }
+  }
+}
