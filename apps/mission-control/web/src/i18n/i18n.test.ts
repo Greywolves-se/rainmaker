@@ -41,8 +41,14 @@ describe('translation file', () => {
 describe('format', () => {
   it('shows the snapshot time in Stockholm time', () => {
     const timestamp = '2026-10-14T08:24:00Z';
-    expect(formatTimestamp(timestamp, 'en')).toMatch(/14 Oct 2026 · 10:24$/);
-    expect(formatTimestamp(timestamp, 'sv')).toMatch(/14 okt\. 2026 · 10:24$/);
+    expect(formatTimestamp(timestamp, 'en')).toEqual({
+      day: 'Wed, 14 Oct 2026',
+      time: '10:24',
+    });
+    expect(formatTimestamp(timestamp, 'sv')).toEqual({
+      day: 'ons 14 okt. 2026',
+      time: '10:24',
+    });
   });
 
   it('names the month', () => {

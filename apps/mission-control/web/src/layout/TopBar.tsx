@@ -23,7 +23,7 @@ export function TopBar({generatedAt}: {generatedAt: string}) {
         />
       </div>
       <time className="clock" dateTime={generatedAt}>
-        {formatTimestamp(generatedAt, i18n.language)}
+        {t('topBar.timestamp', formatTimestamp(generatedAt, i18n.language))}
       </time>
       <LanguageSwitch />
     </header>

@@ -16,7 +16,8 @@
   "topBar": {
     "searchLabel": "Search",
     "searchPlaceholder": "Search Drive, GitHub, Slack, AWS …",
-    "notAvailable": "Not available in V1"
+    "notAvailable": "Not available in V1",
+    "timestamp": "{{day}} · {{time}}"
   },
   "language": {
     "label": "Language",
@@ -118,7 +119,9 @@
     "staging": "Staging",
     "techDecisions": "Technical decisions and dependencies",
     "questionsFor": "Blockers and questions for {{audience}}",
-    "environments": "Environments, logs and documentation"
+    "environments": "Environments, logs and documentation",
+    "buildMeta": "{{age}} · {{duration}}",
+    "stepPassed": "✓ {{step}}"
   },
   "sources": {
     "connected": "Connected sources",
@@ -143,7 +146,8 @@
     "columnConcept": "Concept",
     "columnFrom": "Taken from",
     "columnExample": "Example",
-    "syncLog": "Sync log"
+    "syncLog": "Sync log",
+    "role": "“{{role}}”"
   },
   "navigator": {
     "label": "Navigator",

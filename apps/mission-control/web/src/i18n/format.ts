@@ -11,10 +11,11 @@ function localeFor(language: string): string {
   return LOCALES[language as Language] ?? LOCALES.sv;
 }
 
+/** Day and time for the top bar; the translation file joins them ("{{day}} · {{time}}"). */
 export function formatTimestamp(
   isoTimestamp: string,
   language: string
-): string {
+): {day: string; time: string} {
   const locale = localeFor(language);
   const date = new Date(isoTimestamp);
   const day = new Intl.DateTimeFormat(locale, {
@@ -29,7 +30,7 @@ export function formatTimestamp(
     minute: '2-digit',
     timeZone: TIME_ZONE,
   }).format(date);
-  return `${day} · ${time}`;
+  return {day, time};
 }
 
 /** "2026-10" → "October" / "oktober". (Example)*/

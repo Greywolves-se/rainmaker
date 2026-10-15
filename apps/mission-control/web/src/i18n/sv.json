@@ -16,7 +16,8 @@
   "topBar": {
     "searchLabel": "Sök",
     "searchPlaceholder": "Sök i Drive, GitHub, Slack, AWS …",
-    "notAvailable": "Finns inte i V1"
+    "notAvailable": "Finns inte i V1",
+    "timestamp": "{{day}} · {{time}}"
   },
   "language": {
     "label": "Språk",
@@ -118,7 +119,9 @@
     "staging": "Staging",
     "techDecisions": "Tekniska beslut och beroenden",
     "questionsFor": "Blockerare och frågor till {{audience}}",
-    "environments": "Miljöer, loggar och dokumentation"
+    "environments": "Miljöer, loggar och dokumentation",
+    "buildMeta": "{{age}} · {{duration}}",
+    "stepPassed": "✓ {{step}}"
   },
   "sources": {
     "connected": "Anslutna källor",
@@ -143,7 +146,8 @@
     "columnConcept": "Begrepp",
     "columnFrom": "Hämtas från",
     "columnExample": "Exempel",
-    "syncLog": "Synklogg"
+    "syncLog": "Synklogg",
+    "role": "”{{role}}”"
   },
   "navigator": {
     "label": "Navigator",

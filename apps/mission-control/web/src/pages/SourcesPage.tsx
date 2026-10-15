@@ -98,7 +98,9 @@ function SourceCard({card}: {card: Sources['cards'][number]}) {
         </div>
         <StatusPill status={card.status} />
       </div>
-      <p className="source-card__role">“{card.role}”</p>
+      <p className="source-card__role">
+        {t('sources.role', {role: card.role})}
+      </p>
       <ul className="source-card__tags">
         {card.tags.map(tag => (
           <li key={tag} className="tag">
