@@ -1,14 +1,17 @@
-# Builds the Mission Control Docker images and pushes them to Amazon ECR.
+# Builds the Mission Control Docker images, pushes them to Amazon ECR and deploys staging.
 # - Pull requests: build only (proves the Dockerfiles work), nothing is pushed and no AWS access.
-# - Push to develop: build and push to ECR in the staging account (GitHub environment "staging").
+# - Push to develop: build and push to ECR in the staging account (GitHub environment "staging"),
+#   then roll the ECS service mission-control-web onto the new image (job "deploy-staging").
 # - Push to main: build and push to ECR in the production account (GitHub environment "production",
-#   which requires a reviewer to approve the run before it starts).
+#   which requires a reviewer to approve the run before it starts). Production is not deployed
+#   automatically.
 # An image is skipped (with a notice) until its source exists: collector #7, web #8.
 #
 # AWS access uses GitHub OIDC, so no AWS keys are stored in GitHub. Each environment has the
 # variables AWS_ROLE_ARN (the github-actions-rainmaker role in that account) and AWS_REGION.
-# The role may only push to the ECR repositories rainmaker-mission-control-collector and
-# rainmaker-mission-control-web in its own account.
+# The role may push to the ECR repositories rainmaker-mission-control-collector and
+# rainmaker-mission-control-web in its own account. In the staging account it may also run
+# ecs:UpdateService and ecs:DescribeServices on the service default/mission-control-web.
 
 name: Docker
 
@@ -103,7 +106,8 @@ jobs:
         with:
           # Builds that do not push have no registry; "local" keeps the image name valid.
           images: ${{ steps.ecr.outputs.registry || 'local' }}/${{ env.REPOSITORY }}
-          # develop -> :develop, main -> :main and :latest, every build -> :sha-<short sha>
+          # Every branch build -> :<branch>, every build -> :sha-<short sha>,
+          # and the default branch (develop) also -> :latest.
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -120,3 +124,35 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  deploy-staging:
+    name: Deploy web to staging
+    # Runs only after every image in the matrix has been built and pushed.
+    needs: image
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write # lets the job request a GitHub OIDC token to assume the AWS role
+    env:
+      ECS_CLUSTER: default
+      ECS_SERVICE: mission-control-web
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # The service runs a mutable tag (:develop / :latest). A forced deployment makes ECS
+      # resolve the tag again and roll out the image that was just pushed, using the service's
+      # own canary rollout and circuit breaker.
+      - name: Roll out the new image
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --force-new-deployment \
+            --query 'service.deployments[0].{id:id,rollout:rolloutState}' \
+            --output table
+          echo "::notice title=Staging deploy started::$ECS_SERVICE is rolling out ${GITHUB_SHA::7}. ECS takes about 8–10 minutes (canary + bake time)."
