@@ -30,7 +30,7 @@ The contract tests on both sides fail when they disagree.
 ### Collector
 `SnapshotSchemaTest` checks that the sample matches the schema, and that the schema rejects unknown fields, missing fields, unknown status values and broken dates.
 
-The Java records get their own contract test against the same sample (#10, Java PR).
+`SnapshotJsonTest` reads the sample into the Java records (package `se.rainmaker.missioncontrol.collector.snapshot`) and writes it back unchanged. It also checks that a snapshot built in code matches the schema, and that unknown fields fail. `SnapshotEnumTest` checks that every Java enum has exactly the values the schema allows, including values the sample does not use. `SnapshotJson` holds the JSON settings the collector writes with; Java enum names are written in lowercase (`IN_PROGRESS` → `in_progress`).
 
 ### Web app
-The TypeScript types get their own contract test against the same sample (#10, TypeScript PR).
+`src/contract/snapshot.ts` holds the zod schemas, the TypeScript types (derived from them) and `parseSnapshot()`, the runtime check for a fetched snapshot. Unknown fields are dropped there, so a newer collector never breaks an older dashboard. `snapshot.contract.test.ts` checks the sample with the JSON Schema (ajv), reads it without losing or changing a field, rejects missing fields and unknown values, and compares every enum with the schema. It is excluded from `tsc`, because the web Docker build copies only `web/`; Vitest runs it.
