@@ -1,0 +1,166 @@
+{
+  "app": {
+    "name": "MISSION CONTROL",
+    "edition": "V1 · GreyWolves",
+    "documentTitle": "{{page}} – Mission Control"
+  },
+  "nav": {
+    "mainMenu": "Huvudmeny Test",
+    "overview": "Översikt",
+    "development": "Utveckling",
+    "sources": "Källor Test",
+    "projects": "Projekt",
+    "dataSources": "Datakällor",
+    "synced": "{{synced}} av {{total}} synkade"
+  },
+  "sampleData": {
+    "banner": "Exempeldata – inte verklig projektstatus"
+  },
+  "topBar": {
+    "searchLabel": "Sök",
+    "searchPlaceholder": "Sök i Drive, GitHub, Slack, AWS …",
+    "notAvailable": "Finns inte i V1",
+    "timestamp": "{{day}} · {{time}}"
+  },
+  "language": {
+    "label": "Språk",
+    "sv": "Svenska",
+    "en": "English"
+  },
+  "pages": {
+    "overview": {
+      "title": "Översikt",
+      "subtitle": "Aktuell status för Rainmaker, Friction Intelligence och Mission Control"
+    },
+    "development": {
+      "title": "Utveckling",
+      "subtitle": "Sprint, kod, tester och beroenden"
+    },
+    "sources": {
+      "title": "Källor",
+      "subtitle": "Mission Control hämtar från systemen där arbetet sker, utan dubbelregistrering"
+    }
+  },
+  "status": {
+    "onTrack": "Enligt plan",
+    "stable": "Stabil",
+    "growing": "Växer",
+    "running": "Pågår",
+    "atRisk": "I riskzonen",
+    "review": "Granskning",
+    "merged": "Sammanslagen",
+    "decided": "Beslutad",
+    "proposed": "Föreslagen",
+    "missing": "Saknas",
+    "done": "Klar",
+    "synced": "Synkad",
+    "partial": "Delvis",
+    "ok": "OK",
+    "error": "Fel",
+    "blocker": "Blockerare",
+    "question": "Fråga"
+  },
+  "storyStatus": {
+    "todo": "Att göra",
+    "inProgress": "Pågår",
+    "blocked": "Blockerad",
+    "done": "Klar"
+  },
+  "health": {
+    "green": "grön",
+    "yellow": "gul"
+  },
+  "overview": {
+    "projectStatus": "Projektstatus",
+    "sprintProgress": "{{sprint}} · {{percent}} % klart",
+    "operations": "Drift",
+    "businessStatus": "Affärsstatus",
+    "activePilots": "Aktiva piloter",
+    "currentStatus": "Nuläge",
+    "currentStatusSources": "Från GitHub, Drive och Slack",
+    "doneCount": "Klart · {{count}}",
+    "inProgressCount": "Pågår · {{count}}",
+    "blockedCount": "Blockerat · {{count}}",
+    "decisionsFor": "Beslut som behöver {{names}}",
+    "open": "Öppna",
+    "risksPilotsCost": "Risker, piloter och kostnad",
+    "risk": "Risk: {{title}}",
+    "awsCost": "AWS-kostnad, {{month}}",
+    "amountUnknown": "[BELOPP] kr",
+    "latestVersion": "Senaste fungerande version",
+    "openDemo": "Öppna demo",
+    "releaseNotes": "Versionsinformation",
+    "recentEvents": "Senaste händelser",
+    "viewAll": "Visa alla"
+  },
+  "development": {
+    "sprintHeading": "{{name}} · {{dates}}",
+    "storySummary": "{{total}} stories · {{done}} klara · {{blocked}} blockerade",
+    "progress": "{{percent}} % klart",
+    "addStory": "+ Lägg till story",
+    "storyLabel": "User story",
+    "storyPlaceholder": "Som ägare vill jag …",
+    "ownerLabel": "Ansvarig",
+    "ownerPlaceholder": "Namn",
+    "statusLabel": "Status",
+    "add": "Lägg till",
+    "cancel": "Avbryt",
+    "localOnlyHint": "V1 sparar nya stories bara i den här webbläsarfliken. Att spara dem som GitHub-issues kommer senare...",
+    "columnId": "ID",
+    "columnStory": "User story",
+    "columnOwner": "Ansvarig",
+    "columnStatus": "Status",
+    "columnActions": "Åtgärder",
+    "unassigned": "Ej tilldelad",
+    "statusOf": "Status för {{id}}",
+    "remove": "Ta bort {{id}}",
+    "pullRequests": "Pull requests och tester",
+    "latestBuild": "Senaste bygge",
+    "buildPassed": "{{branch}} · bygge #{{number}} lyckades",
+    "unitTests": "Enhetstester",
+    "lint": "Lint",
+    "staging": "Staging",
+    "techDecisions": "Tekniska beslut och beroenden",
+    "questionsFor": "Blockerare och frågor till {{audience}}",
+    "environments": "Miljöer, loggar och dokumentation",
+    "buildMeta": "{{age}} · {{duration}}",
+    "stepPassed": "✓ {{step}}"
+  },
+  "sources": {
+    "connected": "Anslutna källor",
+    "synced": "Synkad",
+    "needsAction": "Kräver åtgärd",
+    "readOnlyNote": "V1 läser från källorna. Det enda den kommer att skriva är sprintens stories, direkt in i GitHub som issues, så att inget matas in två gånger.",
+    "addSource": "+ Lägg till källa",
+    "buildPrinciple": "Byggprincip: från källa till gemensam bild",
+    "steps": {
+      "fetch": {"title": "Hämta", "text": "Data från källsystemen via integrationer och API:er."},
+      "normalize": {"title": "Normalisera", "text": "Koppla till projekt, aktivitet, ansvarig och status."},
+      "show": {"title": "Visa", "text": "En gemensam dashboard för ägare och utvecklare."},
+      "summarize": {"title": "Sammanfatta", "text": "Navigator lyfter fram avvikelser, risker och nästa steg."},
+      "goToSource": {"title": "Gå till källan", "text": "Från översikten direkt till detaljerna."}
+    },
+    "scope": "Omfattning",
+    "mapsTo": "Kopplas till",
+    "updates": "Uppdateringar",
+    "openSource": "Öppna källa →",
+    "howTheyConnect": "Hur källorna hänger ihop",
+    "howTheyConnectSubtitle": "Varje händelse normaliseras till samma begrepp, oavsett källa",
+    "columnConcept": "Begrepp",
+    "columnFrom": "Hämtas från",
+    "columnExample": "Exempel",
+    "syncLog": "Synklogg",
+    "role": "”{{role}}”"
+  },
+  "navigator": {
+    "label": "Navigator",
+    "title": "NAVIGATOR",
+    "summaryAt": "AI-sammanfattning · {{time}}",
+    "managementSummary": "LEDNINGSSAMMANFATTNING",
+    "nextSteps": "Förslag på nästa steg",
+    "ask": "Fråga Navigator",
+    "askOwnLabel": "Ställ en egen fråga",
+    "askOwnPlaceholder": "Ställ en egen fråga …",
+    "askButton": "Fråga"
+  }
+}

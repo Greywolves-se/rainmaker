@@ -25,6 +25,10 @@ export function Layout() {
       />
       <div className="content">
         <TopBar generatedAt={snapshot.generatedAt} />
+        {/* TODO(#18): show only when the demo fallback is used. */}
+        <p className="sample-banner" role="note">
+          {t('sampleData.banner')}
+        </p>
         <div className="page-header">
           <h1 className="page-header__title">{title}</h1>
           <p className="page-header__subtitle">

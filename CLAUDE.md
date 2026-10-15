@@ -12,6 +12,8 @@ approves them, and every click is tracked for settlement.
 
 - Before starting a task, read the GitHub issue, the README of the folder you work in,
   and `/docs/START_HERE.md` once it exists (Mission Control will generate it, #25).
+  Read issues with `gh issue view <number> --comments`; acceptance criteria are often
+  refined in the comments.
 - Source of truth for architecture: *Rainmaker Solution Architecture v0.5*.
 - Milestones: technically ready in UAT by 18 Dec 2026, external pilot ~7 Jan 2027.
 
@@ -24,6 +26,7 @@ approves them, and every click is tracked for settlement.
 | `widget/` | rainmaker.js (TypeScript) | npm | Empty – later |
 | `portals/` | React apps for publishers and admins | npm | Empty – later |
 | `docs/` | START_HERE.md, architecture decision records | – | Empty – later |
+| `docs/adr/` | Architecture decision records, one Markdown file per decision | – | Not created yet (first ADR in #6) |
 
 Build all Maven modules with `./mvnw verify` from the root (parent `pom.xml`, JDK 21
 or newer; code targets Java 21).
@@ -56,6 +59,15 @@ Mission Control: `se.rainmaker.missioncontrol.<module>` (e.g.
 - Do not invent APIs, library methods, configuration keys or AWS services.
   If you are unsure something exists, check the code or the docs, or say so.
 - Do not add new dependencies without stating why and asking first.
+- Use the domain terms defined in `docs/CONTEXT.md` (once it exists) in code, tests
+  and issues. Do not use the synonyms it lists as ones to avoid.
+- If a change contradicts an architecture decision record in `docs/adr/`, say so
+  explicitly and ask before proceeding. Do not silently override it.
+- Never read, print or echo secret values into the session, whatever the source:
+  environment variables (`env`, `printenv`), `.env` files (`cat .env`), Secrets Manager
+  (`aws secretsmanager get-secret-value`), SSM SecureString parameters
+  (`--with-decryption`) or `cdk synth` output. Reference secrets by name or ARN; in CDK
+  use `SecretValue.secretsManager(...)`.
 
 ### Be critical of your own code
 Before presenting any change, review it as a strict senior reviewer would:
@@ -73,6 +85,12 @@ as finished or "production-ready" without this review.
 
 ### Verify, don't assume
 - Run the build, formatter and relevant tests before saying a change works.
+- While iterating, build only the module you change, optionally with a single test:
+  `./mvnw -pl apps/mission-control/collector -am verify -Dtest=ClassName#method -Dsurefire.failIfNoSpecifiedTests=false`.
+  `-am` also builds the modules it depends on, which do not have that test; without the
+  last flag they fail with "No tests matching pattern". With it, a misspelled test name
+  passes silently, so check that `Tests run:` in the output includes your test.
+  Run the full `./mvnw verify` from the root before saying the change is done.
 - Report results honestly: if tests fail, are skipped or could not be run, say so
   with the output.
 - Never weaken, skip, delete or `@Disabled` a test to make the build pass.
@@ -88,11 +106,17 @@ as finished or "production-ready" without this review.
 - Claude **never approves or merges a pull request**, on any branch.
 - Final approval of every PR to `main` is given by a human reviewer.
 - Claude never pushes directly to `main`, `develop` or `release/*`.
+- Claude may commit to the current feature branch, and push a `feature/*` branch it
+  created for the task once the module build passes. Never force-push, and never push
+  a branch someone else is working on.
+- Claude opens a PR only when asked, and then as a draft (`gh pr create --draft`). The
+  developer completes the "AI involvement" section and marks the PR ready for review.
 
 ## Code standards
 - Java 21 + Spring Boot 4.1, Google Java Style Guide (google-java-format, Checkstyle).
-  The build enforces both once #39 is merged; until then, follow the style guide by hand
-  and do not claim that a format or Checkstyle check has passed.
+  `./mvnw verify` enforces both (see README.md, "Code quality"). Run
+  `./mvnw spotless:apply` before committing; Checkstyle fails on any warning, including
+  missing Javadoc on public classes and methods.
 - Spring Boot 4 differs from Boot 3, and most examples online are still Boot 3. Check the
   Boot 4 reference docs and migration guide instead of copying old examples:
   - Starters are split per technology, with matching test starters (e.g.
@@ -114,7 +138,7 @@ as finished or "production-ready" without this review.
 ## Testing
 - Tests first: write tests from the acceptance criteria before implementation.
 - Unit tests: JUnit 5, AssertJ, Mockito. Minimum 80 % coverage on domain logic
-  (JaCoCo gate added in #39).
+  (JaCoCo; a module with domain logic switches the gate on, see README.md).
 - Integration tests: Spring Boot Test + Testcontainers (PostgreSQL, Redis, LocalStack).
 - Contract tests for REST APIs and event schemas. A breaking change fails the build.
 - External APIs are mocked with WireMock, never called from tests.
@@ -127,13 +151,16 @@ as finished or "production-ready" without this review.
 - Inside a group: interfaces + Spring events (outbox pattern). Between groups:
   REST for queries, EventBridge + SQS for events.
 - External calls use timeouts, retries with back-off and circuit breakers (Resilience4j).
-- ArchUnit tests will enforce these boundaries (set up in #39); until then reviewers check them.
+- ArchUnit tests enforce these boundaries. Each module or app that depends on other
+  modules adds its rules (example in README.md); until a rule exists, reviewers check it.
 
 ## Product rules (do not break)
 - Red articles and blocked categories NEVER get suggestions or a panel.
 - Fail open for the reader: if Rainmaker fails, the publisher's page must load normally.
 - Fail closed for money: clicks are idempotent on `click_id`, never lost, never
   counted twice.
+- Click, settlement and audit records are append-only. Never update or delete them;
+  correct a mistake with a new compensating record.
 - Rank by relevance and quality. Price (CPC) only breaks ties.
 - Never write to the publisher's CMS. Ingestion is read-only.
 - Respect reader consent (TCF). No reader profiles, no personal data in logs.

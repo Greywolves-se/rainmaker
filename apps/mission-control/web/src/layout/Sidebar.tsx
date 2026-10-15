@@ -41,7 +41,7 @@ export function Sidebar({projects, sourceSummary}: SidebarProps) {
       <div className="project-list">
         <span className="project-list__heading">{t('nav.projects')}</span>
         {projects.map(project => (
-          <div key={project.name} className="project-list__item">
+          <div key={project.id} className="project-list__item">
             <span
               className={`dot dot--small dot--${project.health}`}
               aria-hidden="true"

@@ -153,6 +153,16 @@
   font-family: var(--font-mono);
 }
 
+.sample-banner {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid #f2d39b;
+  border-radius: var(--radius-inner);
+  background: var(--color-amber-soft);
+  color: var(--color-amber-text);
+  font-weight: 600;
+}
+
 .page-header {
   display: flex;
   flex-direction: column;
