@@ -7,6 +7,10 @@
 #   neededBy: 2026-10-30           # optional, YYYY-MM-DD; overdue when passed and still open
 #   status: open                   # open | answered
 #   critical: true                 # optional, default false
+#
+# C1–C21 and D1–D19 come from section 13 of architecture v0.5, which has no D15.
+# neededBy: a month in the document = the last day of that month (Mid-Nov = 15 Nov);
+# other milestones ("Before start", "Sprint 0") stay in the title until there is a date.
 - id: C1
   title: 'LIA period: 6 months, with the possibility to extend. (Needed by: Before start.)'
   owner: Customer
@@ -26,32 +30,39 @@
   owner: Customer (Staffan)
   status: open
 - id: C5
-  title: 'How many AI suggestions and active links per article? (Proposal: configurable per publisher and pilot; default 3 suggestions / 2 links.) (Needed by: Nov.)'
+  title: 'How many AI suggestions and active links per article? (Proposal: configurable per publisher and pilot; default 3 suggestions / 2 links.)'
   owner: Customer
+  neededBy: 2026-11-30
   status: open
 - id: C6
-  title: 'How are green, yellow and red articles defined, and who approves the policy? Can the publisher provide about 200 labelled example articles? (Needed by: Nov.)'
+  title: How are green, yellow and red articles defined, and who approves the policy? Can the publisher provide about 200 labelled example articles?
   owner: Customer
+  neededBy: 2026-11-30
   status: open
 - id: C7
-  title: 'How is QTI defined, which signals are included, and what minimum data volume is needed? (Needed by: Dec.)'
+  title: How is QTI defined, which signals are included, and what minimum data volume is needed?
   owner: Customer
+  neededBy: 2026-12-31
   status: open
 - id: C8
-  title: 'How are ads and commercial links labelled, in Swedish and possibly English? (Needed by: Nov.)'
+  title: How are ads and commercial links labelled, in Swedish and possibly English?
   owner: Customer
+  neededBy: 2026-11-30
   status: open
 - id: C9
-  title: 'Who is data controller and processor, and which rules apply for consent, cookies and retention? (Needed by: Nov.)'
+  title: Who is data controller and processor, and which rules apply for consent, cookies and retention?
   owner: Customer (Staffan)
+  neededBy: 2026-11-30
   status: open
 - id: C10
-  title: 'Which affiliate network is tested first, and who owns the agreement? (After the pilot.) (Needed by: Feb.)'
+  title: Which affiliate network is tested first, and who owns the agreement? (After the pilot.)
   owner: Customer (Staffan)
+  neededBy: 2027-02-28
   status: open
 - id: C11
-  title: 'Is the first pilot invoiced via Aurora, and in which currency? Stripe and automated settlement are evaluated after the business flow is verified. (Needed by: Dec.)'
+  title: Is the first pilot invoiced via Aurora, and in which currency? Stripe and automated settlement are evaluated after the business flow is verified.
   owner: Customer (Staffan)
+  neededBy: 2026-12-31
   status: open
 - id: C12
   title: 'Accounts and budget: Claude, ChatGPT and AWS accounts via Aurora where suitable, with budget alarms before use; monthly budget for cloud and AI (see 6.7). (Needed by: Before start.)'
@@ -66,25 +77,30 @@
   owner: Customer
   status: answered
 - id: C15
-  title: 'Which advertisers or destinations are used in the pilot, and do they accept unpaid or manually settled traffic at first? (Needed by: Nov.)'
+  title: Which advertisers or destinations are used in the pilot, and do they accept unpaid or manually settled traffic at first?
   owner: Customer
+  neededBy: 2026-11-30
   status: open
 - id: C16
-  title: 'Support and on-call during the first pilot weeks, and the budget for monitoring. (Needed by: Dec.)'
+  title: Support and on-call during the first pilot weeks, and the budget for monitoring.
   owner: Customer
+  neededBy: 2026-12-31
   status: open
 - id: C17
-  title: 'Which editors and end users join the feedback group? (Needed by: Nov.)'
+  title: Which editors and end users join the feedback group?
   owner: Customer
+  neededBy: 2026-11-30
   status: open
 - id: C18
-  title: 'When is the pilot agreement ready, and exactly what is included in the pilot licence? (Needed by: Mid-Nov.)'
+  title: When is the pilot agreement ready, and exactly what is included in the pilot licence?
   owner: Customer (Staffan)
+  neededBy: 2026-11-15
   status: open
   critical: true
 - id: C19
-  title: 'Monetisation after the pilot: Stripe, full settlement and advertiser self-service – when, and by whom, given the team moves to Friction Intelligence? (Needed by: Feb.)'
+  title: 'Monetisation after the pilot: Stripe, full settlement and advertiser self-service – when, and by whom, given the team moves to Friction Intelligence?'
   owner: Customer
+  neededBy: 2027-02-28
   status: open
 - id: C20
   title: 'Mission Control V1 scope: confirm the limited V1 in 10.6. (Needed by: Before start.)'
@@ -107,16 +123,18 @@
   owner: Senior Dev
   status: open
 - id: D4
-  title: 'PostgreSQL + pgvector or OpenSearch → pgvector. Revisit OpenSearch only if full-text search or vector volume (millions) requires it. (Needed by: Oct.)'
+  title: PostgreSQL + pgvector or OpenSearch → pgvector. Revisit OpenSearch only if full-text search or vector volume (millions) requires it.
   owner: Senior Dev
+  neededBy: 2026-10-31
   status: open
 - id: D5
   title: 'Claude via Bedrock or Anthropic API directly → Bedrock: data stays in the AWS EU region, IAM access control, one AWS invoice via Aurora. Use an EU cross-region inference profile if a model is not offered in Stockholm. Compare cost and features again in the pilot. (Needed by: Sprint 0.)'
   owner: Senior Dev
   status: open
 - id: D6
-  title: 'Integration method for CMS and GAM → CMS: RSS/news sitemap first, CMS API if needed, page crawl as fallback. GAM: REST Ad Manager API first, SOAP only for gaps – and only if the pilot publisher uses GAM and grants access. (Needed by: Nov.)'
+  title: 'Integration method for CMS and GAM → CMS: RSS/news sitemap first, CMS API if needed, page crawl as fallback. GAM: REST Ad Manager API first, SOAP only for gaps – and only if the pilot publisher uses GAM and grants access.'
   owner: Senior Dev
+  neededBy: 2026-11-30
   status: open
 - id: D7
   title: 'Repository: monorepo with one module per logical service.'
@@ -127,12 +145,14 @@
   owner: Senior Dev
   status: answered
 - id: D9
-  title: 'Idempotency, fraud and reconciliation for clicks and settlement → pilot: append-only click records with idempotency key = click_id, monthly settlement basis report reconciled against click totals. Full double-entry ledger when Stripe/prepaid is introduced. (Needed by: Nov.)'
+  title: 'Idempotency, fraud and reconciliation for clicks and settlement → pilot: append-only click records with idempotency key = click_id, monthly settlement basis report reconciled against click totals. Full double-entry ledger when Stripe/prepaid is introduced.'
   owner: Senior Dev
+  neededBy: 2026-11-30
   status: open
 - id: D10
-  title: 'Fraud rules for the pilot → signed click tokens (HMAC), 30-minute dedupe per session and link, known-bot user-agent list, rate limit per hashed IP; review weekly in the pilot. (Needed by: Nov.)'
+  title: Fraud rules for the pilot → signed click tokens (HMAC), 30-minute dedupe per session and link, known-bot user-agent list, rate limit per hashed IP; review weekly in the pilot.
   owner: Senior Dev
+  neededBy: 2026-11-30
   status: open
 - id: D11
   title: 'Infrastructure as code → AWS CDK in Java (same language as the code). (Needed by: Sprint 0.)'
@@ -163,6 +183,7 @@
   owner: Senior Dev
   status: open
 - id: D19
-  title: 'Verifiable go/no-go criteria for January → the seven criteria in 10.5; evidence prepared by Senior Dev, decision by Peter in the week of 4 January. (Needed by: Dec.)'
+  title: Verifiable go/no-go criteria for January → the seven criteria in 10.5; evidence prepared by Senior Dev, decision by Peter in the week of 4 January.
   owner: Senior Dev / Peter
+  neededBy: 2026-12-31
   status: open

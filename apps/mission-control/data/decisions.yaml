@@ -8,6 +8,9 @@
 #   status: decided                # proposed | decided | superseded
 #   needsOwnerDecision: false      # optional, true when Peter/Staffan must decide
 #   reference: Architecture 10.6   # optional
+#
+# B1–B33 come from Appendix B of architecture v0.5. A decision that a later one refines,
+# limits or postpones has status superseded; its title names the later decision.
 - id: B1
   title: Write an AWS installation/cost section; senior review before installing.
   owner: Simon
@@ -48,7 +51,7 @@
   title: Advertiser portal and settlement stay in MVP, delivered late. (Refined by B27.)
   owner: Peter
   date: 2026-10-02
-  status: decided
+  status: superseded
   reference: Scope; 10.4
 - id: B8
   title: Move Actors before Use-cases.
@@ -114,7 +117,7 @@
   title: Mission Control is built first, connected to GitHub. (Scope limited by B26.)
   owner: Peter
   date: 2026-10-03
-  status: decided
+  status: superseded
   reference: Section 10.6
 - id: B19
   title: Domain rainmaker.nu for services and e-mail; a Google Drive for the work.
@@ -132,7 +135,7 @@
   title: Stripe for licence fees – evaluated. (Postponed by B28 until after the business flow is verified.)
   owner: Staffan
   date: 2026-10-03
-  status: decided
+  status: superseded
   reference: Section 8.2; C11
 - id: B22
   title: v0.4 approved as direction; Simon continues as system architect; Java, Spring Boot, React, PostgreSQL, GitHub and AWS confirmed.
