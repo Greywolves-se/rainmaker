@@ -76,7 +76,10 @@ function LatestBuild({build}: {build: Development['build']}) {
             })}
           </span>
           <span className="item__meta">
-            {build.age} · {build.duration}
+            {t('development.buildMeta', {
+              age: build.age,
+              duration: build.duration,
+            })}
           </span>
         </div>
       </div>
@@ -87,7 +90,7 @@ function LatestBuild({build}: {build: Development['build']}) {
       </div>
       <ul className="build__steps">
         {build.steps.map((step, index) => (
-          <li key={index}>✓ {step}</li>
+          <li key={index}>{t('development.stepPassed', {step})}</li>
         ))}
       </ul>
     </section>

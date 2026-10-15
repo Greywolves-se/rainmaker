@@ -13,7 +13,7 @@ describe('KpiCards', () => {
     };
 
     render(
-      <I18nextProvider i18n={createI18n()}>
+      <I18nextProvider i18n={createI18n('en')}>
         <KpiCards overview={overview} />
       </I18nextProvider>
     );

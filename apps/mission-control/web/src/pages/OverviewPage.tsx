@@ -150,8 +150,8 @@ function StatusColumn({
 }
 
 function Decisions({overview}: {overview: Overview}) {
-  const {t} = useTranslation();
-  const names = formatAlternatives(overview.decisionMakers);
+  const {t, i18n} = useTranslation();
+  const names = formatAlternatives(overview.decisionMakers, i18n.language);
   return (
     <section className="card">
       <h2 className="card__title">{t('overview.decisionsFor', {names})}</h2>
@@ -173,12 +173,12 @@ function Decisions({overview}: {overview: Overview}) {
 }
 
 function RisksPilotsCost({overview}: {overview: Overview}) {
-  const {t} = useTranslation();
+  const {t, i18n} = useTranslation();
   const {awsCost, risk} = overview;
   const amount =
     awsCost.amountSek === null
       ? t('overview.amountUnknown')
-      : formatSek(awsCost.amountSek);
+      : formatSek(awsCost.amountSek, i18n.language);
   return (
     <section className="card">
       <h2 className="card__title">{t('overview.risksPilotsCost')}</h2>
@@ -196,7 +196,9 @@ function RisksPilotsCost({overview}: {overview: Overview}) {
       </div>
       <div className="row row--spread">
         <span className="muted">
-          {t('overview.awsCost', {month: formatMonth(awsCost.month)})}
+          {t('overview.awsCost', {
+            month: formatMonth(awsCost.month, i18n.language),
+          })}
         </span>
         <span className="mono">{amount}</span>
       </div>

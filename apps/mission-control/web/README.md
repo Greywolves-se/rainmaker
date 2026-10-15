@@ -56,7 +56,7 @@ index.html  →  src/main.tsx  →  src/App.tsx (routes)  →  Layout  →  page
 
 ```
 ┌──────────┬──────────────────────────────────────────┐
-│ Sidebar  │ TopBar (search, time)                    │
+│ Sidebar  │ TopBar (search, time, language)          │
 │          │ Page title + subtitle                    │
 │ menu     ├───────────────────────────┬──────────────┤
 │ projects │ <Outlet/> = current page  │  Navigator   │
@@ -84,7 +84,7 @@ sampleSnapshot.ts  →  useSnapshot()  →  Layout and the three pages  →  sma
 
 ### Text: labels vs data
 
-- **Labels** (headings, buttons, status names) live in `src/i18n/en.json`. Components
+- **Labels** (headings, buttons, status names) live in `src/i18n/sv.json` and `en.json`. Components
   read them by key: `t('overview.recentEvents')` → "Recent events". Placeholders are
   filled at runtime: `"Done · {{count}}"` + `{count: 4}` → "Done · 4". Never write UI
   text directly in a component (see the root `CLAUDE.md`).
@@ -93,10 +93,13 @@ sampleSnapshot.ts  →  useSnapshot()  →  Layout and the three pages  →  sma
   (`status.atRisk`), the colour from `src/data/statusTone.ts` (`atRisk` → amber).
   `StatusPill` combines both.
 - `src/i18n/format.ts` formats dates (always Stockholm time), months, SEK amounts and
-  lists ("Peter or Staffan").
+  lists ("Peter or Staffan" / "Peter eller Staffan") in the chosen language.
 
-The app is English only. Adding Swedish later means adding `sv.json` and a language
-switch; no component changes.
+The app is in Swedish and English; Swedish is the default. The switch in the top bar
+changes the language, and the choice is saved in the browser (`localStorage`), so it
+survives a reload. Dates, months, amounts and lists follow the chosen language.
+Every label and separator must be in both `sv.json` and `en.json`: a test fails if the
+two files do not have exactly the same keys.
 
 ### Interactive state
 
@@ -116,27 +119,27 @@ Only two places keep state that changes while you use the page:
 | `src/pages/` | One component per page; Development has its own folder |
 | `src/components/` | Small shared pieces: `StatusPill`, `SourceTile`, `ItemText`, `UnavailableAction`, icons |
 | `src/data/` | Data types, the sample snapshot, `useSnapshot()`, status colours |
-| `src/i18n/` | i18next setup, `en.json`, date/number formatting |
+| `src/i18n/` | i18next setup, `sv.json` and `en.json`, saved language, date/number formatting |
 | `src/styles/` | Plain CSS: `theme.css` (colours, fonts as variables), `layout.css` (frame), `components.css` (shared classes), `pages.css` (single-page styles) |
 | `src/test/` | Test setup and `renderApp()`, which renders the app the same way `main.tsx` does |
 
 ### Tests
 
-- `App.test.tsx` clicks through the app like a user: navigation, page titles, Navigator.
+- `App.test.tsx` clicks through the app like a user: navigation, page titles, Navigator, language switch.
 - `StoryBoard.test.tsx` adds, edits and removes stories through the UI.
 - `stories.test.ts` tests the story rules directly.
-- `i18n.test.ts` checks `en.json` and the formatting helpers.
+- `i18n.test.ts` checks that `sv.json` and `en.json` have the same keys, the saved language and the formatting helpers.
 
 ## Common changes
 
 | I want to… | Change |
 |---|---|
 | Change what the page shows (today) | `src/data/sampleSnapshot.ts` |
-| Change a label or heading | `src/i18n/en.json` |
+| Change a label or heading | `src/i18n/sv.json` and `src/i18n/en.json` |
 | Change colours or fonts | the variables in `src/styles/theme.css` |
 | Add a field to the data | `src/data/types.ts` first; the build then lists every place to update |
-| Add a status | `StatusCode` in `types.ts`, its colour in `statusTone.ts`, its label in `en.json` under `status` |
-| Add a page | a component in `src/pages/`, a route in `App.tsx`, an entry in `layout/pages.ts`, texts under `pages.<key>` and `nav.<key>` in `en.json` |
+| Add a status | `StatusCode` in `types.ts`, its colour in `statusTone.ts`, its label in `sv.json` and `en.json` under `status` |
+| Add a page | a component in `src/pages/`, a route in `App.tsx`, an entry in `layout/pages.ts`, texts under `pages.<key>` and `nav.<key>` in `sv.json` and `en.json` |
 
 ## Switching to real data
 
@@ -292,7 +295,7 @@ export function SnapshotLoader({children}: {children: ReactNode}) {
 }
 ```
 
-Add the two texts to `en.json`:
+Add the two texts to `en.json` (and the Swedish ones to `sv.json`):
 
 ```json
 "snapshot": {
@@ -347,5 +350,4 @@ and check each page against the real data.
 - Story edits are lost on reload.
 - Search, free-text questions to Navigator, and the "Open …" / "View all" links are shown
   disabled: they have no backend or URLs yet.
-- English only.
 - Fonts load from Google Fonts (one external request per page load).
