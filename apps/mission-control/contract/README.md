@@ -33,4 +33,4 @@ The contract tests on both sides fail when they disagree.
 The Java records get their own contract test against the same sample (#10, Java PR).
 
 ### Web app
-The TypeScript types get their own contract test against the same sample (#10, TypeScript PR).
+`src/contract/snapshot.ts` holds the zod schemas, the TypeScript types (derived from them) and `parseSnapshot()`, the runtime check for a fetched snapshot. Unknown fields are dropped there, so a newer collector never breaks an older dashboard. `snapshot.contract.test.ts` checks the sample with the JSON Schema (ajv), reads it without losing or changing a field, rejects missing fields and unknown values, and compares every enum with the schema. It is excluded from `tsc`, because the web Docker build copies only `web/`; Vitest runs it.
