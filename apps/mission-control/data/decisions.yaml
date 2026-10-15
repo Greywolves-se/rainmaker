@@ -1,4 +1,4 @@
-# Decision log (replaces Appendix B of the architecture document; filled in #16).
+# Decision log (moved here from Appendix B of the architecture document).
 # One item per decision:
 #
 # - id: B34                        # unique, e.g. the B-number
@@ -8,4 +8,204 @@
 #   status: decided                # proposed | decided | superseded
 #   needsOwnerDecision: false      # optional, true when Peter/Staffan must decide
 #   reference: Architecture 10.6   # optional
-[]
+#
+# B1–B33 come from Appendix B of architecture v0.5. A decision that a later one refines,
+# limits or postpones has status superseded; its title names the later decision.
+- id: B1
+  title: Write an AWS installation/cost section; senior review before installing.
+  owner: Simon
+  date: 2026-10-02
+  status: decided
+  reference: Section 6; D17
+- id: B2
+  title: Add one month of buffer for feedback.
+  owner: Peter
+  date: 2026-10-02
+  status: decided
+  reference: Sections 10.3–10.4
+- id: B3
+  title: Remove predefined work packages; students self-organise.
+  owner: Simon
+  date: 2026-10-02
+  status: decided
+  reference: Section 10
+- id: B4
+  title: Use AI-generated fake news for the test site to avoid copyright issues.
+  owner: Simon
+  date: 2026-10-02
+  status: decided
+  reference: Section 7.5
+- id: B5
+  title: Build a custom admin view; no Salesforce integration in this project.
+  owner: Peter
+  date: 2026-10-02
+  status: decided
+  reference: Scope (1.3)
+- id: B6
+  title: Keep multi-language support in scope from the start.
+  owner: Peter
+  date: 2026-10-02
+  status: decided
+  reference: Scope; 5.5; 9
+- id: B7
+  title: Advertiser portal and settlement stay in MVP, delivered late. (Refined by B27.)
+  owner: Peter
+  date: 2026-10-02
+  status: superseded
+  reference: Scope; 10.4
+- id: B8
+  title: Move Actors before Use-cases.
+  owner: Simon
+  date: 2026-10-02
+  status: decided
+  reference: Sections 2–4
+- id: B9
+  title: Enforce the Google coding standard for generated code.
+  owner: Simon
+  date: 2026-10-02
+  status: decided
+  reference: Section 7.2
+- id: B10
+  title: Hold AI workshops every Wednesday.
+  owner: Joakim
+  date: 2026-10-02
+  status: decided
+  reference: Sections 7.2, 10.2
+- id: B11
+  title: main = production; release branch = UAT.
+  owner: Simon
+  date: 2026-10-02
+  status: decided
+  reference: Sections 5.4, 11
+- id: B12
+  title: Use a monorepo.
+  owner: Simon
+  date: 2026-10-02
+  status: decided
+  reference: Section 5; D7
+- id: B13
+  title: Use React for the front end instead of server-side rendering.
+  owner: Simon
+  date: 2026-10-02
+  status: decided
+  reference: Section 9; D8
+- id: B14
+  title: One hosted database instance with one database per (logical) service.
+  owner: Simon
+  date: 2026-10-02
+  status: decided
+  reference: Sections 5.2–5.3; D16
+- id: B15
+  title: 'Pilot before Christmas. (Refined by B25: technically ready before Christmas, external start ~7 Jan.)'
+  owner: Peter
+  date: 2026-10-03
+  status: superseded
+  reference: Sections 1.1, 10.4
+- id: B16
+  title: Staffan funds the project through Aurora; invoices are handled from Aurora.
+  owner: Staffan
+  date: 2026-10-03
+  status: decided
+  reference: Section 6.2; C12
+- id: B17
+  title: When the pilot is running, the team starts on Friction Intelligence.
+  owner: Peter
+  date: 2026-10-03
+  status: decided
+  reference: Sections 1.1, 10.4; C14
+- id: B18
+  title: Mission Control is built first, connected to GitHub. (Scope limited by B26.)
+  owner: Peter
+  date: 2026-10-03
+  status: superseded
+  reference: Section 10.6
+- id: B19
+  title: Domain rainmaker.nu for services and e-mail; a Google Drive for the work.
+  owner: Peter
+  date: 2026-10-03
+  status: decided
+  reference: Sections 10.7–10.8
+- id: B20
+  title: LLM tags produced in the editorial publishing step – evaluated during the pilot.
+  owner: Peter
+  date: 2026-10-03
+  status: decided
+  reference: UC-03
+- id: B21
+  title: Stripe for licence fees – evaluated. (Postponed by B28 until after the business flow is verified.)
+  owner: Staffan
+  date: 2026-10-03
+  status: superseded
+  reference: Section 8.2; C11
+- id: B22
+  title: v0.4 approved as direction; Simon continues as system architect; Java, Spring Boot, React, PostgreSQL, GitHub and AWS confirmed.
+  owner: Peter
+  date: 2026-10-04
+  status: decided
+  reference: Whole document
+- id: B23
+  title: Ten logical modules, deployed as four groups in the pilot.
+  owner: Simon
+  date: 2026-10-04
+  status: decided
+  reference: Section 5.2; D1
+- id: B24
+  title: AI proposes matches; editor or ad ops approves, rejects and corrects. Publisher sales manages advertisers and offers, not matching.
+  owner: Peter
+  date: 2026-10-04
+  status: decided
+  reference: Sections 2, 3, 4
+- id: B25
+  title: Technically ready and UAT-tested before Christmas; external pilot start around 7 January 2027.
+  owner: Peter
+  date: 2026-10-04
+  status: decided
+  reference: Sections 1.1, 10.4–10.5
+- id: B26
+  title: Mission Control V1 limited to status, decisions, risks, links and AI onboarding.
+  owner: Peter
+  date: 2026-10-04
+  status: decided
+  reference: Section 10.6
+- id: B27
+  title: Simple pilot licence and invoicing first; full clearing engine and Stripe later.
+  owner: Staffan
+  date: 2026-10-04
+  status: decided
+  reference: Scope; 6.7; 8.2
+- id: B28
+  title: The pilot licence covers AI, AWS, integration, support and evaluation; the first pilot can be invoiced via Aurora.
+  owner: Staffan
+  date: 2026-10-04
+  status: decided
+  reference: Sections 6.7, 10.5; C11, C18
+- id: B29
+  title: Peter is strategic Product Owner; Simon and the supervisors have the technical and operational mandate; Staffan handles economy and contracts.
+  owner: Peter
+  date: 2026-10-04
+  status: decided
+  reference: Sections 10.1–10.2
+- id: B30
+  title: User stories from the end user’s perspective; a shared AI (e.g. ChatGPT) to formulate tasks for Claude Code; humans review.
+  owner: Simon
+  date: 2026-10-04
+  status: decided
+  reference: Sections 3.2, 7.1–7.2
+- id: B31
+  title: No DNS changes at Loopia until Simon has delivered the complete list and order.
+  owner: Peter
+  date: 2026-10-04
+  status: decided
+  reference: Section 10.8
+- id: B32
+  title: Friction Intelligence is a separate product and code base, with Friskis & Svettis Uppsala as intended pilot.
+  owner: Peter
+  date: 2026-10-04
+  status: decided
+  reference: Sections 1.1, 1.3; C14
+- id: B33
+  title: Python is not needed initially; introduce only for a concrete analysis or model task.
+  owner: Simon
+  date: 2026-10-04
+  status: decided
+  reference: Section 9
