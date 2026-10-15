@@ -10,7 +10,13 @@ RUN npm ci
 COPY apps/mission-control/web/ ./
 RUN npm run build
 
+# The snapshot served at /snapshot.json (#17). The staging build replaces this empty stage with
+# the collector's output (docker.yml: build context "snapshot"). Other builds stay empty, and
+# docker compose mounts the snapshot volume over /srv/snapshot instead.
+FROM scratch AS snapshot
+
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 COPY apps/mission-control/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /src/dist /usr/share/nginx/html
+COPY --from=snapshot / /srv/snapshot/
 EXPOSE 8080
