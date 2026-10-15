@@ -1,6 +1,7 @@
-import {describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it} from 'vitest';
 import en from './en.json';
 import sv from './sv.json';
+import {LANGUAGE_STORAGE_KEY, createI18n, saveLanguage} from './i18n';
 import {
   formatAlternatives,
   formatMonth,
@@ -55,5 +56,25 @@ describe('format', () => {
 
   it('formats SEK amounts without decimals', () => {
     expect(formatSek(1234)).toMatch(/SEK\s?1,234$/);
+  });
+});
+
+describe('language', () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('is Swedish by default', () => {
+    expect(createI18n().language).toBe('sv');
+  });
+
+  it('uses the language saved in the browser', () => {
+    saveLanguage('en');
+    expect(createI18n().language).toBe('en');
+  });
+
+  it('ignores an unknown saved language', () => {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, 'de');
+    expect(createI18n().language).toBe('sv');
   });
 });

@@ -8,7 +8,7 @@ import {ROUTER_FUTURE} from '../routerFuture';
 /** Renders the whole app at `path` with its own i18n instance, so tests never share state. */
 export function renderApp({path = '/'}: {path?: string} = {}) {
   return render(
-    <I18nextProvider i18n={createI18n()}>
+    <I18nextProvider i18n={createI18n('en')}>
       <MemoryRouter initialEntries={[path]} future={ROUTER_FUTURE}>
         <App />
       </MemoryRouter>
