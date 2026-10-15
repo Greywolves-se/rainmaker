@@ -1,9 +1,9 @@
 import {render, screen} from '@testing-library/react';
 import {I18nextProvider} from 'react-i18next';
 import {describe, expect, it} from 'vitest';
-import {SAMPLE_SNAPSHOT} from '../data/sampleSnapshot';
-import {createI18n} from '../i18n/i18n';
-import {KpiCards} from './OverviewPage';
+import {SAMPLE_SNAPSHOT} from '../../data/sampleSnapshot';
+import {createI18n} from '../../i18n/i18n';
+import {KpiCards} from './KpiCards';
 
 describe('KpiCards', () => {
   it('colours an "at risk" KPI amber, not green', () => {
