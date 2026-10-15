@@ -20,6 +20,8 @@ export const STATUS_TONE: Record<StatusCode, Tone> = {
   error: 'red',
   blocker: 'red',
   question: 'blue',
+  superseded: 'grey',
+  disabled: 'grey',
 };
 
 export const STORY_STATUS_TONE: Record<StoryStatus, Tone> = {

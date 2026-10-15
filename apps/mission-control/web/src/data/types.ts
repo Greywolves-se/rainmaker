@@ -1,6 +1,10 @@
-/** Shape of the data the dashboard renders. Mirrors the mockup until the snapshot contract (#10) exists. */
+/**
+ * Shape of the data the pages render. The contract snapshot is mapped to it in fromContract.ts;
+ * null means the contract has no data for that part yet and the page shows an empty state.
+ */
 
-export type SourceCode = 'GD' | 'GH' | 'SL' | 'AWS' | 'RM' | 'FI';
+/** Short code shown in a source tile (GH, GD …). Open-ended, like the contract's sources. */
+export type SourceCode = string;
 
 export type Health = 'green' | 'yellow';
 
@@ -22,7 +26,9 @@ export type StatusCode =
   | 'ok'
   | 'error'
   | 'blocker'
-  | 'question';
+  | 'question'
+  | 'superseded'
+  | 'disabled';
 
 export type StoryStatus = 'todo' | 'inProgress' | 'blocked' | 'done';
 
@@ -50,26 +56,26 @@ export interface SourceEvent extends TitledItem {
 
 export interface Snapshot {
   generatedAt: string;
-  projects: {id: string; name: string; health: Health}[];
-  sourceSummary: {synced: number; total: number; note: string};
+  projects: {id: string; name: string; health: Health | null}[];
+  sourceSummary: {synced: number; total: number; note: string | null};
   overview: {
-    project: {status: StatusCode; sprint: string; percentDone: number};
-    operations: {status: StatusCode; note: string};
-    business: {status: StatusCode; note: string};
-    pilots: {active: number; note: string};
+    project: {status: StatusCode; sprint: string; percentDone: number} | null;
+    operations: {status: StatusCode; note: string} | null;
+    business: {status: StatusCode; note: string} | null;
+    pilots: {active: number; note: string} | null;
     done: TitledItem[];
     inProgress: TitledItem[];
     blocked: TitledItem[];
     decisionMakers: string[];
     decisions: (TitledItem & {initial: string})[];
     pilotList: StatusItem[];
-    risk: {title: string; text: string};
-    awsCost: {month: string; amountSek: number | null};
-    release: {version: string; badge: string; notes: string};
+    risk: {title: string; text: string} | null;
+    awsCost: {month: string; amountSek: number | null} | null;
+    release: {version: string; badge: string; notes: string} | null;
     events: SourceEvent[];
   };
   development: {
-    sprint: {name: string; dates: string};
+    sprint: {name: string; dates: string} | null;
     stories: Story[];
     pullRequests: (StatusItem & {number: string})[];
     build: {
@@ -81,9 +87,9 @@ export interface Snapshot {
       lint: string;
       staging: string;
       steps: string[];
-    };
+    } | null;
     techDecisions: StatusItem[];
-    questionAudience: string;
+    questionAudience: string | null;
     questions: (StatusItem & {audience: string})[];
     links: TitledItem[];
   };
@@ -91,14 +97,14 @@ export interface Snapshot {
     cards: {
       code: SourceCode;
       name: string;
-      account: string;
-      role: string;
+      account: string | null;
+      role: string | null;
       tags: string[];
-      scope: string;
-      mapsTo: string;
-      updates: string;
+      scope: string | null;
+      mapsTo: string | null;
+      updates: string | null;
       status: StatusCode;
-      lastSync: string;
+      lastSync: string | null;
     }[];
     mapping: {id: string; concept: string; from: string; example: string}[];
     syncLog: {
@@ -110,8 +116,8 @@ export interface Snapshot {
     }[];
   };
   navigator: {
-    summaryTime: string;
-    summary: string;
+    summaryTime: string | null;
+    summary: string | null;
     projects: {id: string; title: string; health: Health; text: string}[];
     nextSteps: string[];
     questions: {id: string; question: string; answer: string}[];

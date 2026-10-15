@@ -163,6 +163,37 @@
   font-weight: 600;
 }
 
+.warning-banner {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid #f0b8b1;
+  border-radius: var(--radius-inner);
+  background: var(--color-red-soft);
+  color: var(--color-red-text);
+  font-weight: 600;
+}
+
+/* Full-page loading and error states, shown before the shell has data. */
+.app-status {
+  max-width: 640px;
+  margin: 15vh auto 0;
+  padding: 0 16px;
+  color: var(--color-text-muted);
+  font-size: 16px;
+}
+
+.app-status--error {
+  color: var(--color-red-text);
+}
+
+.app-status pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+}
+
 .page-header {
   display: flex;
   flex-direction: column;

@@ -387,6 +387,8 @@
   width: 36px;
   height: 36px;
   border-radius: 9px;
+  /* Sources without their own colour class (tile--GH …) get this neutral grey. */
+  background: #46566b;
   color: #ffffff;
   display: flex;
   align-items: center;
