@@ -5,10 +5,10 @@
     "documentTitle": "{{page}} – Mission Control"
   },
   "nav": {
-    "mainMenu": "Huvudmeny Test",
+    "mainMenu": "Huvudmeny",
     "overview": "Översikt",
     "development": "Utveckling",
-    "sources": "Källor Test",
+    "sources": "Källor",
     "projects": "Projekt",
     "dataSources": "Datakällor",
     "synced": "{{synced}} av {{total}} synkade"
