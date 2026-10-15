@@ -25,6 +25,7 @@ approves them, and every click is tracked for settlement.
 | `apps/g1`–`g4-*-app/` | Deployable Spring Boot apps that assemble services | Maven module | Not created yet |
 | `widget/` | rainmaker.js (TypeScript) | npm | Empty – later |
 | `portals/` | React apps for publishers and admins | npm | Empty – later |
+| `infra/` | AWS CDK app (Java), one stack per environment; see `infra/README.md` | Maven module | **In progress** (#61–#63) |
 | `docs/` | START_HERE.md, architecture decision records | – | Empty – later |
 | `docs/adr/` | Architecture decision records, one Markdown file per decision | – | Not created yet (first ADR in #6) |
 
