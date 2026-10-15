@@ -1,0 +1,10 @@
+# Open questions for the owners and the team (architecture section 13; filled in #16).
+# One item per question:
+#
+# - id: Q-1                        # unique
+#   title: Which consent text do pilot publishers use?
+#   owner: Peter
+#   neededBy: 2026-10-30           # optional, YYYY-MM-DD; overdue when passed and still open
+#   status: open                   # open | answered
+#   critical: true                 # optional, default false
+[]

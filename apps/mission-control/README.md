@@ -40,6 +40,8 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 | `mission-control.collector.project-name` | `Rainmaker` (used until a source provides the project) |
 | `mission-control.collector.sources.<id>.enabled` | `true`; set `false` to switch a source off (it is then listed as `disabled`) |
 
+**Data files (#15):** decisions, risks, questions, links, the change log and the project's key dates live as YAML in `data/`. Each file starts with a comment that explains its fields. Edit them in a pull request (the GitHub web editor is fine); a test checks the real files in CI. It names the file, line and field of every mistake, so a bad edit fails the PR instead of the dashboard. Each item links back to its line on GitHub.
+
 **Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method adds items to the `SnapshotBuilder` it is given. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
 
 ## CI

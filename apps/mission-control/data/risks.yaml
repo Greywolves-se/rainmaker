@@ -1,0 +1,9 @@
+# Project risks (architecture section 10.5; filled in #16).
+# One item per risk:
+#
+# - id: R-1                        # unique
+#   title: Pilot publisher not signed in time
+#   level: red                     # green | yellow | red
+#   owner: Peter
+#   mitigation: Weekly follow-up with two backup publishers
+[]

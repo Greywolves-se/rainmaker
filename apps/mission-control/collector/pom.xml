@@ -24,6 +24,11 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-jackson</artifactId>
     </dependency>
+    <!-- Reads the hand-maintained data files in apps/mission-control/data (#15). -->
+    <dependency>
+      <groupId>tools.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+    </dependency>
     <!-- Checks every source's data against the snapshot schema before it is written (#11). -->
     <dependency>
       <groupId>com.networknt</groupId>
