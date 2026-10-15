@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonParser;
 import tools.jackson.core.JsonToken;
@@ -19,6 +21,7 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
  */
 final class DataFileReader {
 
+  private static final Logger log = LoggerFactory.getLogger(DataFileReader.class);
   private static final YAMLMapper YAML = YAMLMapper.builder().build();
 
   private final Path folder;
@@ -34,7 +37,7 @@ final class DataFileReader {
   /** A file with one set of fields (e.g. project.yaml). */
   Optional<DataItem> object(String file) {
     Path path = folder.resolve(file);
-    if (!Files.exists(path)) {
+    if (!exists(file, path)) {
       return Optional.empty();
     }
     try (JsonParser parser = YAML.createParser(path)) {
@@ -43,6 +46,10 @@ final class DataFileReader {
       }
       JsonNode node = parser.readValueAsTree();
       checkNothingFollows(file, parser);
+      if (!node.isObject()) {
+        problems.add(file + ": must be a set of fields (name: value)");
+        return Optional.empty();
+      }
       return Optional.of(new DataItem(file, node, link(file, 1), problems));
     } catch (JacksonException e) {
       invalidYaml(file, e);
@@ -54,7 +61,7 @@ final class DataFileReader {
   List<DataItem> list(String file) {
     Path path = folder.resolve(file);
     List<DataItem> items = new ArrayList<>();
-    if (!Files.exists(path)) {
+    if (!exists(file, path)) {
       return items;
     }
     try (JsonParser parser = YAML.createParser(path)) {
@@ -67,12 +74,17 @@ final class DataFileReader {
         return items;
       }
       Set<String> ids = new HashSet<>();
-      while (parser.nextToken() != JsonToken.END_ARRAY) {
+      JsonToken token;
+      while ((token = parser.nextToken()) != JsonToken.END_ARRAY && token != null) {
         int line = parser.currentTokenLocation().getLineNr();
         JsonNode node = parser.readValueAsTree();
-        DataItem item = new DataItem(file + ":" + line, node, link(file, line), problems);
-        items.add(item);
-        if (node.isObject() && node.hasNonNull("id") && !ids.add(node.get("id").asString())) {
+        if (!node.isObject()) {
+          // One problem for the item, instead of "is required" for each of its fields.
+          problems.add(file + ":" + line + ": must be a set of fields (name: value)");
+          continue;
+        }
+        items.add(new DataItem(file + ":" + line, node, link(file, line), problems));
+        if (node.hasNonNull("id") && !ids.add(node.get("id").asString())) {
           problems.add(file + ":" + line + " id: " + node.get("id").asString() + " is used twice");
         }
       }
@@ -82,6 +94,15 @@ final class DataFileReader {
       invalidYaml(file, e);
       return List.of();
     }
+  }
+
+  /** A missing file means no items; it is logged, so a misspelled file name shows up. */
+  private static boolean exists(String file, Path path) {
+    if (Files.exists(path)) {
+      return true;
+    }
+    log.atInfo().addKeyValue("file", file).log("data file not found; no items");
+    return false;
   }
 
   /**
@@ -108,7 +129,8 @@ final class DataFileReader {
   }
 
   private void invalidYaml(String file, JacksonException e) {
-    // The parser's own message can quote file content, so only the line is reported.
+    // The parser's message can quote any part of the file, including long free text, so only
+    // the line is reported. Problems found by our own checks may name short values such as ids.
     String line = e.getLocation() == null ? "" : ":" + e.getLocation().getLineNr();
     problems.add(file + line + ": is not valid YAML");
   }

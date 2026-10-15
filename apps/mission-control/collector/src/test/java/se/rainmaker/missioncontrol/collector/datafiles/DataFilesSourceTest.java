@@ -13,9 +13,12 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 import se.rainmaker.missioncontrol.collector.snapshot.Decision;
@@ -26,6 +29,7 @@ import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotValidator;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
 
+@ExtendWith(OutputCaptureExtension.class)
 class DataFilesSourceTest {
 
   private static final String FILES_URL = "https://github.com/example-org/repo/blob/develop/data";
@@ -125,12 +129,35 @@ class DataFilesSourceTest {
   }
 
   @Test
-  void missingFilesMeanNoItems() {
+  void missingFilesMeanNoItemsAndAreLogged(CapturedOutput output) {
     Snapshot snapshot = run();
 
     assertThat(snapshot.sources().getFirst().status()).isEqualTo(Source.Status.OK);
     assertThat(snapshot.decisions()).isEmpty();
     assertThat(snapshot.project().name()).isEqualTo("Fallback project");
+    assertThat(output.getOut()).contains("data file not found").contains("decisions.yaml");
+  }
+
+  @Test
+  void itemWithoutFieldsGivesOneProblem() throws IOException {
+    write("risks.yaml", "- some text\n");
+
+    assertThat(run().sources().getFirst().message())
+        .isEqualTo("risks.yaml:1: must be a set of fields (name: value)");
+  }
+
+  @Test
+  void dashboardShowsFiveProblemsButTheLogHasAll(CapturedOutput output) throws IOException {
+    StringBuilder risks = new StringBuilder();
+    for (int i = 1; i <= 6; i++) {
+      risks.append("- id: R-").append(i).append("\n  title: T\n  level: red\n  mitigation: M\n");
+    }
+    write("risks.yaml", risks.toString());
+
+    String message = run().sources().getFirst().message();
+
+    assertThat(message).contains("(and 1 more)").doesNotContain("risks.yaml:21");
+    assertThat(output.getOut()).contains("risks.yaml:21 owner: is required");
   }
 
   @ParameterizedTest(name = "{2}")
@@ -148,6 +175,7 @@ class DataFilesSourceTest {
           decisions.yaml | 'id: B1'                                                                                       | decisions.yaml: must be a list of items
           decisions.yaml | '- id: B1\\n  title: [unclosed'                                                                 | decisions.yaml:2: is not valid YAML
           risks.yaml     | '[]\\n- id: R-1\\n  title: T\\n  level: red\\n  owner: O\\n  mitigation: M'                 | risks.yaml:2: unexpected content; if you added items, remove the '[]' line
+          project.yaml   | 'name: P\\nmilestones:\\n  - id: g\\n    title: T\\n    date: 2026-12-18\\n  - id: g\\n    title: U\\n    date: 2026-12-19' | project.yaml milestones[1] id: g is used twice
           """)
   void invalidFileMakesTheSourceAnErrorAndAddsNothing(String file, String content, String message)
       throws IOException {
@@ -165,9 +193,12 @@ class DataFilesSourceTest {
   @Test
   void theRealDataFilesAreValid() {
     Path realData = Path.of("..", "data");
+    // Without this, a moved folder would make the test pass without checking anything.
+    assertThat(realData.resolve("project.yaml")).exists();
 
     Snapshot snapshot = run(realData);
 
+    assertThat(snapshot.project().name()).isEqualTo("Rainmaker");
     assertThat(snapshot.sources().getFirst())
         .as("apps/mission-control/data must be valid; see the message")
         .extracting(Source::status, Source::message)

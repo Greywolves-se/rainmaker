@@ -3,6 +3,8 @@ package se.rainmaker.missioncontrol.collector.datafiles;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import se.rainmaker.missioncontrol.collector.pipeline.SnapshotBuilder;
 import se.rainmaker.missioncontrol.collector.pipeline.SourceCollector;
@@ -24,6 +26,7 @@ public class DataFilesSource implements SourceCollector {
 
   static final String ID = "data-files";
   private static final int MAX_PROBLEMS_SHOWN = 5;
+  private static final Logger log = LoggerFactory.getLogger(DataFilesSource.class);
 
   private final DataFilesProperties properties;
 
@@ -55,6 +58,11 @@ public class DataFilesSource implements SourceCollector {
     final List<Change> changes = read(files, "changelog.yaml", DataFilesSource::change);
 
     if (!problems.isEmpty()) {
+      // The dashboard message is cut to a few problems, so the full list is logged here.
+      log.atWarn()
+          .addKeyValue("problemCount", problems.size())
+          .addKeyValue("problems", problems)
+          .log("data files have problems");
       throw new SourceException(summary(problems));
     }
     if (project != null) {

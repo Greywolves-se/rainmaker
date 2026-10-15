@@ -25,6 +25,7 @@ final class DataItem {
   private final List<String> problems;
   private final Set<String> knownFields = new HashSet<>();
 
+  /** {@code node} is always a set of fields; the reader reports anything else itself. */
   DataItem(String where, JsonNode node, String url, List<String> problems) {
     this.where = where;
     this.node = node;
@@ -129,7 +130,10 @@ final class DataItem {
     return null;
   }
 
-  /** The items in a list field (e.g. milestones); empty when it is left out. */
+  /**
+   * The items in a list field (e.g. milestones); empty when it is left out. Ids must be unique
+   * within the list, as in the list files.
+   */
   List<DataItem> items(String field) {
     JsonNode value = field(field);
     List<DataItem> items = new ArrayList<>();
@@ -140,18 +144,24 @@ final class DataItem {
       problem(field, "must be a list of items");
       return items;
     }
+    Set<String> ids = new HashSet<>();
     for (int i = 0; i < value.size(); i++) {
-      items.add(new DataItem(where + " " + field + "[" + i + "]", value.get(i), url, problems));
+      String itemWhere = where + " " + field + "[" + i + "]";
+      JsonNode element = value.get(i);
+      if (!element.isObject()) {
+        problems.add(itemWhere + ": must be a set of fields (name: value)");
+        continue;
+      }
+      if (element.hasNonNull("id") && !ids.add(element.get("id").asString())) {
+        problems.add(itemWhere + " id: " + element.get("id").asString() + " is used twice");
+      }
+      items.add(new DataItem(itemWhere, element, url, problems));
     }
     return items;
   }
 
   /** Reports fields no getter asked for, e.g. a misspelled {@code ownr}. Call it last. */
   void checkNoOtherFields() {
-    if (!node.isObject()) {
-      problems.add(where + ": must be a set of fields (name: value)");
-      return;
-    }
     node.propertyNames().stream()
         .filter(name -> !knownFields.contains(name))
         .forEach(name -> problem(name, "unknown field"));
