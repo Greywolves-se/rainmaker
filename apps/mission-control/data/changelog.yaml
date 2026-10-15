@@ -1,0 +1,9 @@
+# Change log for infrastructure and DNS changes (architecture 10.8).
+# One item per change, newest last:
+#
+# - id: C-1                        # unique
+#   date: 2026-10-14               # YYYY-MM-DD
+#   title: ECR repositories for Mission Control created
+#   owner: Maruf
+#   rollbackPlan: Delete the repositories; docker.yml then fails to push
+[]

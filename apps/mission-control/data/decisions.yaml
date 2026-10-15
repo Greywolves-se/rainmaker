@@ -1,0 +1,11 @@
+# Decision log (replaces Appendix B of the architecture document; filled in #16).
+# One item per decision:
+#
+# - id: B34                        # unique, e.g. the B-number
+#   title: Mission Control V1 runs on a snapshot, no backend
+#   owner: Simon
+#   date: 2026-10-15               # YYYY-MM-DD
+#   status: decided                # proposed | decided | superseded
+#   needsOwnerDecision: false      # optional, true when Peter/Staffan must decide
+#   reference: Architecture 10.6   # optional
+[]

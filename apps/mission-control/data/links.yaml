@@ -1,0 +1,9 @@
+# Links to environments, dashboards and documents (filled in #16).
+# Never put tokens or secrets in a link.
+# One item per link:
+#
+# - id: repo                       # unique
+#   title: Repository
+#   category: document             # environment | dashboard | document | other
+#   url: https://github.com/Greywolves-se/rainmaker
+[]

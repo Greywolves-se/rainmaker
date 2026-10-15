@@ -1,0 +1,10 @@
+# The project and its key dates (shown as countdowns on the Overview page).
+# Fields: name, milestones (id, title, date as YYYY-MM-DD).
+name: Rainmaker
+milestones:
+  - id: goal-1
+    title: Technically ready in UAT
+    date: 2026-12-18
+  - id: pilot
+    title: External pilot starts
+    date: 2027-01-07
