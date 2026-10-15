@@ -30,7 +30,17 @@ The collector is a command-line app (Spring Boot, no web server): it runs once a
 java -jar apps/mission-control/collector/target/collector-0.1.0-SNAPSHOT.jar
 ```
 
-Today it only logs `collector started`; fetching data and writing the snapshot come in #11 onward.
+A run asks every enabled source for its data, in id order, and writes one snapshot to `apps/mission-control/out/snapshot.json` (git-ignored; never commit it). The file is replaced in one step, so a reader never sees half a snapshot. A source that fails is listed with `status: error` and a short message, and adds nothing; the other sources are not affected.
+
+Settings live in `collector/src/main/resources/application.properties` and can be overridden on the command line, e.g. `--mission-control.collector.output=/tmp/snapshot.json`:
+
+| Setting | Default |
+|---|---|
+| `mission-control.collector.output` | `apps/mission-control/out/snapshot.json` (relative to the working directory) |
+| `mission-control.collector.project-name` | `Rainmaker` (used until a source provides the project) |
+| `mission-control.collector.sources.<id>.enabled` | `true`; set `false` to switch a source off (it is then listed as `disabled`) |
+
+**Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method adds items to the `SnapshotBuilder` it is given. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
 
 ## CI
 `.github/workflows/mission-control-ci.yml` runs on pull requests and pushes to `develop` and `main` that change `apps/mission-control/**`. The web job (lint, typecheck, tests, build on Node 22) only runs when `web/` or `contract/` changed. A collector job is added once the collector has a `pom.xml` (#7).

@@ -13,7 +13,7 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /** Loads the shared contract files from {@code apps/mission-control/contract} for tests. */
-final class ContractFiles {
+public final class ContractFiles {
 
   private static final Path CONTRACT = Path.of("..", "contract");
   private static final JsonMapper PLAIN_JSON = JsonMapper.builder().build();
@@ -21,7 +21,7 @@ final class ContractFiles {
   private ContractFiles() {}
 
   /** The snapshot JSON Schema, with format checks (date-time, date, uri) switched on. */
-  static Schema schema() {
+  public static Schema schema() {
     SchemaRegistry registry =
         SchemaRegistry.withDefaultDialect(
             SpecificationVersion.DRAFT_2020_12,
@@ -32,17 +32,17 @@ final class ContractFiles {
   }
 
   /** The snapshot JSON Schema as a tree, to read its enum lists. */
-  static ObjectNode schemaTree() {
+  public static ObjectNode schemaTree() {
     return (ObjectNode) PLAIN_JSON.readTree(read("snapshot.schema.json"));
   }
 
   /** The fictional sample snapshot as text. */
-  static String sampleJson() {
+  public static String sampleJson() {
     return read("fixtures/snapshot.sample.json");
   }
 
   /** A fresh, editable copy of the sample snapshot. */
-  static ObjectNode sampleTree() {
+  public static ObjectNode sampleTree() {
     return (ObjectNode) PLAIN_JSON.readTree(sampleJson());
   }
 
