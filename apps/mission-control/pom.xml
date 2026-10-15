@@ -15,6 +15,8 @@
   <name>Mission Control</name>
   <description>Groups the Java parts of Mission Control. The React app in web/ is built with npm.</description>
 
-  <!-- Java parts of Mission Control are listed here. The collector is added in #7; -->
-  <!-- a backend for AWS can be added later as another module (roadmap, #32). -->
+  <!-- Java parts of Mission Control. A backend for AWS can be added later as another module (roadmap, #32). -->
+  <modules>
+    <module>collector</module>
+  </modules>
 </project>
