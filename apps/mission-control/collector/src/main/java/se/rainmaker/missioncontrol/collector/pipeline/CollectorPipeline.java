@@ -17,9 +17,9 @@ import se.rainmaker.missioncontrol.collector.snapshot.SnapshotValidator;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
 
 /**
- * Runs every enabled source, in id order, and assembles one snapshot. A source that fails, delivers
- * data that breaks the contract, or clashes with an earlier source is marked as {@code error} in
- * {@code sources[]} and adds nothing; the other sources are not affected.
+ * Runs every enabled source, in id order, and assembles one project's snapshot. A source that
+ * fails, delivers data that breaks the contract, or clashes with an earlier source is marked as
+ * {@code error} in {@code sources[]} and adds nothing; the other sources are not affected.
  */
 @Service
 public class CollectorPipeline {
@@ -52,25 +52,30 @@ public class CollectorPipeline {
     warnAboutSettingsForUnknownSources();
   }
 
-  /** Runs all sources once and returns the snapshot. */
-  public Snapshot run() {
+  /** Runs all sources once for {@code project} and returns its snapshot. */
+  public Snapshot run(ProjectSettings project) {
     SnapshotBuilder snapshot = new SnapshotBuilder();
     List<Source> results = new ArrayList<>();
     for (SourceCollector source : sources) {
       results.add(
           properties.isEnabled(source.id())
-              ? collect(source, snapshot)
+              ? collect(source, project, snapshot)
               : result(source, Source.Status.DISABLED, "Disabled in configuration"));
     }
-    return snapshot.build(clock.instant(), fallbackProject(), results);
+    return snapshot.build(clock.instant(), fallbackProject(project), results);
   }
 
-  private Source collect(SourceCollector source, SnapshotBuilder snapshot) {
+  private Source collect(
+      SourceCollector source, ProjectSettings project, SnapshotBuilder snapshot) {
     SnapshotBuilder contribution = new SnapshotBuilder();
     try {
-      source.collect(contribution);
+      source.collect(project, contribution);
     } catch (SourceException e) {
-      log.atWarn().addKeyValue("source", source.id()).setCause(e).log("source failed");
+      log.atWarn()
+          .addKeyValue("project", project.id())
+          .addKeyValue("source", source.id())
+          .setCause(e)
+          .log("source failed");
       String message = e.getMessage();
       return result(
           source,
@@ -81,6 +86,7 @@ public class CollectorPipeline {
       // details we cannot vet, so only the exception type is shown; the full error is logged.
       // Errors (e.g. OutOfMemoryError) are not caught: the JVM itself is in trouble then.
       log.atError()
+          .addKeyValue("project", project.id())
           .addKeyValue("source", source.id())
           .setCause(e)
           .log("source failed unexpectedly");
@@ -89,23 +95,29 @@ public class CollectorPipeline {
           Source.Status.ERROR,
           "Unexpected error (" + e.getClass().getSimpleName() + "); see the collector log");
     }
-    List<String> problems = problemsWith(contribution, snapshot);
+    List<String> problems = problemsWith(contribution, project, snapshot);
     if (!problems.isEmpty()) {
       log.atWarn()
+          .addKeyValue("project", project.id())
           .addKeyValue("source", source.id())
           .addKeyValue("problems", problems)
           .log("source data rejected");
       return result(source, Source.Status.ERROR, summary(problems));
     }
     snapshot.add(contribution);
-    log.atInfo().addKeyValue("source", source.id()).log("source collected");
+    log.atInfo()
+        .addKeyValue("project", project.id())
+        .addKeyValue("source", source.id())
+        .log("source collected");
     return new Source(source.id(), source.name(), Source.Status.OK, clock.instant(), null);
   }
 
   /** Contract violations first (e.g. a required field is null), then clashes with other sources. */
-  private List<String> problemsWith(SnapshotBuilder contribution, SnapshotBuilder snapshot) {
+  private List<String> problemsWith(
+      SnapshotBuilder contribution, ProjectSettings project, SnapshotBuilder snapshot) {
     List<String> invalid =
-        validator.problems(contribution.build(clock.instant(), fallbackProject(), List.of()));
+        validator.problems(
+            contribution.build(clock.instant(), fallbackProject(project), List.of()));
     if (!invalid.isEmpty()) {
       return invalid.stream().map(problem -> "invalid data at " + problem).toList();
     }
@@ -118,8 +130,8 @@ public class CollectorPipeline {
     return more > 0 ? shown + " (and " + more + " more)" : shown;
   }
 
-  private Project fallbackProject() {
-    return new Project(properties.projectName(), List.of());
+  private static Project fallbackProject(ProjectSettings project) {
+    return new Project(project.name(), List.of());
   }
 
   private static Source result(SourceCollector source, Source.Status status, String message) {

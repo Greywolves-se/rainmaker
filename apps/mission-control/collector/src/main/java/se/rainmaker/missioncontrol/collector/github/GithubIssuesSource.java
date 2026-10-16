@@ -2,6 +2,7 @@ package se.rainmaker.missioncontrol.collector.github;
 
 import static se.rainmaker.missioncontrol.collector.github.GithubFields.instant;
 import static se.rainmaker.missioncontrol.collector.github.GithubFields.itemId;
+import static se.rainmaker.missioncontrol.collector.github.GithubFields.labels;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -9,11 +10,15 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.stereotype.Component;
+import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
 import se.rainmaker.missioncontrol.collector.pipeline.SnapshotBuilder;
 import se.rainmaker.missioncontrol.collector.pipeline.SourceCollector;
 import se.rainmaker.missioncontrol.collector.snapshot.Event;
@@ -28,9 +33,11 @@ import tools.jackson.databind.JsonNode;
  * blocked}; the label {@code status: in progress}, or an open issue with an assignee, is {@code
  * in_progress}; anything else is {@code todo}. Labels are compared without case.
  *
- * <p>The sprint is the open milestone with the nearest due date across all repositories; its start
- * date is the day the milestone was created. Pull requests, which the issues endpoint also returns,
- * are left out (#13 handles them).
+ * <p>Only the issues whose labels belong to the project are read (#99, {@link
+ * ProjectSettings#includes}). The sprint is chosen among the open milestones that hold at least one
+ * of those issues: the one with the nearest due date across all repositories; its start date is the
+ * day the milestone was created. A project with no issues in a milestone has no sprint. Pull
+ * requests, which the issues endpoint also returns, are left out (#13 handles them).
  */
 @Component
 public class GithubIssuesSource implements SourceCollector {
@@ -65,17 +72,22 @@ public class GithubIssuesSource implements SourceCollector {
   }
 
   @Override
-  public void collect(SnapshotBuilder snapshot) {
+  public void collect(ProjectSettings project, SnapshotBuilder snapshot) {
     Instant now = clock.instant();
-    Optional<SprintMilestone> sprint = currentSprint();
-    sprint.ifPresent(found -> snapshot.sprint(found.sprint()));
+    Map<String, List<JsonNode>> issuesByRepository = new LinkedHashMap<>();
     for (String repository : properties.repositories()) {
-      List<JsonNode> issues =
-          client.getAll("/repos/" + repository + "/issues", Map.of("state", "all"));
-      for (JsonNode issue : issues) {
-        if (issue.has("pull_request")) {
-          continue;
-        }
+      issuesByRepository.put(
+          repository,
+          client.getAll("/repos/" + repository + "/issues", Map.of("state", "all")).stream()
+              .filter(issue -> !issue.has("pull_request"))
+              .filter(issue -> project.includes(labels(issue)))
+              .toList());
+    }
+    Optional<SprintMilestone> sprint = currentSprint(milestonesOf(issuesByRepository));
+    sprint.ifPresent(found -> snapshot.sprint(found.sprint()));
+    for (Map.Entry<String, List<JsonNode>> entry : issuesByRepository.entrySet()) {
+      String repository = entry.getKey();
+      for (JsonNode issue : entry.getValue()) {
         Instant closedAt = instant(issue, "closed_at");
         if (closedAt != null && closedAt.isBefore(now.minus(KEEP_CLOSED))) {
           continue;
@@ -97,8 +109,7 @@ public class GithubIssuesSource implements SourceCollector {
 
   private WorkItem workItem(
       String repository, JsonNode issue, Optional<SprintMilestone> sprint, Instant closedAt) {
-    List<String> labels =
-        issue.get("labels").valueStream().map(label -> label.get("name").asString()).toList();
+    List<String> labels = labels(issue);
     List<String> assignees =
         issue.get("assignees").valueStream().map(user -> user.get("login").asString()).toList();
     JsonNode milestone = issue.get("milestone");
@@ -141,7 +152,10 @@ public class GithubIssuesSource implements SourceCollector {
    * overdue (a sprint left open by mistake), the most recently overdue one. Milestones without a
    * due date are not sprints.
    */
-  private Optional<SprintMilestone> currentSprint() {
+  private Optional<SprintMilestone> currentSprint(Set<MilestoneRef> projectMilestones) {
+    if (projectMilestones.isEmpty()) {
+      return Optional.empty();
+    }
     List<SprintMilestone> candidates =
         properties.repositories().stream()
             .flatMap(
@@ -151,6 +165,7 @@ public class GithubIssuesSource implements SourceCollector {
                         .stream()
                         .filter(milestone -> instant(milestone, "due_on") != null)
                         .map(milestone -> toSprint(repository, milestone)))
+            .filter(found -> projectMilestones.contains(found.ref()))
             .toList();
     LocalDate today = date(clock.instant());
     Comparator<SprintMilestone> byDueDate = Comparator.comparing(found -> found.sprint().endDate());
@@ -190,6 +205,29 @@ public class GithubIssuesSource implements SourceCollector {
     return LocalDate.ofInstant(instant, ZoneOffset.UTC);
   }
 
+  /** The milestones that hold at least one of the project's issues (open or closed). */
+  private static Set<MilestoneRef> milestonesOf(Map<String, List<JsonNode>> issuesByRepository) {
+    Set<MilestoneRef> milestones = new HashSet<>();
+    issuesByRepository.forEach(
+        (repository, issues) ->
+            issues.stream()
+                .map(issue -> issue.get("milestone"))
+                .filter(milestone -> milestone != null && !milestone.isNull())
+                .forEach(
+                    milestone ->
+                        milestones.add(
+                            new MilestoneRef(repository, milestone.get("number").asInt()))));
+    return milestones;
+  }
+
+  /** A milestone, by repository and number. */
+  private record MilestoneRef(String repository, int number) {}
+
   /** The sprint and the milestone it came from, to mark the work items in it. */
-  private record SprintMilestone(String repository, int number, Sprint sprint) {}
+  private record SprintMilestone(String repository, int number, Sprint sprint) {
+
+    MilestoneRef ref() {
+      return new MilestoneRef(repository, number);
+    }
+  }
 }

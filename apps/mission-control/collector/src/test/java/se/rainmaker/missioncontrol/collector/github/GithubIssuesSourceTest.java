@@ -25,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
+import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
 import se.rainmaker.missioncontrol.collector.snapshot.Event;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotValidator;
@@ -37,6 +38,11 @@ class GithubIssuesSourceTest {
   private static final Instant NOW = Instant.parse("2026-10-15T12:00:00Z");
   private static final String REPO = "example-org/rainmaker";
   private static final JsonMapper JSON = JsonMapper.builder().build();
+  private static final ProjectSettings ALL = new ProjectSettings("all", "All", null, null);
+  private static final ProjectSettings RAINMAKER =
+      new ProjectSettings("rainmaker", "Rainmaker", null, "mission-control");
+  private static final ProjectSettings MISSION_CONTROL =
+      new ProjectSettings("mission-control", "Mission Control", "mission-control", null);
 
   @RegisterExtension
   static WireMockExtension github =
@@ -106,7 +112,7 @@ class GithubIssuesSourceTest {
 
   @Test
   void overdueMilestoneLeftOpenDoesNotHideTheNextSprint() {
-    stubIssues(List.of());
+    stubIssues(inMilestones(1, 2));
     stubMilestones(
         List.of(
             milestone(1, "Sprint 1", "2026-10-10T07:00:00Z", null),
@@ -117,7 +123,7 @@ class GithubIssuesSourceTest {
 
   @Test
   void milestoneDueTodayIsStillTheCurrentSprint() {
-    stubIssues(List.of());
+    stubIssues(inMilestones(2, 3));
     stubMilestones(
         List.of(
             milestone(2, "Sprint 2", "2026-10-15T07:00:00Z", null),
@@ -128,7 +134,7 @@ class GithubIssuesSourceTest {
 
   @Test
   void whenEveryMilestoneIsOverdueTheMostRecentOneIsTheSprint() {
-    stubIssues(List.of());
+    stubIssues(inMilestones(1, 2));
     stubMilestones(
         List.of(
             milestone(1, "Sprint 1", "2026-10-01T07:00:00Z", null),
@@ -153,7 +159,7 @@ class GithubIssuesSourceTest {
 
   @Test
   void noMilestoneWithDueDateMeansNoSprint() {
-    stubIssues(List.of());
+    stubIssues(inMilestones(9));
     stubMilestones(List.of(milestone(9, "Backlog", null, null)));
 
     assertThat(run().sprint()).isNull();
@@ -174,18 +180,65 @@ class GithubIssuesSourceTest {
   }
 
   @Test
+  void eachProjectGetsOnlyItsLabelledIssues() {
+    stubIssues(
+        List.of(
+            issue(1, "open", List.of("Mission-Control"), false, null, false),
+            issue(2, "open", List.of("bug"), false, null, false),
+            issue(3, "open", List.of(), false, null, false)));
+    stubMilestones(List.of());
+
+    assertThat(run(MISSION_CONTROL).workItems())
+        .extracting(WorkItem::id)
+        .containsExactly("gh-rainmaker-1");
+    assertThat(run(RAINMAKER).workItems())
+        .extracting(WorkItem::id)
+        .containsExactly("gh-rainmaker-2", "gh-rainmaker-3");
+  }
+
+  @Test
+  void sprintIsChosenAmongTheMilestonesOfTheProjectsIssues() {
+    stubIssues(
+        List.of(
+            issue(1, "open", List.of("mission-control"), false, 3, false),
+            issue(2, "open", List.of(), false, 2, false)));
+    stubMilestones(
+        List.of(
+            milestone(3, "Mission Control V1", "2026-11-06T07:00:00Z", null),
+            milestone(2, "Sprint 2", "2026-10-23T07:00:00Z", null)));
+
+    Snapshot missionControl = run(MISSION_CONTROL);
+
+    assertThat(missionControl.sprint().name()).isEqualTo("Mission Control V1");
+    assertThat(missionControl.workItems().getFirst().inCurrentSprint()).isTrue();
+    assertThat(run(RAINMAKER).sprint().name()).isEqualTo("Sprint 2");
+  }
+
+  @Test
+  void projectWithNoIssuesInMilestoneHasNoSprint() {
+    stubIssues(List.of(issue(1, "open", List.of("mission-control"), false, 3, false)));
+    stubMilestones(List.of(milestone(3, "Mission Control V1", "2026-11-06T07:00:00Z", null)));
+
+    assertThat(run(RAINMAKER).sprint()).isNull();
+  }
+
+  @Test
   void withoutTokenTheSourceIsAnErrorWithClearMessage() {
-    Source result = run(" ").sources().getFirst();
+    Source result = run(" ", ALL).sources().getFirst();
 
     assertThat(result.status()).isEqualTo(Source.Status.ERROR);
     assertThat(result.message()).isEqualTo("No GitHub token: set MC_GITHUB_TOKEN");
   }
 
   private static Snapshot run() {
-    return run("token");
+    return run("token", ALL);
   }
 
-  private static Snapshot run(String token) {
+  private static Snapshot run(ProjectSettings project) {
+    return run("token", project);
+  }
+
+  private static Snapshot run(String token, ProjectSettings project) {
     Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     GithubProperties properties =
         new GithubProperties(
@@ -201,8 +254,18 @@ class GithubIssuesSourceTest {
     GithubIssuesSource source =
         new GithubIssuesSource(new GithubClient(properties, clock), properties, clock);
     CollectorProperties collector =
-        new CollectorProperties("Fallback project", Path.of("unused.json"), Map.of());
-    return new CollectorPipeline(List.of(source), collector, new SnapshotValidator(), clock).run();
+        new CollectorProperties(List.of(project), Path.of("unused"), null, Map.of());
+    return new CollectorPipeline(List.of(source), collector, new SnapshotValidator(), clock)
+        .run(project);
+  }
+
+  /** One open issue in each of these milestones, numbered like the milestone. */
+  private static List<Map<String, Object>> inMilestones(int... milestones) {
+    List<Map<String, Object>> issues = new ArrayList<>();
+    for (int milestone : milestones) {
+      issues.add(issue(milestone, "open", List.of(), false, milestone, false));
+    }
+    return issues;
   }
 
   private static void stubIssues(List<Map<String, Object>> issues) {

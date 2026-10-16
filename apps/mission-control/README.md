@@ -30,17 +30,24 @@ The collector is a command-line app (Spring Boot, no web server): it runs once a
 java -jar apps/mission-control/collector/target/collector-0.1.0-SNAPSHOT.jar
 ```
 
-A run asks every enabled source for its data, in id order, and writes one snapshot to `apps/mission-control/out/snapshot.json` (git-ignored; never commit it). The file is replaced in one step, so a reader never sees half a snapshot. A source that fails is listed with `status: error` and a short message, and adds nothing; the other sources are not affected.
+**Projects (#99):** the collector writes one snapshot per project: **Rainmaker** (the product) and **Mission Control** (this app). For each project, a run asks every enabled source for that project's data, in id order, and writes `apps/mission-control/out/<project>/snapshot.json` and `start-here.md` (git-ignored; never commit them). Each file is replaced in one step, so a reader never sees half a snapshot.
+- **A source that fails** is listed with `status: error` and a short message, and adds nothing; the other sources are not affected.
+- **A project that fails** keeps its previous files and the other project is still written. The run then exits with an error, so CI does not deploy.
+- **Transition:** until the web app reads per-project files (#100), Mission Control's snapshot is also written to `out/snapshot.json`.
 
-Settings live in `collector/src/main/resources/application.properties` and can be overridden on the command line, e.g. `--mission-control.collector.output=/tmp/snapshot.json`:
+**Which project an item belongs to:** GitHub issues and pull requests **labelled `mission-control`** belong to Mission Control; everything else belongs to Rainmaker. **Label Mission Control pull requests too**, or they show up under Rainmaker. Data files live in `data/<project>/`.
+
+Settings live in `collector/src/main/resources/application.properties` and can be overridden on the command line, e.g. `--mission-control.collector.output-folder=/tmp/out`:
 
 | Setting | Default |
 |---|---|
-| `mission-control.collector.output` | `apps/mission-control/out/snapshot.json` (relative to the working directory) |
-| `mission-control.collector.project-name` | `Rainmaker` (used until a source provides the project) |
+| `mission-control.collector.output-folder` | `apps/mission-control/out` (relative to the working directory) |
+| `mission-control.collector.projects[n].id`, `.name` | `rainmaker` "Rainmaker", `mission-control` "Mission Control". The id names the output and data folders; the name is used when `project.yaml` gives none |
+| `mission-control.collector.projects[n].with-label`, `.without-label` | GitHub label rule: only items with / without that label belong to the project |
+| `mission-control.collector.legacy-snapshot-project` | `mission-control`; also written as `out/snapshot.json` until #100 |
 | `mission-control.collector.sources.<id>.enabled` | `true`; set `false` to switch a source off (it is then listed as `disabled`) |
 
-**Data files (#15):** decisions, risks, questions, links, the change log and the project's key dates live as YAML in `data/`. Each file starts with a comment that explains its fields. Edit them in a pull request (the GitHub web editor is fine); a test checks the real files in CI. It names the file, line and field of every mistake, so a bad edit fails the PR instead of the dashboard. Each item links back to its line on GitHub.
+**Data files (#15):** decisions, risks, questions, links, the change log and the project's key dates live as YAML in `data/<project>/` (e.g. `data/rainmaker/decisions.yaml`). A missing file means no items. Each file starts with a comment that explains its fields. Edit them in a pull request (the GitHub web editor is fine); a test checks the real files in CI. It names the file, line and field of every mistake, so a bad edit fails the PR instead of the dashboard. Each item links back to its line on GitHub.
 
 **GitHub (#12):** issues from the repositories in `mission-control.collector.github.repositories` (default `Greywolves-se/rainmaker`) become work items with the id `gh-<repo>-<number>`. Pull requests are left out (#13), and closed issues older than 30 days are dropped.
 - **Status rules, in this order:**
@@ -50,7 +57,7 @@ Settings live in `collector/src/main/resources/application.properties` and can b
   4. otherwise → `todo`.
 
   Labels are compared without case.
-- **Sprint:** the open milestone due today or later with the nearest due date. If every open milestone is overdue, the most recently overdue one is used. Its start date is the day the milestone was created, and its goal is the first line of the description. **Milestones without a due date are not sprints**, so give each sprint milestone a due date, or the sprint card stays empty. (Today the only milestone, "Mission Control V1", has none.)
+- **Sprint:** chosen among the open milestones that hold at least one of the project's issues: the one due today or later with the nearest due date. If every open milestone is overdue, the most recently overdue one is used. Its start date is the day the milestone was created, and its goal is the first line of the description. **Milestones without a due date are not sprints**, so give each sprint milestone a due date, or the sprint card stays empty. (Today the only milestone, "Mission Control V1", has none.)
 - **Events:** issues closed in the last 7 days also appear as events.
 - **Token:** read from `MC_GITHUB_TOKEN`, else `GITHUB_TOKEN`; it is never logged. Use a fine-grained, read-only token for the listed repositories.
   - **Permissions needed:** **Issues: read**, **Pull requests: read** and **Checks: read**, plus Metadata, which is always included. A missing one gives HTTP 403, and that source shows `error`.
@@ -62,13 +69,13 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 - **Checks:** no check runs → `none`; a failed, timed-out or action-required run → `failing`; else a run still going → `pending`; else `passing`.
 - **Waiting time:** how long a PR has waited for review is shown by the dashboard from `createdAt` and `review` (#21).
 
-**START HERE report (#25):** every run also writes `out/start-here.md` next to the snapshot. It's a Markdown briefing for a new team member or an AI assistant:
-- the hand-written intro from `data/start-here-intro.md` (product goal, architecture in short, how we work);
+**START HERE report (#25):** every run also writes `out/<project>/start-here.md` next to each snapshot. It's a Markdown briefing for a new team member or an AI assistant:
+- the hand-written intro from `data/<project>/start-here-intro.md` (product goal, architecture in short, how we work);
 - then generated sections: status (sprint, key dates, sources with problems), next work, pull requests waiting for review, decisions, red and yellow risks, open questions, latest release and links.
 
 Every list is sorted and capped, so the report stays about two pages. The same snapshot always gives the same file. Change the intro or the data files, never the report.
 
-**Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method adds items to the `SnapshotBuilder` it is given. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
+**Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method is called once per project and adds that project's items to the `SnapshotBuilder` it is given. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
 
 ## CI
 `.github/workflows/mission-control-ci.yml` runs on pull requests and pushes to `develop` and `main` that change `apps/mission-control/**`. The web job (lint, typecheck, tests, build on Node 22) only runs when `web/` or `contract/` changed. The collector job (format, Checkstyle, tests) runs when `collector/`, `contract/`, `data/` or the Maven setup changed.

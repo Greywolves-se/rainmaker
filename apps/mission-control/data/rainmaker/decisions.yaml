@@ -209,9 +209,3 @@
   date: 2026-10-04
   status: decided
   reference: Section 9
-- id: B34
-  title: Mission Control V1 runs on a JSON snapshot and a static dashboard, with no backend or database (ADR 0001).
-  owner: Mission Control developers (Emil, Gabriel, Mai)
-  date: 2026-10-16
-  status: decided
-  reference: Section 10.6; docs/adr/0001-mission-control-v1-snapshot.md

@@ -2,6 +2,7 @@ package se.rainmaker.missioncontrol.collector.github;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -28,6 +29,7 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
+import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
 import se.rainmaker.missioncontrol.collector.snapshot.Event;
 import se.rainmaker.missioncontrol.collector.snapshot.PullRequest;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
@@ -42,6 +44,11 @@ class GithubPullRequestsSourceTest {
   private static final Instant NOW = Instant.parse("2026-10-16T12:00:00Z");
   private static final String REPO = "example-org/rainmaker";
   private static final JsonMapper JSON = JsonMapper.builder().build();
+  private static final ProjectSettings ALL = new ProjectSettings("all", "All", null, null);
+  private static final ProjectSettings RAINMAKER =
+      new ProjectSettings("rainmaker", "Rainmaker", null, "mission-control");
+  private static final ProjectSettings MISSION_CONTROL =
+      new ProjectSettings("mission-control", "Mission Control", "mission-control", null);
 
   @RegisterExtension
   static WireMockExtension github =
@@ -181,17 +188,46 @@ class GithubPullRequestsSourceTest {
 
   @Test
   void withoutTokenTheSourceIsAnError() {
-    Source result = run(" ").sources().getFirst();
+    Source result = run(" ", ALL).sources().getFirst();
 
     assertThat(result.status()).isEqualTo(Source.Status.ERROR);
     assertThat(result.message()).isEqualTo("No GitHub token: set MC_GITHUB_TOKEN");
   }
 
-  private static Snapshot run() {
-    return run("token");
+  @Test
+  void pullRequestBelongsToProjectByLabelAndOthersCostNoCalls() {
+    Map<String, Object> labelled = pullRequest(1, false, null);
+    labelled.put("labels", List.of(Map.of("name", "mission-control")));
+    stubOpen(List.of(labelled, pullRequest(2, false, null)));
+    stubClosed(List.of());
+    stubReviews(1, List.of());
+    stubChecks(1, List.of());
+
+    Snapshot snapshot = run("token", MISSION_CONTROL);
+
+    assertThat(snapshot.pullRequests()).extracting(PullRequest::number).containsExactly(1);
+    github.verify(0, getRequestedFor(urlPathEqualTo("/repos/" + REPO + "/pulls/2/reviews")));
   }
 
-  private static Snapshot run(String token) {
+  @Test
+  void pullRequestWithoutLabelBelongsToRainmaker() {
+    Map<String, Object> labelled = pullRequest(1, false, null);
+    labelled.put("labels", List.of(Map.of("name", "mission-control")));
+    stubOpen(List.of(labelled, pullRequest(2, false, null)));
+    stubClosed(List.of());
+    stubReviews(2, List.of());
+    stubChecks(2, List.of());
+
+    assertThat(run("token", RAINMAKER).pullRequests())
+        .extracting(PullRequest::number)
+        .containsExactly(2);
+  }
+
+  private static Snapshot run() {
+    return run("token", ALL);
+  }
+
+  private static Snapshot run(String token, ProjectSettings project) {
     Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     GithubProperties properties =
         new GithubProperties(
@@ -207,8 +243,9 @@ class GithubPullRequestsSourceTest {
     GithubPullRequestsSource source =
         new GithubPullRequestsSource(new GithubClient(properties, clock), properties, clock);
     CollectorProperties collector =
-        new CollectorProperties("Fallback project", Path.of("unused.json"), Map.of());
-    return new CollectorPipeline(List.of(source), collector, new SnapshotValidator(), clock).run();
+        new CollectorProperties(List.of(project), Path.of("unused"), null, Map.of());
+    return new CollectorPipeline(List.of(source), collector, new SnapshotValidator(), clock)
+        .run(project);
   }
 
   private static void stubOpen(List<Map<String, Object>> pulls) {
