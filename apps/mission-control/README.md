@@ -62,6 +62,12 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 - **Checks:** no check runs → `none`; a failed, timed-out or action-required run → `failing`; else a run still going → `pending`; else `passing`.
 - **Waiting time:** how long a PR has waited for review is shown by the dashboard from `createdAt` and `review` (#21).
 
+**START HERE report (#25):** every run also writes `out/start-here.md` next to the snapshot. It's a Markdown briefing for a new team member or an AI assistant:
+- the hand-written intro from `data/start-here-intro.md` (product goal, architecture in short, how we work);
+- then generated sections: status (sprint, key dates, sources with problems), next work, pull requests waiting for review, decisions, red and yellow risks, open questions, latest release and links.
+
+Every list is sorted and capped, so the report stays about two pages. The same snapshot always gives the same file. Change the intro or the data files, never the report.
+
 **Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method adds items to the `SnapshotBuilder` it is given. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
 
 ## CI
