@@ -3,12 +3,14 @@
 import {render, screen} from '@testing-library/react';
 import {describe, expect, it} from 'vitest';
 import golden from '../../../../collector/src/test/resources/start-here/sample.md?raw';
-import intro from '../../../../data/start-here-intro.md?raw';
+import rainmakerIntro from '../../../../data/rainmaker/start-here-intro.md?raw';
+import missionControlIntro from '../../../../data/mission-control/start-here-intro.md?raw';
 import {Markdown} from './markdown';
 
 describe.each([
   ['the collector golden report', golden],
-  ['the START HERE intro', intro],
+  ['the Rainmaker START HERE intro', rainmakerIntro],
+  ['the Mission Control START HERE intro', missionControlIntro],
 ])('Markdown with %s', (_name, source) => {
   it('leaves no Markdown syntax behind as text', () => {
     const {container} = render(<Markdown source={source} />);
