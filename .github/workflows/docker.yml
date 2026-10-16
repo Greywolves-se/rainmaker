@@ -4,7 +4,7 @@
 #   then roll the ECS service mission-control-web onto the new image (job "deploy-staging").
 #   The staging web image carries a fresh snapshot: the collector runs first and its
 #   snapshot.json is copied into the image (#17). It is also kept as a workflow artifact.
-# - Four times a day on weekdays (schedule) and manual runs on develop do the same, so staging gets
+# - Three times a day on weekdays (schedule) and manual runs on develop do the same, so staging gets
 #   fresh data.
 # - Push to main: build and push to ECR in the production account (GitHub environment "production",
 #   which requires a reviewer to approve the run before it starts). Production is not deployed
@@ -38,12 +38,12 @@ on:
       - ".mvn/**"
       - ".dockerignore"
       - ".github/workflows/docker.yml"
-  # Four times on weekdays, 05, 08, 11 and 14 UTC (07, 10, 13, 16 Stockholm summer time; 06, 09,
-  # 12, 15 winter time): rebuild staging with a fresh snapshot (#17, #101). Kept low to save
-  # Actions minutes on the free plan (team decision, 16 Oct 2026). Scheduled runs use the default
-  # branch, develop. GitHub may start them 5–30 minutes late.
+  # Three times on weekdays, 05, 09 and 13 UTC (07, 11, 15 Stockholm summer time; 06, 10, 14
+  # winter time): rebuild staging with a fresh snapshot (#17, #101). Kept low to save Actions
+  # minutes on the free plan (team decision, 16 Oct 2026). Scheduled runs use the default branch,
+  # develop. GitHub may start them 5–30 minutes late.
   schedule:
-    - cron: "0 5,8,11,14 * * 1-5"
+    - cron: "0 5,9,13 * * 1-5"
   workflow_dispatch:
 
 permissions:
