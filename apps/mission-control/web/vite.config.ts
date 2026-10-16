@@ -5,46 +5,50 @@ import {fileURLToPath} from 'node:url';
 import type {Plugin} from 'vite';
 import {defineConfig} from 'vitest/config';
 
-/** The collector's output (apps/mission-control/out/), git-ignored. */
-const COLLECTOR_SNAPSHOT = fileURLToPath(
-  new URL('../out/snapshot.json', import.meta.url)
-);
+/** The collector's output files (apps/mission-control/out/, git-ignored) and their types. */
+const COLLECTOR_FILES = {
+  '/snapshot.json': 'application/json',
+  '/start-here.md': 'text/markdown; charset=utf-8',
+};
 
 /**
- * Local dev only: serves the collector's snapshot at /snapshot.json, like nginx does in
- * Docker. Answers 404 when the collector has not run, so the app falls back to demo data.
- * `apply: 'serve'` keeps it out of the production build: the snapshot is never bundled.
+ * Local dev only: serves the collector's output at /snapshot.json and /start-here.md, like nginx
+ * does in Docker. Answers 404 when the collector has not run, so the app falls back to demo data.
+ * `apply: 'serve'` keeps it out of the production build: the files are never bundled.
  */
-function serveCollectorSnapshot(): Plugin {
+function serveCollectorFiles(): Plugin {
   return {
-    name: 'serve-collector-snapshot',
+    name: 'serve-collector-files',
     apply: 'serve',
     configureServer(server) {
-      server.middlewares.use('/snapshot.json', (_request, response) => {
-        readFile(COLLECTOR_SNAPSHOT).then(
-          body => {
-            response.setHeader('Content-Type', 'application/json');
-            response.setHeader('Cache-Control', 'no-store');
-            response.end(body);
-          },
-          (error: NodeJS.ErrnoException) => {
-            // Missing file = the collector has not run; anything else is a real error.
-            response.statusCode = error.code === 'ENOENT' ? 404 : 500;
-            if (response.statusCode === 500) {
-              server.config.logger.error(
-                `Could not read ${COLLECTOR_SNAPSHOT}: ${error.message}`
-              );
+      for (const [path, contentType] of Object.entries(COLLECTOR_FILES)) {
+        const file = fileURLToPath(new URL(`../out${path}`, import.meta.url));
+        server.middlewares.use(path, (_request, response) => {
+          readFile(file).then(
+            body => {
+              response.setHeader('Content-Type', contentType);
+              response.setHeader('Cache-Control', 'no-store');
+              response.end(body);
+            },
+            (error: NodeJS.ErrnoException) => {
+              // Missing file = the collector has not run; anything else is a real error.
+              response.statusCode = error.code === 'ENOENT' ? 404 : 500;
+              if (response.statusCode === 500) {
+                server.config.logger.error(
+                  `Could not read ${file}: ${error.message}`
+                );
+              }
+              response.end();
             }
-            response.end();
-          }
-        );
-      });
+          );
+        });
+      }
     },
   };
 }
 
 export default defineConfig({
-  plugins: [react(), serveCollectorSnapshot()],
+  plugins: [react(), serveCollectorFiles()],
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],

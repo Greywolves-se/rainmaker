@@ -9,6 +9,7 @@
     "overview": "Översikt",
     "development": "Utveckling",
     "sources": "Källor",
+    "startHere": "START HERE",
     "projects": "Projekt",
     "dataSources": "Datakällor",
     "synced": "{{synced}} av {{total}} synkade"
@@ -24,6 +25,15 @@
     "stale": "Uppgifterna är mer än 24 timmar gamla. Kör insamlaren för att uppdatera dem.",
     "sourceFailed": "{{name}} kunde inte uppdateras: {{message}}",
     "sourceFailedNoMessage": "{{name}} kunde inte uppdateras."
+  },
+  "startHere": {
+    "loading": "Läser in rapporten …",
+    "missing": "START HERE-rapporten har inte skapats än. Kör insamlaren så att den skriver start-here.md och ladda sedan om sidan.",
+    "error": "Det gick inte att läsa in START HERE-rapporten.",
+    "download": "Ladda ner .md",
+    "copy": "Kopiera",
+    "copied": "Kopierad – klistra in den i Claude Code.",
+    "copyFailed": "Det gick inte att kopiera. Använd Ladda ner .md i stället."
   },
   "sampleData": {
     "banner": "Exempeldata – inte verklig projektstatus"
@@ -52,6 +62,10 @@
     "sources": {
       "title": "Källor",
       "subtitle": "Mission Control hämtar från systemen där arbetet sker, utan dubbelregistrering"
+    },
+    "startHere": {
+      "title": "START HERE",
+      "subtitle": "Introduktionsrapporten för människor och AI: kopiera in den i Claude Code när en uppgift börjar"
     }
   },
   "status": {

@@ -74,6 +74,17 @@ export function DatabaseIcon() {
   );
 }
 
+export function DocumentIcon() {
+  return (
+    <Svg>
+      <path d="M6 3 H14 L19 8 V21 H6 Z" />
+      <path d="M14 3 V8 H19" />
+      <path d="M9 13 H16" />
+      <path d="M9 17 H16" />
+    </Svg>
+  );
+}
+
 export function SearchIcon() {
   return (
     <Svg size={16}>
