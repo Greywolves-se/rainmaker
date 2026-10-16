@@ -29,7 +29,7 @@ class CollectorApplicationTest {
 
       assertThat(lines).isNotEmpty().allMatch(line -> line.startsWith("{") && line.endsWith("}"));
       assertThat(lines.getFirst()).contains("\"message\":\"collector started\"");
-      assertThat(lines.getLast()).contains("\"message\":\"snapshot written\"");
+      assertThat(lines.getLast()).contains("\"message\":\"collector finished\"");
       assertThat(lines.stream().map(CollectorApplicationTest::correlationId).distinct())
           .singleElement()
           .isNotNull();
@@ -53,8 +53,7 @@ class CollectorApplicationTest {
 
   private ConfigurableApplicationContext run() {
     return SpringApplication.run(
-        CollectorApplication.class,
-        "--mission-control.collector.output=" + folder.resolve("snapshot.json"));
+        CollectorApplication.class, "--mission-control.collector.output-folder=" + folder);
   }
 
   private static String correlationId(String line) {

@@ -1,0 +1,20 @@
+# Links to environments, dashboards and documents for Mission Control.
+# Never put tokens or secrets in a link.
+# One item per link:
+#
+# - id: repo                       # unique
+#   title: Repository
+#   category: document             # environment | dashboard | document | other
+#   url: https://github.com/Greywolves-se/rainmaker
+- id: code
+  title: Mission Control code
+  category: document
+  url: https://github.com/Greywolves-se/rainmaker/tree/develop/apps/mission-control
+- id: adr-0001
+  title: 'ADR 0001: Mission Control V1 runs on a snapshot, no backend'
+  category: document
+  url: https://github.com/Greywolves-se/rainmaker/blob/develop/docs/adr/0001-mission-control-v1-snapshot.md
+- id: issues
+  title: Mission Control issues
+  category: other
+  url: https://github.com/Greywolves-se/rainmaker/issues?q=is%3Aopen+label%3Amission-control

@@ -19,7 +19,7 @@ class DataFilesPropertiesTest {
         SpringApplication.run(
             CollectorApplication.class,
             "--GITHUB_SHA=abc1234",
-            "--mission-control.collector.output=" + folder.resolve("snapshot.json"),
+            "--mission-control.collector.output-folder=" + folder,
             "--mission-control.collector.data-files.folder=" + folder)) {
       assertThat(context.getBean(DataFilesProperties.class).filesUrl())
           .isEqualTo(

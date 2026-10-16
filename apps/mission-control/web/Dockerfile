@@ -10,7 +10,8 @@ RUN npm ci
 COPY apps/mission-control/web/ ./
 RUN npm run build
 
-# The snapshot served at /snapshot.json (#17). The staging build replaces this empty stage with
+# The collector's output served at /snapshot.json (#17) and /start-here.md (#26): the whole out/
+# folder lands in /srv/snapshot. The staging build replaces this empty stage with
 # the collector's output (docker.yml: build context "snapshot"). Other builds stay empty, and
 # docker compose mounts the snapshot volume over /srv/snapshot instead.
 FROM scratch AS snapshot

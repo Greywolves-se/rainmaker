@@ -1,0 +1,5 @@
+# Mission Control, the team's internal status app (shown as countdowns on the Overview page).
+# Fields: name, milestones (id, title, date as YYYY-MM-DD). The current sprint comes from the
+# GitHub milestone that holds the issues labelled mission-control.
+name: Mission Control
+milestones: []

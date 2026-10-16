@@ -9,6 +9,7 @@
     "overview": "Overview",
     "development": "Development",
     "sources": "Sources",
+    "startHere": "START HERE",
     "projects": "Projects",
     "dataSources": "Data sources",
     "synced": "{{synced}} of {{total}} synced"
@@ -24,6 +25,15 @@
     "stale": "The data is more than 24 hours old. Run the collector to refresh it.",
     "sourceFailed": "{{name}} could not be updated: {{message}}",
     "sourceFailedNoMessage": "{{name}} could not be updated."
+  },
+  "startHere": {
+    "loading": "Loading the report …",
+    "missing": "The START HERE report has not been generated yet. Run the collector so it writes start-here.md, then reload the page.",
+    "error": "Could not load the START HERE report.",
+    "download": "Download .md",
+    "copy": "Copy",
+    "copied": "Copied – paste it into Claude Code.",
+    "copyFailed": "Could not copy. Use Download .md instead."
   },
   "sampleData": {
     "banner": "Sample data – not real project status"
@@ -52,6 +62,10 @@
     "sources": {
       "title": "Sources",
       "subtitle": "Mission Control pulls from the systems where the work happens, with no double entry"
+    },
+    "startHere": {
+      "title": "START HERE",
+      "subtitle": "The onboarding report for people and AI: copy it into Claude Code at the start of a task"
     }
   },
   "status": {

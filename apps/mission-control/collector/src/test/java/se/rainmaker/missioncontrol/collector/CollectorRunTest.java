@@ -3,9 +3,13 @@ package se.rainmaker.missioncontrol.collector;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -18,7 +22,10 @@ import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotJson;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
 
-/** Acceptance test for #11: a full run with two fake sources, one of which fails. */
+/**
+ * Acceptance test for #11 and #99: a full run with the real project settings and two fake sources,
+ * one of which fails.
+ */
 @SpringBootTest
 class CollectorRunTest {
 
@@ -26,19 +33,20 @@ class CollectorRunTest {
 
   @DynamicPropertySource
   static void writeToTemporaryFolder(DynamicPropertyRegistry registry) {
-    registry.add(
-        "mission-control.collector.output", () -> folder.resolve("snapshot.json").toString());
+    registry.add("mission-control.collector.output-folder", () -> folder.toString());
     // The real data-file source (#15) is part of every run; an empty folder keeps it predictable.
     registry.add(
         "mission-control.collector.data-files.folder", () -> folder.resolve("data").toString());
   }
 
-  @Test
-  void writesSnapshotWithOneOkAndOneFailedSource() {
-    Path output = folder.resolve("snapshot.json");
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({"rainmaker, Rainmaker", "mission-control, Mission Control"})
+  void writesOneSnapshotPerProjectWithOneOkAndOneFailedSource(String projectId, String name) {
+    Path output = folder.resolve(projectId).resolve("snapshot.json");
 
     Snapshot snapshot = SnapshotJson.mapper().readValue(output.toFile(), Snapshot.class);
 
+    assertThat(snapshot.project().name()).isEqualTo(name);
     assertThat(snapshot.sources())
         .extracting(Source::id, Source::status)
         .containsExactly(
@@ -49,8 +57,16 @@ class CollectorRunTest {
             tuple("github-pull-requests", Source.Status.DISABLED));
     assertThat(ContractFiles.schema().validate(SnapshotJson.mapper().readTree(output.toFile())))
         .isEmpty();
-    // The START HERE report (#25) is written next to the snapshot in the same run.
-    assertThat(folder.resolve("start-here.md")).isNotEmptyFile();
+    // The START HERE report (#25) is written next to each snapshot in the same run.
+    assertThat(folder.resolve(projectId).resolve("start-here.md")).isNotEmptyFile();
+  }
+
+  @Test
+  void missionControlFilesAreAlsoWrittenWhereTheWebAppReadsThemToday() throws IOException {
+    assertThat(Files.readString(folder.resolve("snapshot.json")))
+        .isEqualTo(Files.readString(folder.resolve("mission-control").resolve("snapshot.json")));
+    assertThat(Files.readString(folder.resolve("start-here.md")))
+        .isEqualTo(Files.readString(folder.resolve("mission-control").resolve("start-here.md")));
   }
 
   @TestConfiguration

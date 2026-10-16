@@ -179,6 +179,15 @@ What the shell shows about the data:
 To see real data locally, run the collector so it writes `apps/mission-control/out/snapshot.json`
 (git-ignored, never commit it), then `npm run dev`.
 
+### START HERE
+
+The collector also writes `out/start-here.md` (#25), served at `/start-here.md` the same way
+(nginx in Docker, Vite in `npm run dev`). The START HERE page (`/start-here`, #26) shows it, with
+**Download .md** (the file itself) and **Copy** (its exact text, ready to paste into Claude Code).
+`src/pages/startHere/markdown.tsx` renders only the Markdown the report uses, as React elements,
+so raw HTML in the file is shown as text and only http(s) links are clickable. Without the file the
+page says the report has not been generated yet.
+
 ## Current limitations
 
 - Many mockup sections show "No data yet" until the contract and pages cover them (#19 onward).

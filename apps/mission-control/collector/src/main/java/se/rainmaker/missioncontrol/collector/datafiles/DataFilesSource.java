@@ -6,6 +6,7 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
 import se.rainmaker.missioncontrol.collector.pipeline.SnapshotBuilder;
 import se.rainmaker.missioncontrol.collector.pipeline.SourceCollector;
 import se.rainmaker.missioncontrol.collector.pipeline.SourceException;
@@ -17,9 +18,9 @@ import se.rainmaker.missioncontrol.collector.snapshot.Question;
 import se.rainmaker.missioncontrol.collector.snapshot.Risk;
 
 /**
- * The hand-maintained YAML files in {@code apps/mission-control/data}: project, decisions, risks,
- * questions, links and the change log. If any file has a problem, the whole source reports an error
- * listing the problems (file, line, field) and adds nothing.
+ * The hand-maintained YAML files in {@code apps/mission-control/data/<project id>/}: project,
+ * decisions, risks, questions, links and the change log. If any file has a problem, the whole
+ * source reports an error listing the problems (file, line, field) and adds nothing.
  */
 @Component
 public class DataFilesSource implements SourceCollector {
@@ -46,11 +47,16 @@ public class DataFilesSource implements SourceCollector {
   }
 
   @Override
-  public void collect(SnapshotBuilder snapshot) {
+  public void collect(ProjectSettings project, SnapshotBuilder snapshot) {
     List<String> problems = new ArrayList<>();
-    DataFileReader files = new DataFileReader(properties.folder(), properties.filesUrl(), problems);
+    DataFileReader files =
+        new DataFileReader(
+            properties.folder().resolve(project.id()),
+            properties.filesUrl() + "/" + project.id(),
+            problems);
 
-    final Project project = files.object("project.yaml").map(DataFilesSource::project).orElse(null);
+    final Project projectFile =
+        files.object("project.yaml").map(DataFilesSource::project).orElse(null);
     final List<Decision> decisions = read(files, "decisions.yaml", DataFilesSource::decision);
     final List<Risk> risks = read(files, "risks.yaml", DataFilesSource::risk);
     final List<Question> questions = read(files, "questions.yaml", DataFilesSource::question);
@@ -65,8 +71,8 @@ public class DataFilesSource implements SourceCollector {
           .log("data files have problems");
       throw new SourceException(summary(problems));
     }
-    if (project != null) {
-      snapshot.project(project);
+    if (projectFile != null) {
+      snapshot.project(projectFile);
     }
     decisions.forEach(snapshot::addDecision);
     risks.forEach(snapshot::addRisk);

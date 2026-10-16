@@ -4,7 +4,8 @@
 #   then roll the ECS service mission-control-web onto the new image (job "deploy-staging").
 #   The staging web image carries a fresh snapshot: the collector runs first and its
 #   snapshot.json is copied into the image (#17). It is also kept as a workflow artifact.
-# - Weekday mornings and manual runs on develop do the same, so staging gets fresh data.
+# - Three times a day on weekdays (schedule) and manual runs on develop do the same, so staging gets
+#   fresh data.
 # - Push to main: build and push to ECR in the production account (GitHub environment "production",
 #   which requires a reviewer to approve the run before it starts). Production is not deployed
 #   automatically.
@@ -37,22 +38,29 @@ on:
       - ".mvn/**"
       - ".dockerignore"
       - ".github/workflows/docker.yml"
-  # Weekday mornings (07:00 Stockholm summer time): rebuild staging with a fresh snapshot (#17).
-  # Scheduled runs use the default branch, develop.
+  # Three times on weekdays, 05, 09 and 13 UTC (07, 11, 15 Stockholm summer time; 06, 10, 14
+  # winter time): rebuild staging with a fresh snapshot (#17, #101). Kept low to save Actions
+  # minutes on the free plan (team decision, 16 Oct 2026). Scheduled runs use the default branch,
+  # develop. GitHub may start them 5–30 minutes late.
   schedule:
-    - cron: "0 5 * * 1-5"
+    - cron: "0 5,9,13 * * 1-5"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# One run per branch at a time. On develop and main a new run waits instead of cancelling the
+# running one, so a scheduled run never stops a deploy halfway (#101). Pull requests only build,
+# so a newer push may cancel the older run.
 concurrency:
   group: docker-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   compose:
     name: Validate docker-compose.yml
+    # Scheduled runs only refresh the snapshot; nothing to validate (saves Actions minutes).
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -93,7 +101,11 @@ jobs:
       - name: Check that the source exists
         id: source
         run: |
-          if [ -f "${{ matrix.source }}" ]; then
+          # Scheduled runs only refresh the snapshot, which lives in the web image (#101).
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ matrix.image }}" != "web" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=${{ matrix.image }} image skipped::Scheduled runs rebuild only the web image."
+          elif [ -f "${{ matrix.source }}" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
@@ -122,7 +134,10 @@ jobs:
         if: env.BAKE_SNAPSHOT == 'true'
         with:
           name: snapshot
-          path: apps/mission-control/out/snapshot.json
+          # start-here.md (#25) is optional until the collector writes it; a missing file is skipped.
+          path: |
+            apps/mission-control/out/snapshot.json
+            apps/mission-control/out/start-here.md
           retention-days: 14
 
       - uses: docker/setup-buildx-action@v3

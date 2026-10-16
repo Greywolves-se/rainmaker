@@ -1,0 +1,16 @@
+# Mission Control decisions; Rainmaker's decision log is in ../rainmaker/decisions.yaml.
+# One item per decision:
+#
+# - id: B35                        # unique; B-numbers are shared with Rainmaker's log
+#   title: Mission Control V1 runs on a snapshot, no backend
+#   owner: Mission Control developers
+#   date: 2026-10-15               # YYYY-MM-DD
+#   status: decided                # proposed | decided | superseded
+#   needsOwnerDecision: false      # optional, true when Peter/Staffan must decide
+#   reference: ADR 0001            # optional
+- id: B34
+  title: Mission Control V1 runs on a JSON snapshot and a static dashboard, with no backend or database (ADR 0001).
+  owner: Mission Control developers (Emil, Gabriel, Mai)
+  date: 2026-10-16
+  status: decided
+  reference: Section 10.6; docs/adr/0001-mission-control-v1-snapshot.md
