@@ -30,16 +30,31 @@ describe('isOverdue', () => {
 describe('sortQuestions', () => {
   it('puts overdue questions first, then the nearest date, and undated last', () => {
     const questions = [
-      {id: 'Q1', neededBy: null},
-      {id: 'Q2', neededBy: '2026-10-30'},
-      {id: 'Q3', neededBy: '2026-10-10'},
-      {id: 'Q4', neededBy: '2026-10-20'},
+      {id: 'Q1', neededBy: null, critical: false},
+      {id: 'Q2', neededBy: '2026-10-30', critical: false},
+      {id: 'Q3', neededBy: '2026-10-10', critical: false},
+      {id: 'Q4', neededBy: '2026-10-20', critical: false},
     ];
     expect(sortQuestions(questions).map(question => question.id)).toEqual([
       'Q3',
       'Q4',
       'Q2',
       'Q1',
+    ]);
+  });
+
+  it('puts critical questions first, even without a date', () => {
+    const questions = [
+      {id: 'dated', neededBy: '2026-10-10', critical: false},
+      {id: 'critical-undated', neededBy: null, critical: true},
+      {id: 'critical-dated', neededBy: '2026-10-20', critical: true},
+      {id: 'undated', neededBy: null, critical: false},
+    ];
+    expect(sortQuestions(questions).map(question => question.id)).toEqual([
+      'critical-dated',
+      'critical-undated',
+      'dated',
+      'undated',
     ]);
   });
 });

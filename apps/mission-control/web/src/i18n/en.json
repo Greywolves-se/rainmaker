@@ -143,6 +143,8 @@
     "risksPilotsCost": "Risks, pilots and cost",
     "risk": "Risk: {{title}}",
     "riskOwner": "Owner: {{owner}}",
+    "moreRisks": "+{{count}} more in the risk log",
+    "noRisks": "No open risks",
     "awsCost": "AWS cost, {{month}}",
     "amountUnknown": "[AMOUNT] SEK",
     "latestVersion": "Latest working version",

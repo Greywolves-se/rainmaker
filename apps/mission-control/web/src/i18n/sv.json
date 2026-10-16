@@ -143,6 +143,8 @@
     "risksPilotsCost": "Risker, piloter och kostnad",
     "risk": "Risk: {{title}}",
     "riskOwner": "Ansvarig: {{owner}}",
+    "moreRisks": "+{{count}} till i risklistan",
+    "noRisks": "Inga öppna risker",
     "awsCost": "AWS-kostnad, {{month}}",
     "amountUnknown": "[BELOPP] kr",
     "latestVersion": "Senaste fungerande version",

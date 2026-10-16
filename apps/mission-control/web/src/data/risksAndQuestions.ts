@@ -24,20 +24,30 @@ export function isOverdue(neededBy: string | null, now: number): boolean {
   return neededBy !== null && daysUntil(neededBy, now) < 0;
 }
 
-/** Nearest needed-by date first, so overdue questions come first; undated last. */
-export function sortQuestions<T extends {neededBy: string | null}>(
-  questions: readonly T[]
-): T[] {
-  return [...questions].sort((a, b) => {
-    if (a.neededBy === b.neededBy) {
-      return 0;
-    }
-    if (a.neededBy === null) {
-      return 1;
-    }
-    if (b.neededBy === null) {
-      return -1;
-    }
-    return a.neededBy.localeCompare(b.neededBy);
-  });
+/**
+ * Critical questions first, even without a date (blockers such as "before start"). Within each
+ * group the nearest needed-by date comes first, so overdue ones lead; undated ones come last.
+ */
+export function sortQuestions<
+  T extends {neededBy: string | null; critical: boolean},
+>(questions: readonly T[]): T[] {
+  return [...questions].sort(
+    (a, b) => Number(b.critical) - Number(a.critical) || byNeededBy(a, b)
+  );
+}
+
+function byNeededBy(
+  a: {neededBy: string | null},
+  b: {neededBy: string | null}
+): number {
+  if (a.neededBy === b.neededBy) {
+    return 0;
+  }
+  if (a.neededBy === null) {
+    return 1;
+  }
+  if (b.neededBy === null) {
+    return -1;
+  }
+  return a.neededBy.localeCompare(b.neededBy);
 }
