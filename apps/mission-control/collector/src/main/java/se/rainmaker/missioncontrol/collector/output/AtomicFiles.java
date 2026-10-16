@@ -1,4 +1,4 @@
-package se.rainmaker.missioncontrol.collector.snapshot;
+package se.rainmaker.missioncontrol.collector.output;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

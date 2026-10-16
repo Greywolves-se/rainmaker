@@ -124,6 +124,90 @@ class StartHereMarkdownTest {
   }
 
   @Test
+  void onlyWebAddressesBecomeLinks() {
+    assertThat(StartHereMarkdown.link("Docs", "https://example.org/a b(1)"))
+        .isEqualTo("[Docs](https://example.org/a%20b(1%29)");
+    assertThat(StartHereMarkdown.link("Docs", "HTTP://example.org"))
+        .isEqualTo("[Docs](HTTP://example.org)");
+    assertThat(StartHereMarkdown.link("Run", "javascript:alert(1)")).isEqualTo("Run");
+    assertThat(StartHereMarkdown.link("Run", "data:text/html,hi")).isEqualTo("Run");
+    assertThat(StartHereMarkdown.link("File", "ftp://example.org/file")).isEqualTo("File");
+    assertThat(StartHereMarkdown.link("Page", "/relative/page")).isEqualTo("Page");
+    assertThat(StartHereMarkdown.link("Broken", "https://exa mple.org:x")).isEqualTo("Broken");
+    assertThat(StartHereMarkdown.link("Empty", "")).isEqualTo("Empty");
+    assertThat(StartHereMarkdown.link("None", null)).isEqualTo("None");
+  }
+
+  @Test
+  void lineBreaksOfEveryKindBecomeSpaces() {
+    assertThat(StartHereMarkdown.escape("one\rtwo\r\nthree\nfour")).isEqualTo("one two three four");
+  }
+
+  @Test
+  void milestoneDaysAreCountedFromTheSnapshotDate() {
+    LocalDate today = LocalDate.of(2026, 10, 16);
+    Project project =
+        new Project(
+            "Rainmaker",
+            List.of(
+                new Project.Milestone("m1", "Today", today),
+                new Project.Milestone("m2", "Tomorrow", today.plusDays(1)),
+                new Project.Milestone("m3", "Soon", today.plusDays(3)),
+                new Project.Milestone("m4", "Yesterday", today.minusDays(1)),
+                new Project.Milestone("m5", "Earlier", today.minusDays(3))));
+
+    String report =
+        StartHereMarkdown.render(
+            snapshot(project, List.of(), List.of(), "2026-10-16T23:30:00Z"), "");
+
+    assertThat(report)
+        .contains("**Today:** 2026-10-16 (today)")
+        .contains("**Tomorrow:** 2026-10-17 (1 day left)")
+        .contains("**Soon:** 2026-10-19 (3 days left)")
+        .contains("**Yesterday:** 2026-10-15 (1 day ago)")
+        .contains("**Earlier:** 2026-10-13 (3 days ago)");
+  }
+
+  @Test
+  void withoutSprintNextWorkListsAllOpenWork() {
+    List<WorkItem> items =
+        List.of(
+            workItem("1", "Planned", true, WorkItem.Status.TODO),
+            workItem("2", "Not planned", false, WorkItem.Status.IN_PROGRESS),
+            workItem("3", "Finished", false, WorkItem.Status.DONE));
+
+    String report = StartHereMarkdown.render(snapshot(emptyProject(), items, List.of()), "");
+
+    assertThat(report)
+        .contains("Open work, blocked and in progress first.")
+        .contains("**In progress** [Not planned]")
+        .contains("**To do** [Planned]")
+        .doesNotContain("Finished");
+  }
+
+  @Test
+  void questionsWithoutNeededByComeLast() {
+    String url = "https://example.org/questions.yaml#L1";
+    List<Question> questions =
+        List.of(
+            new Question("C1", "Undated", "Peter", null, Question.Status.OPEN, false, "data", url),
+            new Question(
+                "C2",
+                "Dated",
+                "Peter",
+                LocalDate.of(2026, 12, 1),
+                Question.Status.OPEN,
+                false,
+                "data",
+                url));
+
+    String report = StartHereMarkdown.render(snapshot(emptyProject(), List.of(), questions), "");
+
+    assertThat(report.indexOf("[C2]")).isPositive().isLessThan(report.indexOf("[C1]"));
+    assertThat(report).contains("[C1](" + url + ") Undated – Peter\n");
+  }
+
+  @Test
   void emptyProjectGivesShortReportWithEmptyStates() {
     Snapshot empty =
         new Snapshot(
@@ -155,6 +239,50 @@ class StartHereMarkdownTest {
 
   private static Snapshot sample() {
     return SnapshotJson.mapper().readValue(ContractFiles.sampleJson(), Snapshot.class);
+  }
+
+  private static Project emptyProject() {
+    return new Project("Rainmaker", List.of());
+  }
+
+  private static Snapshot snapshot(
+      Project project, List<WorkItem> items, List<Question> questions) {
+    return snapshot(project, items, questions, "2026-10-16T08:00:00Z");
+  }
+
+  private static Snapshot snapshot(
+      Project project, List<WorkItem> items, List<Question> questions, String generatedAt) {
+    return new Snapshot(
+        Snapshot.SCHEMA_VERSION,
+        Instant.parse(generatedAt),
+        project,
+        List.of(),
+        null,
+        items,
+        List.of(),
+        List.of(),
+        List.of(),
+        List.of(),
+        List.of(),
+        questions,
+        List.of(),
+        List.of(),
+        List.of());
+  }
+
+  private static WorkItem workItem(
+      String id, String title, boolean inCurrentSprint, WorkItem.Status status) {
+    return new WorkItem(
+        id,
+        title,
+        status,
+        List.of(),
+        List.of(),
+        inCurrentSprint,
+        Instant.parse("2026-10-01T08:00:00Z"),
+        null,
+        "github",
+        "https://github.com/example-org/example-repo/issues/" + id);
   }
 
   private static <T> List<T> shuffle(List<T> items) {

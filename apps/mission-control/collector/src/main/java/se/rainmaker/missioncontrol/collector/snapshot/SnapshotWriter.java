@@ -2,6 +2,7 @@ package se.rainmaker.missioncontrol.collector.snapshot;
 
 import java.nio.file.Path;
 import org.springframework.stereotype.Component;
+import se.rainmaker.missioncontrol.collector.output.AtomicFiles;
 
 /** Writes the snapshot file. */
 @Component

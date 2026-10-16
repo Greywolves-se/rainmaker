@@ -2,8 +2,8 @@
 
 Rainmaker is a contextual performance marketplace for digital news publishers. A script tag on the publisher's site shows a small, labelled panel with relevant commercial links when a reader hovers a headline. AI suggests the links, an editor approves them, and every click is tracked for settlement.
 
-- **Milestones:** technically ready in UAT by 18 Dec 2026, external pilot around 7 Jan 2027.
-- **Source of truth for the architecture:** *Rainmaker Solution Architecture v0.5* (see Links).
+- **Milestones:** see the Milestones section below; the dates come from `project.yaml`.
+- **Source of truth for the architecture:** the *Rainmaker Solution Architecture* document (current version under Links).
 - **Mission Control** (this report comes from it) is the team's internal status app, built first.
 
 ## Architecture in short

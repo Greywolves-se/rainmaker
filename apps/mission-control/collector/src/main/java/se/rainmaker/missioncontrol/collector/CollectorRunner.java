@@ -1,6 +1,5 @@
 package se.rainmaker.missioncontrol.collector;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -58,13 +57,28 @@ class CollectorRunner implements CommandLineRunner {
         throw new IllegalStateException("Snapshot does not match the contract: " + problems);
       }
       writer.write(snapshot, properties.output());
-      Path report = startHere.write(snapshot, properties.output());
+      String report = writeStartHere(snapshot);
       log.atInfo()
           .addKeyValue("output", properties.output().toString())
-          .addKeyValue("report", report.toString())
+          .addKeyValue("report", report)
           .addKeyValue("sources", snapshot.sources().size())
           .addKeyValue("failedSources", countFailed(snapshot))
           .log("snapshot written");
+    }
+  }
+
+  /**
+   * The START HERE report is a side product: if it fails, the error is logged and the run still
+   * succeeds, because the snapshot (what staging needs) is already written. Returns the report
+   * path, or "failed".
+   */
+  private String writeStartHere(Snapshot snapshot) {
+    try {
+      return startHere.write(snapshot, properties.output()).toString();
+    } catch (RuntimeException e) {
+      // Isolation boundary, like a failing source: a bug in the report must not fail the run.
+      log.atError().setCause(e).log("START HERE report failed; the snapshot was written");
+      return "failed";
     }
   }
 

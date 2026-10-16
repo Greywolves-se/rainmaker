@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import se.rainmaker.missioncontrol.collector.datafiles.DataFilesProperties;
-import se.rainmaker.missioncontrol.collector.snapshot.AtomicFiles;
+import se.rainmaker.missioncontrol.collector.output.AtomicFiles;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
 
 /**
