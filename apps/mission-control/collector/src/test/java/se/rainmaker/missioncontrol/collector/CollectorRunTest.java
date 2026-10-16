@@ -63,6 +63,22 @@ class CollectorRunTest {
   }
 
   @Test
+  void projectListNamesEveryProjectAndMatchesItsSchema() {
+    Path output = folder.resolve("projects.json");
+
+    ProjectList projects = SnapshotJson.mapper().readValue(output.toFile(), ProjectList.class);
+
+    assertThat(projects.projects())
+        .extracting(ProjectList.Entry::id, ProjectList.Entry::name)
+        .containsExactly(
+            tuple("rainmaker", "Rainmaker"), tuple("mission-control", "Mission Control"));
+    assertThat(
+            ContractFiles.projectsSchema()
+                .validate(SnapshotJson.mapper().readTree(output.toFile())))
+        .isEmpty();
+  }
+
+  @Test
   void missionControlFilesAreAlsoWrittenWhereTheWebAppReadsThemToday() throws IOException {
     assertThat(Files.readString(folder.resolve("snapshot.json")))
         .isEqualTo(Files.readString(folder.resolve("mission-control").resolve("snapshot.json")));
