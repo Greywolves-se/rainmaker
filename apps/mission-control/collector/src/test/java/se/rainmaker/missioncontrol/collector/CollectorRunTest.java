@@ -62,9 +62,11 @@ class CollectorRunTest {
   }
 
   @Test
-  void missionControlIsAlsoWrittenWhereTheWebAppReadsItToday() throws IOException {
+  void missionControlFilesAreAlsoWrittenWhereTheWebAppReadsThemToday() throws IOException {
     assertThat(Files.readString(folder.resolve("snapshot.json")))
         .isEqualTo(Files.readString(folder.resolve("mission-control").resolve("snapshot.json")));
+    assertThat(Files.readString(folder.resolve("start-here.md")))
+        .isEqualTo(Files.readString(folder.resolve("mission-control").resolve("start-here.md")));
   }
 
   @TestConfiguration

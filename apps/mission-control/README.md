@@ -33,7 +33,7 @@ java -jar apps/mission-control/collector/target/collector-0.1.0-SNAPSHOT.jar
 **Projects (#99):** the collector writes one snapshot per project: **Rainmaker** (the product) and **Mission Control** (this app). For each project, a run asks every enabled source for that project's data, in id order, and writes `apps/mission-control/out/<project>/snapshot.json` and `start-here.md` (git-ignored; never commit them). Each file is replaced in one step, so a reader never sees half a snapshot.
 - **A source that fails** is listed with `status: error` and a short message, and adds nothing; the other sources are not affected.
 - **A project that fails** keeps its previous files and the other project is still written. The run then exits with an error, so CI does not deploy.
-- **Transition:** until the web app reads per-project files (#100), Mission Control's snapshot is also written to `out/snapshot.json`.
+- **Transition:** until the web app reads per-project files (#100), Mission Control's snapshot and START HERE report are also written to `out/snapshot.json` and `out/start-here.md`, where the web app reads them today.
 
 **Which project an item belongs to:** GitHub issues and pull requests **labelled `mission-control`** belong to Mission Control; everything else belongs to Rainmaker. **Label Mission Control pull requests too**, or they show up under Rainmaker. Data files live in `data/<project>/`.
 
