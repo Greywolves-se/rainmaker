@@ -1,4 +1,4 @@
-import {screen, within} from '@testing-library/react';
+import {fireEvent, screen, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {renderApp} from '../../test/renderApp';
@@ -14,6 +14,8 @@ describe('START HERE page', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    // Drops this file's own clipboard stand-ins (jsdom has no clipboard of its own).
+    Reflect.deleteProperty(navigator, 'clipboard');
   });
 
   it('is in the main menu and shows the rendered report', async () => {
@@ -53,6 +55,22 @@ describe('START HERE page', () => {
     renderApp({path: '/start-here'});
 
     await user.click(await screen.findByRole('button', {name: 'Copy'}));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Could not copy'
+    );
+  });
+
+  it('says so when there is no clipboard (plain http)', async () => {
+    serve(new Response(REPORT));
+    // Outside a secure context browsers have no navigator.clipboard at all.
+    Object.defineProperty(navigator, 'clipboard', {
+      value: undefined,
+      configurable: true,
+    });
+    renderApp({path: '/start-here'});
+
+    fireEvent.click(await screen.findByRole('button', {name: 'Copy'}));
 
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Could not copy'

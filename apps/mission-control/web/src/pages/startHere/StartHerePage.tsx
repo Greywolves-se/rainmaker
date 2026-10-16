@@ -69,11 +69,15 @@ function ReportActions({report}: {report: string}) {
   const {t} = useTranslation();
   const [copied, setCopied] = useState<'idle' | 'copied' | 'failed'>('idle');
 
-  function copy() {
-    navigator.clipboard.writeText(report).then(
-      () => setCopied('copied'),
-      () => setCopied('failed') // e.g. blocked by the browser outside https
-    );
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(report);
+      setCopied('copied');
+    } catch {
+      // Outside https/localhost navigator.clipboard is undefined, so this also catches the
+      // TypeError; the browser can also refuse. Either way, Download .md still works.
+      setCopied('failed');
+    }
   }
 
   return (
