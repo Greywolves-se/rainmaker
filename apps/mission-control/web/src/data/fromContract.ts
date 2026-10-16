@@ -69,13 +69,19 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
     development: {
       sprint: sprint && {
         name: sprint.name,
-        dates: `${sprint.startDate} – ${sprint.endDate}`,
+        startDate: sprint.startDate,
+        endDate: sprint.endDate,
+        url: sprint.url,
       },
-      stories: sprintItems.map(item => ({
-        id: `#${item.id}`,
+      stories: snapshot.workItems.map(item => ({
+        id: item.id,
         title: item.title,
-        owner: item.assignees.join(', '),
+        assignees: item.assignees,
+        labels: item.labels,
         status: STORY_STATUS[item.status],
+        inCurrentSprint: item.inCurrentSprint,
+        createdAt: item.createdAt,
+        url: item.url,
       })),
       pullRequests: snapshot.pullRequests
         .filter(pr => pr.state !== 'closed')

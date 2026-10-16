@@ -1,4 +1,24 @@
-import type {Snapshot} from './types';
+import type {Snapshot, Story, StoryStatus} from './types';
+
+/** A fictional current-sprint story without a link (demo data only). */
+function demoStory(
+  id: string,
+  title: string,
+  assignee: string,
+  label: string,
+  status: StoryStatus
+): Story {
+  return {
+    id,
+    title,
+    assignees: [assignee],
+    labels: [label],
+    status,
+    inCurrentSprint: true,
+    createdAt: '2026-10-12T08:00:00Z',
+    url: null,
+  };
+}
 
 /**
  * FICTIONAL sample data copied from the design mockup. It is not real project
@@ -180,49 +200,71 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     ],
   },
   development: {
-    sprint: {name: 'Sprint 2', dates: '12–16 Oct'},
+    sprint: {
+      name: 'Sprint 2',
+      startDate: '2026-10-12',
+      endDate: '2026-10-16',
+      url: null,
+    },
     stories: [
+      demoStory(
+        '1',
+        'Fetch issues, PRs and releases from GitHub',
+        'Erik',
+        'area: collector',
+        'done'
+      ),
+      demoStory(
+        '2',
+        'Read documents from GreyWolves Google Drive',
+        'Caroline',
+        'area: collector',
+        'done'
+      ),
+      demoStory(
+        '3',
+        'Capture decisions and blockers from Slack',
+        'Erik',
+        'area: collector',
+        'inProgress'
+      ),
+      demoStory(
+        '4',
+        'Normalize data to project, owner and status',
+        'Simon',
+        'area: collector',
+        'inProgress'
+      ),
+      demoStory(
+        '5',
+        'Overview: done, in progress and blocked',
+        'Caroline',
+        'area: web',
+        'inProgress'
+      ),
+      demoStory(
+        '6',
+        'Show system health from AWS',
+        'Erik',
+        'area: collector',
+        'blocked'
+      ),
+      demoStory(
+        '7',
+        'Navigator: AI summary of the current status',
+        'Simon',
+        'area: web',
+        'todo'
+      ),
       {
-        id: 'MC-01',
-        title: 'Fetch issues, PRs and releases from GitHub',
-        owner: 'Erik',
-        status: 'done',
-      },
-      {
-        id: 'MC-02',
-        title: 'Read documents from GreyWolves Google Drive',
-        owner: 'Caroline',
-        status: 'done',
-      },
-      {
-        id: 'MC-03',
-        title: 'Capture decisions and blockers from Slack',
-        owner: 'Erik',
-        status: 'inProgress',
-      },
-      {
-        id: 'MC-04',
-        title: 'Normalize data to project, owner and status',
-        owner: 'Simon',
-        status: 'inProgress',
-      },
-      {
-        id: 'MC-05',
-        title: 'Overview: done, in progress and blocked',
-        owner: 'Caroline',
-        status: 'inProgress',
-      },
-      {
-        id: 'MC-06',
-        title: 'Show system health from AWS',
-        owner: 'Erik',
-        status: 'blocked',
-      },
-      {
-        id: 'MC-07',
-        title: 'Navigator: AI summary of the current status',
-        owner: 'Simon',
-        status: 'todo',
+        ...demoStory(
+          '8',
+          'Set up the monorepo and CI',
+          'Simon',
+          'area: ci',
+          'done'
+        ),
+        inCurrentSprint: false,
       },
     ],
     pullRequests: [
