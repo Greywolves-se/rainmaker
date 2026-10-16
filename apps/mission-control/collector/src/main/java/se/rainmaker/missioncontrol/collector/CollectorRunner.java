@@ -1,5 +1,6 @@
 package se.rainmaker.missioncontrol.collector;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -9,14 +10,16 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
+import se.rainmaker.missioncontrol.collector.report.StartHereReport;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotValidator;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotWriter;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
 
 /**
- * Runs one collector run: all sources, then the snapshot file. Every log line of the run carries
- * the same {@code correlation_id}, so the lines of one run can be found together.
+ * Runs one collector run: all sources, then the snapshot file and the START HERE report. Every log
+ * line of the run carries the same {@code correlation_id}, so the lines of one run can be found
+ * together.
  */
 @Component
 class CollectorRunner implements CommandLineRunner {
@@ -27,16 +30,19 @@ class CollectorRunner implements CommandLineRunner {
   private final SnapshotValidator validator;
   private final SnapshotWriter writer;
   private final CollectorProperties properties;
+  private final StartHereReport startHere;
 
   CollectorRunner(
       CollectorPipeline pipeline,
       SnapshotValidator validator,
       SnapshotWriter writer,
-      CollectorProperties properties) {
+      CollectorProperties properties,
+      StartHereReport startHere) {
     this.pipeline = pipeline;
     this.validator = validator;
     this.writer = writer;
     this.properties = properties;
+    this.startHere = startHere;
   }
 
   @Override
@@ -52,8 +58,10 @@ class CollectorRunner implements CommandLineRunner {
         throw new IllegalStateException("Snapshot does not match the contract: " + problems);
       }
       writer.write(snapshot, properties.output());
+      Path report = startHere.write(snapshot, properties.output());
       log.atInfo()
           .addKeyValue("output", properties.output().toString())
+          .addKeyValue("report", report.toString())
           .addKeyValue("sources", snapshot.sources().size())
           .addKeyValue("failedSources", countFailed(snapshot))
           .log("snapshot written");

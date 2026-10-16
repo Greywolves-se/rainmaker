@@ -48,6 +48,8 @@ class CollectorRunTest {
             tuple("github", Source.Status.DISABLED));
     assertThat(ContractFiles.schema().validate(SnapshotJson.mapper().readTree(output.toFile())))
         .isEmpty();
+    // The START HERE report (#25) is written next to the snapshot in the same run.
+    assertThat(folder.resolve("start-here.md")).isNotEmptyFile();
   }
 
   @TestConfiguration
