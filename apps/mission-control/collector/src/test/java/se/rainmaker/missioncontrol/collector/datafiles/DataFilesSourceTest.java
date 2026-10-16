@@ -229,7 +229,7 @@ class DataFilesSourceTest {
   private static Snapshot run(Path dataFolder, ProjectSettings project) {
     DataFilesSource source = new DataFilesSource(new DataFilesProperties(dataFolder, FILES_URL));
     CollectorProperties properties =
-        new CollectorProperties(List.of(project), Path.of("unused"), null, Map.of());
+        new CollectorProperties(List.of(project), Path.of("unused"), Map.of());
     return new CollectorPipeline(List.of(source), properties, new SnapshotValidator(), CLOCK)
         .run(project);
   }

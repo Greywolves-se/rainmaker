@@ -6,6 +6,7 @@ import static org.assertj.core.groups.Tuple.tuple;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -79,11 +80,11 @@ class CollectorRunTest {
   }
 
   @Test
-  void missionControlFilesAreAlsoWrittenWhereTheWebAppReadsThemToday() throws IOException {
-    assertThat(Files.readString(folder.resolve("snapshot.json")))
-        .isEqualTo(Files.readString(folder.resolve("mission-control").resolve("snapshot.json")));
-    assertThat(Files.readString(folder.resolve("start-here.md")))
-        .isEqualTo(Files.readString(folder.resolve("mission-control").resolve("start-here.md")));
+  void topLevelHoldsOnlyTheProjectListAndOneFolderPerProject() throws IOException {
+    try (Stream<Path> entries = Files.list(folder)) {
+      assertThat(entries.map(entry -> entry.getFileName().toString()))
+          .containsExactlyInAnyOrder("projects.json", "rainmaker", "mission-control");
+    }
   }
 
   @TestConfiguration

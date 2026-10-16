@@ -139,12 +139,6 @@ class CollectorRunner implements CommandLineRunner {
     Path output = properties.snapshotFile(project);
     writer.write(snapshot, output);
     String report = writeStartHere(snapshot, project, output);
-    if (project.id().equals(properties.legacySnapshotProject())) {
-      // Where the web app reads both files today (#17, #26), until it reads per project (#100).
-      Path legacyOutput = properties.outputFolder().resolve("snapshot.json");
-      writer.write(snapshot, legacyOutput);
-      writeStartHere(snapshot, project, legacyOutput);
-    }
     log.atInfo()
         .addKeyValue("project", project.id())
         .addKeyValue("output", output.toString())
