@@ -202,6 +202,28 @@ class GithubClientTest {
   }
 
   @Test
+  void getAllRefusesAnswerThatIsNotList() {
+    github.stubFor(get(urlPathEqualTo(ISSUES)).willReturn(okJson("{\"message\": \"odd\"}")));
+
+    assertThatThrownBy(() -> client("t").getAll(ISSUES, Map.of()))
+        .isInstanceOf(SourceException.class)
+        .hasMessage("GitHub answered " + ISSUES + " with something that is not a list");
+  }
+
+  @Test
+  void getFirstPageReturnsObjectsAndDoesNotFollowLinks() {
+    github.stubFor(
+        get(urlPathEqualTo(ISSUES))
+            .willReturn(
+                okJson("{\"total_count\": 1}")
+                    .withHeader(
+                        "Link", "<" + github.baseUrl() + ISSUES + "?page=2>; rel=\"next\"")));
+
+    assertThat(client("t").getFirstPage(ISSUES, Map.of()).get("total_count").asInt()).isEqualTo(1);
+    github.verify(1, getRequestedFor(urlPathEqualTo(ISSUES)));
+  }
+
+  @Test
   void withoutTokenNothingIsSent() {
     assertThatThrownBy(() -> client(" ").getAll(ISSUES, Map.of()))
         .isInstanceOf(SourceException.class)

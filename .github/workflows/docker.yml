@@ -68,6 +68,8 @@ jobs:
       contents: read
       id-token: write # lets the job request a GitHub OIDC token to assume the AWS role
       issues: read # the collector's GitHub source reads issues and milestones (#12, #17)
+      pull-requests: read # the pull request source reads pull requests and reviews (#13)
+      checks: read # ...and the check runs of each pull request's head commit (#13)
     strategy:
       fail-fast: false
       matrix:

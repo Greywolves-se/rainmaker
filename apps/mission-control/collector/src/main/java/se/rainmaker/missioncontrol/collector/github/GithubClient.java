@@ -89,13 +89,7 @@ public class GithubClient {
    * @throws SourceException when there is no token or GitHub cannot deliver
    */
   public List<JsonNode> getAll(String path, Map<String, String> query) {
-    if (!properties.hasToken()) {
-      throw new SourceException("No GitHub token: set MC_GITHUB_TOKEN");
-    }
-    UriComponentsBuilder first =
-        UriComponentsBuilder.fromUri(properties.apiUrl()).path(path).queryParam("per_page", 100);
-    query.forEach(first::queryParam);
-    URI next = first.build().toUri();
+    URI next = firstUri(path, query);
     List<JsonNode> items = new ArrayList<>();
     for (int page = 1; next != null; page++) {
       if (page > properties.maxPages()) {
@@ -103,10 +97,33 @@ public class GithubClient {
             "GitHub list " + path + " has more than " + properties.maxPages() + " pages");
       }
       Page result = fetchWithRetry(next, path);
-      result.items().forEach(items::add);
+      if (!result.body().isArray()) {
+        throw new SourceException("GitHub answered " + path + " with something that is not a list");
+      }
+      result.body().valueStream().forEach(items::add);
       next = result.next();
     }
     return items;
+  }
+
+  /**
+   * Reads only the first page of a GitHub answer (up to 100 items), as-is: a list or an object
+   * (e.g. {@code /commits/{sha}/check-runs}). Use it for "the latest N" and for single resources.
+   *
+   * @throws SourceException when there is no token or GitHub cannot deliver
+   */
+  public JsonNode getFirstPage(String path, Map<String, String> query) {
+    return fetchWithRetry(firstUri(path, query), path).body();
+  }
+
+  private URI firstUri(String path, Map<String, String> query) {
+    if (!properties.hasToken()) {
+      throw new SourceException("No GitHub token: set MC_GITHUB_TOKEN");
+    }
+    UriComponentsBuilder first =
+        UriComponentsBuilder.fromUri(properties.apiUrl()).path(path).queryParam("per_page", 100);
+    query.forEach(first::queryParam);
+    return first.build().toUri();
   }
 
   private Page fetchWithRetry(URI uri, String path) {
@@ -141,11 +158,7 @@ public class GithubClient {
     HttpHeaders headers = response.getHeaders();
     if (status == 200) {
       String body = new String(response.getBody().readAllBytes(), StandardCharsets.UTF_8);
-      JsonNode json = JSON.readTree(body);
-      if (!json.isArray()) {
-        throw new SourceException("GitHub answered " + path + " with something that is not a list");
-      }
-      return new Page(json.valueStream().toList(), nextLink(headers));
+      return new Page(JSON.readTree(body), nextLink(headers));
     }
     if (status == 401) {
       throw new SourceException("GitHub rejected the token (HTTP 401); check MC_GITHUB_TOKEN");
@@ -245,6 +258,6 @@ public class GithubClient {
     return next;
   }
 
-  /** One page of a GitHub list. */
-  private record Page(List<JsonNode> items, URI next) {}
+  /** One page of a GitHub answer and the link to the next page, if any. */
+  private record Page(JsonNode body, URI next) {}
 }

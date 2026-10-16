@@ -52,7 +52,15 @@ Settings live in `collector/src/main/resources/application.properties` and can b
   Labels are compared without case.
 - **Sprint:** the open milestone due today or later with the nearest due date. If every open milestone is overdue, the most recently overdue one is used. Its start date is the day the milestone was created, and its goal is the first line of the description. **Milestones without a due date are not sprints**, so give each sprint milestone a due date, or the sprint card stays empty. (Today the only milestone, "Mission Control V1", has none.)
 - **Events:** issues closed in the last 7 days also appear as events.
-- **Token:** read from `MC_GITHUB_TOKEN`, else `GITHUB_TOKEN`; it is never logged. Use a fine-grained, read-only token for the listed repositories. Without one, the source shows `error` ("No GitHub token") and the rest of the run continues.
+- **Token:** read from `MC_GITHUB_TOKEN`, else `GITHUB_TOKEN`; it is never logged. Use a fine-grained, read-only token for the listed repositories.
+  - **Permissions needed:** **Issues: read**, **Pull requests: read** and **Checks: read**, plus Metadata, which is always included. A missing one gives HTTP 403, and that source shows `error`.
+  - **Staging:** the `docker.yml` job grants the same three to its built-in token.
+  - **Without a token,** the GitHub sources show `error` ("No GitHub token") and the rest of the run continues.
+
+**GitHub pull requests (#13, source `github-pull-requests`):** open pull requests (drafts included) and those merged in the last 7 days. Merged ones also appear as events.
+- **Review:** the latest review of each reviewer counts (a dismissed review cancels it). Any "changes requested" wins, then any approval; otherwise `pending`.
+- **Checks:** no check runs → `none`; a failed, timed-out or action-required run → `failing`; else a run still going → `pending`; else `passing`.
+- **Waiting time:** how long a PR has waited for review is shown by the dashboard from `createdAt` and `review` (#21).
 
 **Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method adds items to the `SnapshotBuilder` it is given. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
 
