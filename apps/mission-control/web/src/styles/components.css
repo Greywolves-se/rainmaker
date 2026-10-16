@@ -457,6 +457,28 @@
   color: #4a3a12;
 }
 
+/* Risk callouts follow the risk level (#23); amber is the default above. */
+.callout--red {
+  background: var(--color-red-soft);
+}
+
+.callout--red .callout__title {
+  color: var(--color-red-text);
+}
+
+.callout--green {
+  background: var(--color-green-soft);
+}
+
+.callout--green .callout__title {
+  color: var(--color-green-text);
+}
+
+.callout--red .callout__text,
+.callout--green .callout__text {
+  color: var(--color-text-soft);
+}
+
 .release {
   display: flex;
   align-items: baseline;

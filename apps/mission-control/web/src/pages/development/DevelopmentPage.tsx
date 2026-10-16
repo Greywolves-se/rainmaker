@@ -7,6 +7,7 @@ import {decisionMeta} from '../../components/decisionMeta';
 import {CheckIcon} from '../../components/icons';
 import type {Snapshot} from '../../data/types';
 import {useSnapshot} from '../../data/useSnapshot';
+import {QuestionsCard} from './QuestionsCard';
 import {StoryBoard} from './StoryBoard';
 
 type Development = Snapshot['development'];
@@ -22,7 +23,7 @@ export function DevelopmentPage() {
       </div>
       <div className="grid">
         <TechDecisions decisions={development.techDecisions} />
-        <Questions
+        <QuestionsCard
           audience={development.questionAudience}
           questions={development.questions}
         />
@@ -137,35 +138,6 @@ function TechDecisions({decisions}: {decisions: Development['techDecisions']}) {
             meta={decisionMeta(decision, t, i18n.language)}
           />
           <StatusPill status={decision.status} />
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function Questions({
-  audience,
-  questions,
-}: {
-  audience: string | null;
-  questions: Development['questions'];
-}) {
-  const {t} = useTranslation();
-  return (
-    <section className="card">
-      <h2 className="card__title">
-        {audience
-          ? t('development.questionsFor', {audience})
-          : t('development.questions')}
-      </h2>
-      {questions.length === 0 && <NoData />}
-      {questions.map(question => (
-        <div key={question.id} className="row row--top question">
-          <div className="question__tags">
-            <StatusPill status={question.status} />
-            <span className="item__meta">{question.audience}</span>
-          </div>
-          <ItemText title={question.title} meta={question.meta} />
         </div>
       ))}
     </section>

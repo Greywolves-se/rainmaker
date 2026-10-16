@@ -1,7 +1,9 @@
 # Builds and tests Mission Control on pull requests and on pushes to develop and main.
-# - The workflow only runs when apps/mission-control/** (or this file) changes.
+# - It runs on every pull request, so its checks can be required before merging (#109): a
+#   required check that never runs would block a PR that changes only e.g. infra/ or docs/.
+#   Pushes run it only when apps/mission-control/** (or the files below) change.
 # - The "changes" job decides which of the jobs below have to run, so a PR that only
-#   touches the web app runs only the web job.
+#   touches the web app runs only the web job. A job skipped this way counts as passing.
 # - The collector job also runs when the root Maven build (pom.xml, mvnw, .mvn/) changes,
 #   because those files decide how the collector is built and checked.
 
@@ -10,12 +12,6 @@ name: Mission Control CI
 on:
   pull_request:
     branches: [develop, main]
-    paths:
-      - "apps/mission-control/**"
-      - ".github/workflows/mission-control-ci.yml"
-      - "pom.xml"
-      - "mvnw"
-      - ".mvn/**"
   push:
     branches: [develop, main]
     paths:

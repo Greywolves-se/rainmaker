@@ -94,7 +94,11 @@
     "blocker": "Blockerare",
     "question": "Fråga",
     "superseded": "Ersatt",
-    "disabled": "Avstängd"
+    "disabled": "Avstängd",
+    "overdue": "Försenad",
+    "riskRed": "Röd",
+    "riskYellow": "Gul",
+    "riskGreen": "Grön"
   },
   "environment": {
     "dev": "Utveckling",
@@ -145,6 +149,9 @@
     "noDecisionsWaiting": "Inga beslut väntar",
     "risksPilotsCost": "Risker, piloter och kostnad",
     "risk": "Risk: {{title}}",
+    "riskOwner": "Ansvarig: {{owner}}",
+    "moreRisks": "+{{count}} till i risklistan",
+    "noRisks": "Inga öppna risker",
     "awsCost": "AWS-kostnad, {{month}}",
     "amountUnknown": "[BELOPP] kr",
     "latestVersion": "Senaste fungerande version",
@@ -180,6 +187,7 @@
     "noDecisions": "Inga beslut än",
     "questionsFor": "Blockerare och frågor till {{audience}}",
     "questions": "Blockerare och frågor",
+    "neededBy": "Behövs senast {{date}}",
     "noSprint": "Ingen aktiv sprint",
     "environments": "Miljöer, loggar och dokumentation",
     "buildMeta": "{{age}} · {{duration}}",

@@ -12,6 +12,7 @@ import type {
   StatusCode,
   StoryStatus,
 } from './types';
+import {sortQuestions, sortRisks} from './risksAndQuestions';
 
 /**
  * Turns the domain-shaped contract snapshot into the page-shaped data the components render.
@@ -49,7 +50,13 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
       decisionMakers: [...new Set(waiting.map(d => d.owner))],
       decisions: waiting.map(toDecisionItem),
       pilotList: [],
-      risk: mostSeriousRisk(snapshot.risks),
+      risks: sortRisks(snapshot.risks).map(risk => ({
+        id: risk.id,
+        title: risk.title,
+        level: risk.level,
+        owner: risk.owner,
+        mitigation: risk.mitigation,
+      })),
       awsCost: null,
       release: latestRelease(snapshot.releases),
       events: [...snapshot.events]
@@ -94,9 +101,9 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
         .filter(d => !isWaitingForOwner(d))
         .map(toDecisionItem),
       questionAudience: null,
-      questions: snapshot.questions
-        .filter(q => q.status === 'open')
-        .map(toQuestion),
+      questions: sortQuestions(
+        snapshot.questions.filter(q => q.status === 'open')
+      ).map(toQuestion),
       links: snapshot.links.map(link => ({
         id: link.id,
         title: link.title,
@@ -213,18 +220,9 @@ function toQuestion(question: Question) {
   return {
     id: question.id,
     title: question.title,
-    meta: question.neededBy ?? '',
+    meta: '',
     audience: question.owner,
+    neededBy: question.neededBy,
     status: (question.critical ? 'blocker' : 'question') as StatusCode,
   };
-}
-
-const RISK_ORDER = {red: 0, yellow: 1, green: 2} as const;
-
-/** The red risk first (then yellow, green), shown in the overview's risk callout. */
-function mostSeriousRisk(risks: ContractSnapshot['risks']) {
-  const [first] = [...risks].sort(
-    (a, b) => RISK_ORDER[a.level] - RISK_ORDER[b.level]
-  );
-  return first ? {title: first.title, text: first.mitigation} : null;
 }

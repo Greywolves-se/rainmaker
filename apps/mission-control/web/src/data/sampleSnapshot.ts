@@ -164,10 +164,23 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
         status: 'atRisk',
       },
     ],
-    risk: {
-      title: 'Service company pilot start',
-      text: 'Two open blockers could push back the 20 Oct start. Pilot data is missing and AWS monitoring is not in place.',
-    },
+    risks: [
+      {
+        id: 'risk-1',
+        title: 'Service company pilot start',
+        level: 'red',
+        owner: 'Peter',
+        mitigation:
+          'Two open blockers could push back the 20 Oct start. Pilot data is missing and AWS monitoring is not in place.',
+      },
+      {
+        id: 'risk-2',
+        title: 'AWS cost rises with the new environment',
+        level: 'yellow',
+        owner: 'Staffan',
+        mitigation: 'Smallest sizes in staging; review the bill every Friday.',
+      },
+    ],
     awsCost: {month: '2026-10', amountSek: null},
     release: {
       version: 'v0.8.1',
@@ -368,6 +381,7 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
         audience: 'for Simon',
         title: 'Who can create the IAM role for CloudWatch?',
         meta: 'Erik · Slack #tech · 08:47',
+        neededBy: '2026-10-14',
       },
       {
         id: 'question-2',
@@ -375,6 +389,7 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
         audience: 'for supervisors',
         title: 'How do we link pilots to customers in Rainmaker?',
         meta: 'Caroline · yesterday',
+        neededBy: '2026-10-30',
       },
       {
         id: 'question-3',
@@ -382,6 +397,7 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
         audience: 'for Simon',
         title: 'Should Navigator be allowed to read private Slack channels?',
         meta: 'Erik · yesterday',
+        neededBy: null,
       },
     ],
     links: [

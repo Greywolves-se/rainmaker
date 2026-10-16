@@ -101,17 +101,30 @@ describe('fromContract', () => {
     ]);
   });
 
-  it('shows the most serious risk and open questions only', () => {
-    expect(page.overview.risk).toEqual({
-      title: 'Pilot publisher not signed in time',
-      text: 'Weekly follow-up with two backup publishers',
-    });
+  it('shows every risk red first, with owner and mitigation, and open questions only', () => {
+    expect(page.overview.risks).toEqual([
+      {
+        id: 'R-3',
+        title: 'Pilot publisher not signed in time',
+        level: 'red',
+        owner: 'Kim Ek',
+        mitigation: 'Weekly follow-up with two backup publishers',
+      },
+      {
+        id: 'R-5',
+        title: 'Test coverage below target',
+        level: 'yellow',
+        owner: 'Sam Lind',
+        mitigation: 'Coverage gate on domain packages',
+      },
+    ]);
     expect(page.development.questions).toEqual([
       {
         id: 'Q-7',
         title: 'Which reader consent text do pilot publishers use?',
-        meta: '2026-10-30',
+        meta: '',
         audience: 'Kim Ek',
+        neededBy: '2026-10-30',
         status: 'blocker',
       },
     ]);
