@@ -15,17 +15,11 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param projects the projects to write a snapshot for, at least one, each with a unique id
  * @param outputFolder each project's files go to {@code <outputFolder>/<project id>/}; relative
  *     paths start at the working directory
- * @param legacySnapshotProject the project whose snapshot and START HERE report are also written as
- *     {@code <outputFolder>/snapshot.json} and {@code start-here.md}, where the web app reads them
- *     today; empty for none
  * @param sources per-source settings, keyed by source id; a source not listed is enabled
  */
 @ConfigurationProperties("mission-control.collector")
 public record CollectorProperties(
-    List<ProjectSettings> projects,
-    Path outputFolder,
-    String legacySnapshotProject,
-    Map<String, SourceSettings> sources) {
+    List<ProjectSettings> projects, Path outputFolder, Map<String, SourceSettings> sources) {
 
   /** Checks the required settings, so a missing one fails at startup with a clear message. */
   public CollectorProperties {
@@ -40,15 +34,6 @@ public record CollectorProperties(
       }
     }
     Objects.requireNonNull(outputFolder, "mission-control.collector.output-folder must be set");
-    legacySnapshotProject =
-        legacySnapshotProject == null || legacySnapshotProject.isBlank()
-            ? null
-            : legacySnapshotProject;
-    if (legacySnapshotProject != null && !ids.contains(legacySnapshotProject)) {
-      throw new IllegalArgumentException(
-          "mission-control.collector.legacy-snapshot-project names no project: "
-              + legacySnapshotProject);
-    }
     sources = sources == null ? Map.of() : Map.copyOf(sources);
   }
 

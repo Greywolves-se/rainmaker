@@ -33,7 +33,6 @@ java -jar apps/mission-control/collector/target/collector-0.1.0-SNAPSHOT.jar
 **Projects (#99):** the collector writes one snapshot per project: **Rainmaker** (the product) and **Mission Control** (this app). For each project, a run asks every enabled source for that project's data, in id order, and writes `apps/mission-control/out/<project>/snapshot.json` and `start-here.md` (git-ignored; never commit them). `out/projects.json` lists the projects that have a snapshot (id, and the name from that snapshot), so the web app needs no hard-coded list; its contract is `contract/projects.schema.json`. A project removed from the settings drops out of `projects.json`, but its `out/<id>/` folder stays until you delete it (harmless; `out/` is git-ignored and rebuilt in CI). Each file is replaced in one step, so a reader never sees half a snapshot.
 - **A source that fails** is listed with `status: error` and a short message, and adds nothing; the other sources are not affected.
 - **A project that fails** keeps its previous files and the other project is still written. The run then exits with an error, so CI does not deploy.
-- **Transition:** until the web app reads per-project files (#100), Mission Control's snapshot and START HERE report are also written to `out/snapshot.json` and `out/start-here.md`, where the web app reads them today.
 
 **Which project an item belongs to:** GitHub issues and pull requests **labelled `mission-control`** belong to Mission Control; everything else belongs to Rainmaker. **Label Mission Control pull requests too**, or they show up under Rainmaker. Data files live in `data/<project>/`.
 
@@ -44,7 +43,6 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 | `mission-control.collector.output-folder` | `apps/mission-control/out` (relative to the working directory) |
 | `mission-control.collector.projects[n].id`, `.name` | `rainmaker` "Rainmaker", `mission-control` "Mission Control". The id names the output and data folders; the name is used when `project.yaml` gives none |
 | `mission-control.collector.projects[n].with-label`, `.without-label` | GitHub label rule: only items with / without that label belong to the project |
-| `mission-control.collector.legacy-snapshot-project` | `mission-control`; also written as `out/snapshot.json` until #100 |
 | `mission-control.collector.sources.<id>.enabled` | `true`; set `false` to switch a source off (it is then listed as `disabled`) |
 
 **Data files (#15):** decisions, risks, questions, links, the change log and the project's key dates live as YAML in `data/<project>/` (e.g. `data/rainmaker/decisions.yaml`). A missing file means no items. Each file starts with a comment that explains its fields. Edit them in a pull request (the GitHub web editor is fine); a test checks the real files in CI. It names the file, line and field of every mistake, so a bad edit fails the PR instead of the dashboard. Each item links back to its line on GitHub.

@@ -66,7 +66,7 @@ class CollectorRunnerTest {
 
     assertThat(folder.resolve("rainmaker")).doesNotExist();
     assertThat(folder.resolve("mission-control").resolve("snapshot.json")).isNotEmptyFile();
-    assertThat(folder.resolve("snapshot.json")).isNotEmptyFile();
+    assertThat(folder.resolve("snapshot.json")).doesNotExist();
     assertThat(output.getOut()).contains("project failed").contains("pipeline bug");
     // A new project that fails its first run has no snapshot, so it is not listed.
     assertThat(projectList().projects())
@@ -121,8 +121,7 @@ class CollectorRunnerTest {
         pipeline,
         new SnapshotValidator(),
         new SnapshotWriter(),
-        new CollectorProperties(
-            List.of(RAINMAKER, MISSION_CONTROL), folder, "mission-control", Map.of()),
+        new CollectorProperties(List.of(RAINMAKER, MISSION_CONTROL), folder, Map.of()),
         report);
   }
 

@@ -200,7 +200,7 @@ class CollectorPipelineTest {
   private static CollectorPipeline pipeline(
       Map<String, SourceSettings> settings, SourceCollector... sources) {
     CollectorProperties properties =
-        new CollectorProperties(List.of(PROJECT), Path.of("unused"), null, settings);
+        new CollectorProperties(List.of(PROJECT), Path.of("unused"), settings);
     return new CollectorPipeline(List.of(sources), properties, VALIDATOR, CLOCK);
   }
 }

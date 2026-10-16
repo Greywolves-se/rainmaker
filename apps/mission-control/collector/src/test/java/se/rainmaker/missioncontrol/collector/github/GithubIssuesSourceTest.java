@@ -254,7 +254,7 @@ class GithubIssuesSourceTest {
     GithubIssuesSource source =
         new GithubIssuesSource(new GithubClient(properties, clock), properties, clock);
     CollectorProperties collector =
-        new CollectorProperties(List.of(project), Path.of("unused"), null, Map.of());
+        new CollectorProperties(List.of(project), Path.of("unused"), Map.of());
     return new CollectorPipeline(List.of(source), collector, new SnapshotValidator(), clock)
         .run(project);
   }

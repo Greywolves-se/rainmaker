@@ -82,33 +82,23 @@ class ProjectSettingsTest {
 
   @Test
   void settingsNeedAtLeastOneProject() {
-    assertThatThrownBy(() -> new CollectorProperties(List.of(), Path.of("out"), null, Map.of()))
+    assertThatThrownBy(() -> new CollectorProperties(List.of(), Path.of("out"), Map.of()))
         .hasMessageContaining("must list a project");
   }
 
   @Test
   void projectIdsMustBeUnique() {
     assertThatThrownBy(
-            () ->
-                new CollectorProperties(
-                    List.of(RAINMAKER, RAINMAKER), Path.of("out"), null, Map.of()))
+            () -> new CollectorProperties(List.of(RAINMAKER, RAINMAKER), Path.of("out"), Map.of()))
         .hasMessageContaining("Two projects have the id 'rainmaker'");
-  }
-
-  @Test
-  void legacySnapshotMustNameProject() {
-    assertThatThrownBy(
-            () -> new CollectorProperties(List.of(RAINMAKER), Path.of("out"), "missing", Map.of()))
-        .hasMessageContaining("names no project: missing");
   }
 
   @Test
   void eachProjectHasItsOwnSnapshotFile() {
     CollectorProperties properties =
-        new CollectorProperties(List.of(RAINMAKER, MISSION_CONTROL), Path.of("out"), "", Map.of());
+        new CollectorProperties(List.of(RAINMAKER, MISSION_CONTROL), Path.of("out"), Map.of());
 
     assertThat(properties.snapshotFile(MISSION_CONTROL))
         .isEqualTo(Path.of("out", "mission-control", "snapshot.json"));
-    assertThat(properties.legacySnapshotProject()).isNull();
   }
 }
