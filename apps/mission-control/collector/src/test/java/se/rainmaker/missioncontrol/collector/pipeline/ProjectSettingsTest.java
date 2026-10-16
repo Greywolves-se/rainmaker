@@ -9,6 +9,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import se.rainmaker.missioncontrol.collector.snapshot.ContractFiles;
 
 class ProjectSettingsTest {
 
@@ -49,6 +50,16 @@ class ProjectSettingsTest {
     assertThatThrownBy(() -> new ProjectSettings(id, "Name", null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("must match");
+  }
+
+  @Test
+  void idPatternIsTheSameAsInTheProjectsSchema() {
+    String schemaPattern =
+        ContractFiles.projectsSchemaTree()
+            .at("/properties/projects/items/properties/id/pattern")
+            .asString();
+
+    assertThat(ProjectSettings.PROJECT_ID.pattern()).isEqualTo(schemaPattern);
   }
 
   @Test

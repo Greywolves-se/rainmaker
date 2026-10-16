@@ -13,6 +13,7 @@ import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
 import se.rainmaker.missioncontrol.collector.report.StartHereReport;
+import se.rainmaker.missioncontrol.collector.snapshot.ProjectList;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotValidator;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotWriter;
@@ -25,6 +26,8 @@ import se.rainmaker.missioncontrol.collector.snapshot.Source;
  */
 @Component
 class CollectorRunner implements CommandLineRunner {
+
+  static final String PROJECT_LIST_FILE = "projects.json";
 
   private static final Logger log = LoggerFactory.getLogger(CollectorRunner.class);
 
@@ -57,6 +60,8 @@ class CollectorRunner implements CommandLineRunner {
     try (MDC.MDCCloseable correlationId =
         MDC.putCloseable("correlation_id", UUID.randomUUID().toString())) {
       log.info("collector started");
+      // From the settings only, so it lists a failed project too: its previous files stay.
+      writer.write(projectList(), properties.outputFolder().resolve(PROJECT_LIST_FILE));
       List<String> failedProjects = new ArrayList<>();
       for (ProjectSettings project : properties.projects()) {
         try {
@@ -78,6 +83,14 @@ class CollectorRunner implements CommandLineRunner {
         throw new IllegalStateException("Projects failed: " + failedProjects + "; see the log");
       }
     }
+  }
+
+  private ProjectList projectList() {
+    return new ProjectList(
+        ProjectList.SCHEMA_VERSION,
+        properties.projects().stream()
+            .map(project -> new ProjectList.Entry(project.id(), project.name()))
+            .toList());
   }
 
   private void collect(ProjectSettings project) {

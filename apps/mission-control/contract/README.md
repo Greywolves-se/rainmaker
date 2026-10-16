@@ -7,6 +7,10 @@ folder is the single source of truth for its shape.
 |---|---|
 | `snapshot.schema.json` | JSON Schema (draft 2020-12) with a description for every field |
 | `fixtures/snapshot.sample.json` | Fictional sample. Both the collector and the web app test against it |
+| `projects.schema.json` | `projects.json`: the projects that have a snapshot (#99). The web app builds its project list from it |
+| `fixtures/projects.sample.json` | Sample `projects.json`, tested on both sides |
+
+The collector writes `out/projects.json` and one folder per project, `out/<id>/snapshot.json`. The same rules apply to both files.
 
 ## Rules
 - **Domain-shaped, not page-shaped.** The snapshot describes work items, pull requests, risks and so on. How a page shows them is decided in the web app (#18).
