@@ -23,8 +23,10 @@ and all the data it shows already lives in GitHub and in files in this repositor
   images and pushes them to ECR, and ECS (Fargate) runs them (#84). The staging web image carries
   a fresh snapshot from the collector on every develop deploy and on weekday mornings (#17).
   CDK brings this setup under code (#61–#63).
-- Staging is reached only through a URL behind a Google login, checked by the load balancer, with
-  an allowlist of team emails in Cognito (#67–#71). Production later uses the same pattern.
+- Staging is reached only through a URL behind a Google login on the load balancer, limited to
+  **@graywolf.se** accounts. It was set up by hand; #85 documents it, verifies that the
+  restriction holds and brings it under CDK (it replaces #67–#71). Production later uses the
+  same pattern.
 - GitHub Pages is not an option, because it is public on our plan.
 
 ## Why no backend or database in V1
@@ -48,12 +50,16 @@ and all the data it shows already lives in GitHub and in files in this repositor
 
 - The repository stays **private** (from 16 Oct 2026).
 - Real snapshots contain internal project data and are **never published publicly**. They are not
-  committed (`apps/mission-control/out/` is git-ignored), never served from a public URL, and only
-  shown on staging behind the login.
+  committed (`apps/mission-control/out/` is git-ignored) and never served without the login.
+- Since #17 the staging image contains a real snapshot, served only after the Google login. Until
+  #85 has verified that only @graywolf.se accounts get through (Google's `hd` parameter alone does
+  not enforce it), the staging URL is shared only within the team, and the snapshot holds only
+  what is already in this private repository (GitHub issues, data files). Data from any other
+  source needs #85 first.
 
 ## Before production
 
-- The allowlist login is in place and tested (#69).
+- The @graywolf.se restriction is verified and under CDK (#85).
 - The ECS setup is under CDK (#62).
 - A decision on how production gets its snapshot, for example a scheduled ECS task instead of
   baking it into the image.
