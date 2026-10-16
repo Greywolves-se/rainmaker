@@ -18,9 +18,10 @@ public interface SourceCollector {
   String name();
 
   /**
-   * Adds this source's items to {@code snapshot}. Throw {@link SourceException} with a message that
-   * is safe to show on the dashboard when the source cannot deliver. Never put secrets such as
-   * tokens in exception messages; they are logged.
+   * Adds this source's items for {@code project} to {@code snapshot}. Called once per project and
+   * run; a source that does not split its data by project may ignore {@code project}. Throw {@link
+   * SourceException} with a message that is safe to show on the dashboard when the source cannot
+   * deliver. Never put secrets such as tokens in exception messages; they are logged.
    *
    * <p>Rules every source follows:
    *
@@ -34,5 +35,5 @@ public interface SourceCollector {
    *       "Architecture rules"). The pipeline does not stop a source that hangs.
    * </ul>
    */
-  void collect(SnapshotBuilder snapshot);
+  void collect(ProjectSettings project, SnapshotBuilder snapshot);
 }

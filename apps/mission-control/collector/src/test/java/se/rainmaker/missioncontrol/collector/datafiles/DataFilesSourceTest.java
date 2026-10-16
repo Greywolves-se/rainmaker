@@ -21,6 +21,7 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
+import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
 import se.rainmaker.missioncontrol.collector.snapshot.Decision;
 import se.rainmaker.missioncontrol.collector.snapshot.Link;
 import se.rainmaker.missioncontrol.collector.snapshot.Question;
@@ -33,6 +34,8 @@ import se.rainmaker.missioncontrol.collector.snapshot.Source;
 class DataFilesSourceTest {
 
   private static final String FILES_URL = "https://github.com/example-org/repo/blob/develop/data";
+  private static final ProjectSettings PROJECT =
+      new ProjectSettings("example", "Fallback project", null, null);
   private static final Clock CLOCK =
       Clock.fixed(Instant.parse("2026-10-15T06:00:00Z"), ZoneOffset.UTC);
 
@@ -116,8 +119,8 @@ class DataFilesSourceTest {
     assertThat(snapshot.decisions())
         .extracting(Decision::id, Decision::needsOwnerDecision, Decision::reference, Decision::url)
         .containsExactly(
-            tuple("B1", false, "Section 5", FILES_URL + "/decisions.yaml#L2"),
-            tuple("B34", true, null, FILES_URL + "/decisions.yaml#L8"));
+            tuple("B1", false, "Section 5", FILES_URL + "/example/decisions.yaml#L2"),
+            tuple("B34", true, null, FILES_URL + "/example/decisions.yaml#L8"));
     assertThat(snapshot.risks()).extracting(Risk::level).containsExactly(Risk.Level.RED);
     assertThat(snapshot.questions())
         .extracting(Question::neededBy, Question::critical)
@@ -191,32 +194,49 @@ class DataFilesSourceTest {
   }
 
   @Test
-  void theRealDataFilesAreValid() {
+  void readsOnlyTheProjectsOwnFolder() throws IOException {
+    write("decisions.yaml", "[]\n");
+    Path other = folder.resolve("other");
+    Files.createDirectories(other);
+    Files.writeString(other.resolve("project.yaml"), "name: Other project\n");
+    Files.writeString(folder.resolve("project.yaml"), "name: Shared folder\n");
+
+    Snapshot snapshot = run();
+
+    assertThat(snapshot.project().name()).isEqualTo("Fallback project");
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({"rainmaker, Rainmaker", "mission-control, Mission Control"})
+  void theRealDataFilesAreValid(String projectId, String name) {
     Path realData = Path.of("..", "data");
     // Without this, a moved folder would make the test pass without checking anything.
-    assertThat(realData.resolve("project.yaml")).exists();
+    assertThat(realData.resolve(projectId).resolve("project.yaml")).exists();
 
-    Snapshot snapshot = run(realData);
+    Snapshot snapshot = run(realData, new ProjectSettings(projectId, "Fallback", null, null));
 
-    assertThat(snapshot.project().name()).isEqualTo("Rainmaker");
+    assertThat(snapshot.project().name()).isEqualTo(name);
     assertThat(snapshot.sources().getFirst())
-        .as("apps/mission-control/data must be valid; see the message")
+        .as("apps/mission-control/data/" + projectId + " must be valid; see the message")
         .extracting(Source::status, Source::message)
         .containsExactly(Source.Status.OK, null);
   }
 
   private Snapshot run() {
-    return run(folder);
+    return run(folder, PROJECT);
   }
 
-  private static Snapshot run(Path dataFolder) {
+  private static Snapshot run(Path dataFolder, ProjectSettings project) {
     DataFilesSource source = new DataFilesSource(new DataFilesProperties(dataFolder, FILES_URL));
     CollectorProperties properties =
-        new CollectorProperties("Fallback project", Path.of("unused.json"), Map.of());
-    return new CollectorPipeline(List.of(source), properties, new SnapshotValidator(), CLOCK).run();
+        new CollectorProperties(List.of(project), Path.of("unused"), null, Map.of());
+    return new CollectorPipeline(List.of(source), properties, new SnapshotValidator(), CLOCK)
+        .run(project);
   }
 
   private void write(String file, String content) throws IOException {
-    Files.writeString(folder.resolve(file), content);
+    Path projectFolder = folder.resolve(PROJECT.id());
+    Files.createDirectories(projectFolder);
+    Files.writeString(projectFolder.resolve(file), content);
   }
 }

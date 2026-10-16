@@ -3,7 +3,7 @@
 - **Status:** Accepted by the Mission Control developers (Emil, Gabriel, Mai), who own Mission
   Control decisions and approve each other's work.
 - **Date:** 16 Oct 2026
-- **Decision log:** B34 (`apps/mission-control/data/decisions.yaml`)
+- **Decision log:** B34 (`apps/mission-control/data/mission-control/decisions.yaml`)
 - **Issue:** #6
 
 ## Context

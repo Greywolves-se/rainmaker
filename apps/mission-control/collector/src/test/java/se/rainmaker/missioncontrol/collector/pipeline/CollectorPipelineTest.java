@@ -27,6 +27,8 @@ class CollectorPipelineTest {
   private static final Instant NOW = Instant.parse("2026-10-15T06:00:00Z");
   private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
   private static final SnapshotValidator VALIDATOR = new SnapshotValidator();
+  private static final ProjectSettings PROJECT =
+      new ProjectSettings("example", "Example project", null, null);
 
   @Test
   void oneFailingSourceDoesNotStopTheOthers() {
@@ -36,7 +38,7 @@ class CollectorPipelineTest {
             .withWorkItem("2")
             .failingWith(new IllegalStateException("token ghp_secret rejected"));
 
-    Snapshot snapshot = pipeline(Map.of(), github, broken).run();
+    Snapshot snapshot = pipeline(Map.of(), github, broken).run(PROJECT);
 
     assertThat(snapshot.sources())
         .extracting(Source::id, Source::status)
@@ -49,7 +51,7 @@ class CollectorPipelineTest {
     FakeSource broken =
         FakeSource.withId("broken").failingWith(new IllegalStateException("token ghp_secret"));
 
-    Source result = pipeline(Map.of(), broken).run().sources().getFirst();
+    Source result = pipeline(Map.of(), broken).run(PROJECT).sources().getFirst();
 
     assertThat(result.message()).doesNotContain("ghp_secret").contains("IllegalStateException");
     assertThat(result.fetchedAt()).isNull();
@@ -60,7 +62,7 @@ class CollectorPipelineTest {
     FakeSource broken =
         FakeSource.withId("broken").failingWith(new SourceException("GitHub answered 503"));
 
-    Source result = pipeline(Map.of(), broken).run().sources().getFirst();
+    Source result = pipeline(Map.of(), broken).run(PROJECT).sources().getFirst();
 
     assertThat(result.status()).isEqualTo(Source.Status.ERROR);
     assertThat(result.message()).isEqualTo("GitHub answered 503");
@@ -68,7 +70,7 @@ class CollectorPipelineTest {
 
   @Test
   void successfulSourceIsOkWithFetchTime() {
-    Snapshot snapshot = pipeline(Map.of(), FakeSource.withId("github")).run();
+    Snapshot snapshot = pipeline(Map.of(), FakeSource.withId("github")).run(PROJECT);
 
     assertThat(snapshot.generatedAt()).isEqualTo(NOW);
     assertThat(snapshot.sources().getFirst())
@@ -79,7 +81,7 @@ class CollectorPipelineTest {
   void disabledSourceIsListedButNotCalled() {
     FakeSource slack = FakeSource.withId("slack").withWorkItem("9");
 
-    Snapshot snapshot = pipeline(Map.of("slack", new SourceSettings(false)), slack).run();
+    Snapshot snapshot = pipeline(Map.of("slack", new SourceSettings(false)), slack).run(PROJECT);
 
     assertThat(slack.calls()).isZero();
     assertThat(snapshot.sources().getFirst().status()).isEqualTo(Source.Status.DISABLED);
@@ -89,7 +91,8 @@ class CollectorPipelineTest {
   @Test
   void sourcesAreAlwaysInIdOrder() {
     Snapshot snapshot =
-        pipeline(Map.of(), FakeSource.withId("slack"), FakeSource.withId("data-files")).run();
+        pipeline(Map.of(), FakeSource.withId("slack"), FakeSource.withId("data-files"))
+            .run(PROJECT);
 
     assertThat(snapshot.sources()).extracting(Source::id).containsExactly("data-files", "slack");
   }
@@ -99,7 +102,7 @@ class CollectorPipelineTest {
     FakeSource first = FakeSource.withId("alpha").withWorkItem("7");
     FakeSource second = FakeSource.withId("beta").withWorkItem("8").withWorkItem("7");
 
-    Snapshot snapshot = pipeline(Map.of(), first, second).run();
+    Snapshot snapshot = pipeline(Map.of(), first, second).run(PROJECT);
 
     assertThat(snapshot.workItems()).extracting(WorkItem::id).containsExactly("7");
     assertThat(snapshot.sources().get(1).status()).isEqualTo(Source.Status.ERROR);
@@ -108,7 +111,7 @@ class CollectorPipelineTest {
 
   @Test
   void usesTheConfiguredProjectNameWhenNoSourceSetsTheProject() {
-    Snapshot snapshot = pipeline(Map.of()).run();
+    Snapshot snapshot = pipeline(Map.of()).run(PROJECT);
 
     assertThat(snapshot.project().name()).isEqualTo("Example project");
     assertThat(snapshot.project().milestones()).isEmpty();
@@ -144,7 +147,7 @@ class CollectorPipelineTest {
           }
 
           @Override
-          public void collect(SnapshotBuilder snapshot) {}
+          public void collect(ProjectSettings project, SnapshotBuilder snapshot) {}
         };
 
     assertThatThrownBy(() -> pipeline(Map.of(), nameless))
@@ -157,7 +160,7 @@ class CollectorPipelineTest {
     FakeSource good = FakeSource.withId("alpha").withWorkItem("1");
     FakeSource bad = FakeSource.withId("beta").withWorkItem("2").withInvalidWorkItem("3");
 
-    Snapshot snapshot = pipeline(Map.of(), good, bad).run();
+    Snapshot snapshot = pipeline(Map.of(), good, bad).run(PROJECT);
 
     assertThat(snapshot.workItems()).extracting(WorkItem::id).containsExactly("1");
     Source result = snapshot.sources().get(1);
@@ -173,7 +176,7 @@ class CollectorPipelineTest {
   void sourceExceptionWithoutMessageStillGetsOne() {
     FakeSource broken = FakeSource.withId("broken").failingWith(new SourceException(" "));
 
-    assertThat(pipeline(Map.of(), broken).run().sources().getFirst().message())
+    assertThat(pipeline(Map.of(), broken).run(PROJECT).sources().getFirst().message())
         .isEqualTo("Source failed");
   }
 
@@ -197,7 +200,7 @@ class CollectorPipelineTest {
   private static CollectorPipeline pipeline(
       Map<String, SourceSettings> settings, SourceCollector... sources) {
     CollectorProperties properties =
-        new CollectorProperties("Example project", Path.of("unused.json"), settings);
+        new CollectorProperties(List.of(PROJECT), Path.of("unused"), null, settings);
     return new CollectorPipeline(List.of(sources), properties, VALIDATOR, CLOCK);
   }
 }

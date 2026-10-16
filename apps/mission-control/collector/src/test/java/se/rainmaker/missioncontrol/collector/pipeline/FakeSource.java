@@ -70,7 +70,7 @@ public final class FakeSource implements SourceCollector {
   }
 
   @Override
-  public void collect(SnapshotBuilder snapshot) {
+  public void collect(ProjectSettings project, SnapshotBuilder snapshot) {
     calls++;
     workItems.forEach(snapshot::addWorkItem);
     if (failure != null) {

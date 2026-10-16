@@ -2,6 +2,7 @@ package se.rainmaker.missioncontrol.collector.github;
 
 import static se.rainmaker.missioncontrol.collector.github.GithubFields.instant;
 import static se.rainmaker.missioncontrol.collector.github.GithubFields.itemId;
+import static se.rainmaker.missioncontrol.collector.github.GithubFields.labels;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -13,6 +14,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
 import se.rainmaker.missioncontrol.collector.pipeline.SnapshotBuilder;
 import se.rainmaker.missioncontrol.collector.pipeline.SourceCollector;
 import se.rainmaker.missioncontrol.collector.pipeline.SourceException;
@@ -22,7 +24,8 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * Open pull requests, and those merged in the last 7 days, from the configured GitHub repositories
- * (#13).
+ * (#13). Only those whose labels belong to the project are included (#99): with today's settings a
+ * pull request without the {@code mission-control} label belongs to Rainmaker, whatever it changes.
  *
  * <p>Review state: the latest review of each reviewer counts (a dismissed review cancels it). Any
  * "changes requested" wins, then any approval; otherwise the review is pending. Comments do not
@@ -71,7 +74,7 @@ public class GithubPullRequestsSource implements SourceCollector {
   }
 
   @Override
-  public void collect(SnapshotBuilder snapshot) {
+  public void collect(ProjectSettings project, SnapshotBuilder snapshot) {
     Instant since = clock.instant().minus(RECENT);
     for (String repository : properties.repositories()) {
       String pulls = "/repos/" + repository + "/pulls";
@@ -85,7 +88,10 @@ public class GithubPullRequestsSource implements SourceCollector {
         included.put(pull.get("number").asInt(), pull);
       }
 
-      for (JsonNode pull : included.values()) {
+      // Filtered before the reviews and check runs are read, so other projects cost no calls.
+      List<JsonNode> ours =
+          included.values().stream().filter(pull -> project.includes(labels(pull))).toList();
+      for (JsonNode pull : ours) {
         PullRequest pullRequest = pullRequest(repository, pull);
         snapshot.addPullRequest(pullRequest);
         if (pullRequest.mergedAt() != null) {
