@@ -1,15 +1,28 @@
 import {useTranslation} from 'react-i18next';
 import {NavLink} from 'react-router';
 import {LogoIcon} from '../components/icons';
+import type {ProjectEntry} from '../contract/projects';
 import type {Snapshot} from '../data/types';
-import {PAGES} from './pages';
+import {PAGES, projectPath, type PageDefinition} from './pages';
 
 interface SidebarProps {
-  projects: Snapshot['projects'];
-  sourceSummary: Snapshot['sourceSummary'];
+  projects: ProjectEntry[];
+  /** null on the "project not found" page: then there are no page links. */
+  currentProject: ProjectEntry | null;
+  page: PageDefinition;
+  /** null while the project's snapshot loads or failed. */
+  sourceSummary: Snapshot['sourceSummary'] | null;
 }
 
-export function Sidebar({projects, sourceSummary}: SidebarProps) {
+const linkClass = ({isActive}: {isActive: boolean}) =>
+  isActive ? 'nav-link nav-link--active' : 'nav-link';
+
+export function Sidebar({
+  projects,
+  currentProject,
+  page,
+  sourceSummary,
+}: SidebarProps) {
   const {t} = useTranslation();
   return (
     <nav className="sidebar" aria-label={t('nav.mainMenu')}>
@@ -21,53 +34,57 @@ export function Sidebar({projects, sourceSummary}: SidebarProps) {
         </div>
       </div>
 
-      <ul className="nav-list">
-        {PAGES.map(({key, path, Icon}) => (
-          <li key={key}>
-            <NavLink
-              to={path}
-              end
-              className={({isActive}) =>
-                isActive ? 'nav-link nav-link--active' : 'nav-link'
-              }
-            >
-              <Icon />
-              {t(`nav.${key}`)}
-            </NavLink>
-          </li>
-        ))}
-      </ul>
+      {currentProject && (
+        <ul className="nav-list">
+          {PAGES.map(item => (
+            <li key={item.key}>
+              <NavLink
+                to={projectPath(currentProject.id, item)}
+                end
+                className={linkClass}
+              >
+                <item.Icon />
+                {t(`nav.${item.key}`)}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="project-list">
-        <span className="project-list__heading">{t('nav.projects')}</span>
-        {projects.map(project => (
-          <div key={project.id} className="project-list__item">
-            {project.health && (
-              <span
-                className={`dot dot--small dot--${project.health}`}
-                aria-hidden="true"
-              />
-            )}
-            {project.name}
-            {project.health && (
-              <span className="sr-only">{t(`health.${project.health}`)}</span>
-            )}
-          </div>
-        ))}
+        <span className="project-list__heading" id="project-list-heading">
+          {t('nav.projects')}
+        </span>
+        {/* Each project opens the page you are on, so switching keeps your place. */}
+        <ul className="nav-list" aria-labelledby="project-list-heading">
+          {projects.map(project => (
+            <li key={project.id}>
+              <NavLink
+                to={projectPath(project.id, page)}
+                end
+                className={linkClass}
+              >
+                {project.name}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <div className="sync-box">
-        <span className="sync-box__label">{t('nav.dataSources')}</span>
-        <span>
-          <strong>
-            {t('nav.synced', {
-              synced: sourceSummary.synced,
-              total: sourceSummary.total,
-            })}
-          </strong>
-        </span>
-        <span className="sync-box__label">{sourceSummary.note}</span>
-      </div>
+      {sourceSummary && (
+        <div className="sync-box">
+          <span className="sync-box__label">{t('nav.dataSources')}</span>
+          <span>
+            <strong>
+              {t('nav.synced', {
+                synced: sourceSummary.synced,
+                total: sourceSummary.total,
+              })}
+            </strong>
+          </span>
+          <span className="sync-box__label">{sourceSummary.note}</span>
+        </div>
+      )}
     </nav>
   );
 }

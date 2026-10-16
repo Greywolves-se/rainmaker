@@ -52,11 +52,11 @@ describe('App', () => {
     }
   });
 
-  it('sends unknown paths to the overview', () => {
+  it('treats an unknown path as an unknown project', () => {
     renderApp({path: '/does-not-exist'});
 
     expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
-      'Overview'
+      'Project not found'
     );
   });
 

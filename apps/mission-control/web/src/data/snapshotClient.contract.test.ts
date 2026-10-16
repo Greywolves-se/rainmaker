@@ -57,7 +57,7 @@ describe('loadSnapshot', () => {
 
     expect(loaded.demo).toBe(false);
     expect(loaded.generatedAt).toBe('2026-11-02T06:00:00Z');
-    expect(loaded.page.projects[0]?.name).toBe('Example project');
+    expect(loaded.page.overview.sprint?.name).toBe('Sprint 4');
     expect(loaded.failedSources).toEqual([
       {
         id: 'data-files',

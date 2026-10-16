@@ -29,7 +29,9 @@ describe('snapshot states', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'Loading the snapshot …'
     );
-    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    // The menu stays, so you can switch project while one is loading.
+    expect(screen.getByRole('navigation', {name: 'Main menu'})).toBeVisible();
+    expect(screen.queryByRole('heading', {level: 1})).not.toBeInTheDocument();
   });
 
   it('shows an error with the reason when loading fails', async () => {

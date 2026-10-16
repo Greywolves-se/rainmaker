@@ -2,19 +2,23 @@
 // *.contract.test files: the Docker build copies only web/.
 import {screen, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {describe, expect, it, vi} from 'vitest';
+import {describe, expect, it} from 'vitest';
 import sample from '../../../contract/fixtures/snapshot.sample.json';
 import {parseSnapshot} from '../contract/snapshot';
 import {fromContract} from '../data/fromContract';
 import {renderApp} from '../test/renderApp';
 
-vi.mock('../data/useSnapshot', () => ({
-  useSnapshot: () => fromContract(parseSnapshot(sample)),
-}));
+const snapshot = parseSnapshot(sample);
+const loaded = {
+  page: fromContract(snapshot),
+  demo: false,
+  generatedAt: snapshot.generatedAt,
+  failedSources: [],
+};
 
 describe('pages with contract data', () => {
   it('render real items, empty states and no sample data', async () => {
-    renderApp();
+    renderApp({loaded});
     const menu = screen.getByRole('navigation', {name: 'Main menu'});
 
     expect(screen.getByText('Load the snapshot in the web app')).toBeVisible();

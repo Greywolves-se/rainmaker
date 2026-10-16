@@ -3,9 +3,10 @@ import {fromContract} from './fromContract';
 import {SAMPLE_SNAPSHOT} from './sampleSnapshot';
 import type {Snapshot as PageSnapshot} from './types';
 
-/** Where the snapshot is read from. Set VITE_SNAPSHOT_URL at build time to change it. */
-export const SNAPSHOT_URL: string =
-  import.meta.env.VITE_SNAPSHOT_URL || '/snapshot.json';
+/** Where a project's snapshot is read from: `<id>/snapshot.json` next to projects.json (#99). */
+export function snapshotUrl(projectId: string): string {
+  return `/${projectId}/snapshot.json`;
+}
 
 /** snapshot.json does not exist (404) or the server cannot be reached. */
 export class SnapshotMissingError extends Error {}

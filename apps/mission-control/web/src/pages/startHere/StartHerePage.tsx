@@ -1,7 +1,8 @@
 import {useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Markdown} from './markdown';
-import {START_HERE_URL, fetchStartHere} from './startHereClient';
+import {useCurrentProject} from '../../data/SnapshotProvider';
+import {fetchStartHere, startHereUrl} from './startHereClient';
 
 type LoadState =
   | {status: 'loading'}
@@ -9,14 +10,15 @@ type LoadState =
   | {status: 'error'; message: string}
   | {status: 'ready'; report: string};
 
-/** The START HERE report (#25), rendered, with Download and Copy for Claude Code. */
+/** The project's START HERE report (#25), rendered, with Download and Copy for Claude Code. */
 export function StartHerePage() {
   const {t} = useTranslation();
+  const {id: projectId} = useCurrentProject();
   const [state, setState] = useState<LoadState>({status: 'loading'});
 
   useEffect(() => {
     let cancelled = false;
-    fetchStartHere().then(
+    fetchStartHere(projectId).then(
       report => {
         if (!cancelled) {
           setState(
@@ -37,7 +39,7 @@ export function StartHerePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [projectId]);
 
   if (state.status === 'loading') {
     return <p className="item__meta">{t('startHere.loading')}</p>;
@@ -59,13 +61,19 @@ export function StartHerePage() {
   }
   return (
     <section className="card">
-      <ReportActions report={state.report} />
+      <ReportActions projectId={projectId} report={state.report} />
       <Markdown source={state.report} />
     </section>
   );
 }
 
-function ReportActions({report}: {report: string}) {
+function ReportActions({
+  projectId,
+  report,
+}: {
+  projectId: string;
+  report: string;
+}) {
   const {t} = useTranslation();
   const [copied, setCopied] = useState<'idle' | 'copied' | 'failed'>('idle');
 
@@ -85,8 +93,8 @@ function ReportActions({report}: {report: string}) {
       {/* Same file as on the page, so the download is byte-for-byte what the collector wrote. */}
       <a
         className="button button--primary"
-        href={START_HERE_URL}
-        download="start-here.md"
+        href={startHereUrl(projectId)}
+        download={`start-here-${projectId}.md`}
       >
         {t('startHere.download')}
       </a>

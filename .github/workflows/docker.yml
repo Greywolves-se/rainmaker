@@ -119,8 +119,9 @@ jobs:
           java-version: 21
           cache: maven
 
-      # Writes apps/mission-control/out/snapshot.json. If the run fails, the job fails and staging
-      # keeps the image it already runs instead of getting one without data.
+      # Writes apps/mission-control/out/projects.json and out/<project>/ (#99), which the web app
+      # reads (#100). If the run fails, the job fails and staging keeps the image it already runs
+      # instead of getting one without data.
       - name: Collect the snapshot
         if: env.BAKE_SNAPSHOT == 'true'
         env:
@@ -128,16 +129,13 @@ jobs:
         run: |
           ./mvnw -B -ntp -q -f apps/mission-control/pom.xml -pl collector -am package -DskipTests
           java -jar apps/mission-control/collector/target/collector-*.jar
-          test -s apps/mission-control/out/snapshot.json
+          test -s apps/mission-control/out/projects.json
 
       - uses: actions/upload-artifact@v4
         if: env.BAKE_SNAPSHOT == 'true'
         with:
           name: snapshot
-          # start-here.md (#25) is optional until the collector writes it; a missing file is skipped.
-          path: |
-            apps/mission-control/out/snapshot.json
-            apps/mission-control/out/start-here.md
+          path: apps/mission-control/out/
           retention-days: 14
 
       - uses: docker/setup-buildx-action@v3
