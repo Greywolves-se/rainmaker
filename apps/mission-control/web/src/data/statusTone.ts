@@ -22,6 +22,10 @@ export const STATUS_TONE: Record<StatusCode, Tone> = {
   question: 'blue',
   superseded: 'grey',
   disabled: 'grey',
+  overdue: 'red',
+  riskRed: 'red',
+  riskYellow: 'amber',
+  riskGreen: 'green',
 };
 
 export const STORY_STATUS_TONE: Record<StoryStatus, Tone> = {

@@ -2,7 +2,7 @@
  * Shape of the data the pages render. The contract snapshot is mapped to it in fromContract.ts;
  * null means the contract has no data for that part yet and the page shows an empty state.
  */
-import type {Release} from '../contract/snapshot';
+import type {Release, Risk} from '../contract/snapshot';
 
 /** Short code shown in a source tile (GH, GD …). Open-ended, like the contract's sources. */
 export type SourceCode = string;
@@ -29,7 +29,11 @@ export type StatusCode =
   | 'blocker'
   | 'question'
   | 'superseded'
-  | 'disabled';
+  | 'disabled'
+  | 'overdue'
+  | 'riskRed'
+  | 'riskYellow'
+  | 'riskGreen';
 
 export type StoryStatus = 'todo' | 'inProgress' | 'blocked' | 'done';
 
@@ -70,6 +74,15 @@ export interface StatusItem extends TitledItem {
   status: StatusCode;
 }
 
+/** A risk on the overview, with its owner and what is done about it. */
+export interface RiskItem {
+  id: string;
+  title: string;
+  level: Risk['level'];
+  owner: string;
+  mitigation: string;
+}
+
 /** An item that links to its details (a GitHub issue, a pull request …); url is null without one. */
 export interface LinkedItem extends TitledItem {
   url: string | null;
@@ -104,7 +117,8 @@ export interface Snapshot {
     /** Decisions waiting for the owners, oldest first. */
     decisions: DecisionItem[];
     pilotList: StatusItem[];
-    risk: {title: string; text: string} | null;
+    /** Every risk, red first (then yellow, green). */
+    risks: RiskItem[];
     awsCost: {month: string; amountSek: number | null} | null;
     release: {
       version: string;
@@ -139,7 +153,8 @@ export interface Snapshot {
     /** Every decision not waiting for the owners, in log order. */
     techDecisions: DecisionItem[];
     questionAudience: string | null;
-    questions: (StatusItem & {audience: string})[];
+    /** Open questions, nearest needed-by date first. */
+    questions: (StatusItem & {audience: string; neededBy: string | null})[];
     links: TitledItem[];
   };
   sources: {

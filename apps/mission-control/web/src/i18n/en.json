@@ -87,7 +87,11 @@
     "blocker": "Blocker",
     "question": "Question",
     "superseded": "Superseded",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "overdue": "Overdue",
+    "riskRed": "Red",
+    "riskYellow": "Yellow",
+    "riskGreen": "Green"
   },
   "environment": {
     "dev": "Development",
@@ -138,6 +142,9 @@
     "noDecisionsWaiting": "No decisions waiting",
     "risksPilotsCost": "Risks, pilots and cost",
     "risk": "Risk: {{title}}",
+    "riskOwner": "Owner: {{owner}}",
+    "moreRisks": "+{{count}} more in the risk log",
+    "noRisks": "No open risks",
     "awsCost": "AWS cost, {{month}}",
     "amountUnknown": "[AMOUNT] SEK",
     "latestVersion": "Latest working version",
@@ -173,6 +180,7 @@
     "noDecisions": "No decisions yet",
     "questionsFor": "Blockers and questions for {{audience}}",
     "questions": "Blockers and questions",
+    "neededBy": "Needed by {{date}}",
     "noSprint": "No active sprint",
     "environments": "Environments, logs and documentation",
     "buildMeta": "{{age}} · {{duration}}",
