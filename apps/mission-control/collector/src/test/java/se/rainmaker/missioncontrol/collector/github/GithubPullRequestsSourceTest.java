@@ -20,9 +20,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 import se.rainmaker.missioncontrol.collector.snapshot.Event;
@@ -30,8 +33,10 @@ import se.rainmaker.missioncontrol.collector.snapshot.PullRequest;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotValidator;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+@ExtendWith(OutputCaptureExtension.class)
 class GithubPullRequestsSourceTest {
 
   private static final Instant NOW = Instant.parse("2026-10-16T12:00:00Z");
@@ -54,6 +59,7 @@ class GithubPullRequestsSourceTest {
           alice:CHANGES_REQUESTED, alice:APPROVED            | APPROVED
           alice:APPROVED, bob:CHANGES_REQUESTED              | CHANGES_REQUESTED
           alice:CHANGES_REQUESTED, alice:DISMISSED           | PENDING
+          alice:CHANGES_REQUESTED, alice:DISMISSED, alice:APPROVED | APPROVED
           """)
   void reviewState(String reviews, PullRequest.Review expected) {
     stubOpen(List.of(pullRequest(5, false, null)));
@@ -74,6 +80,9 @@ class GithubPullRequestsSourceTest {
           completed:success, in_progress:         | PENDING
           completed:failure, in_progress:         | FAILING
           completed:cancelled                     | PASSING
+          completed:timed_out                     | FAILING
+          completed:action_required               | FAILING
+          completed:startup_failure               | FAILING
           """)
   void checksStatus(String runs, PullRequest.Checks expected) {
     stubOpen(List.of(pullRequest(5, false, null)));
@@ -115,7 +124,7 @@ class GithubPullRequestsSourceTest {
         List.of(
             pullRequest(7, false, NOW.minus(Duration.ofDays(1))),
             pullRequest(8, false, NOW.minus(Duration.ofDays(10))),
-            pullRequest(9, false, null)));
+            closedWithoutMerge(9)));
     stubReviews(7, List.of("alice:APPROVED"));
     stubChecks(7, List.of("completed:success"));
 
@@ -128,6 +137,46 @@ class GithubPullRequestsSourceTest {
     assertThat(snapshot.events())
         .extracting(Event::id, Event::title)
         .containsExactly(tuple("gh-rainmaker-7-merged", "PR #7 merged: PR 7"));
+  }
+
+  @Test
+  void pullRequestMergedBetweenTheTwoCallsIsIncludedOnceAsMerged() {
+    stubOpen(List.of(pullRequest(7, false, null)));
+    stubClosed(List.of(pullRequest(7, false, NOW.minus(Duration.ofMinutes(1)))));
+    stubReviews(7, List.of());
+    stubChecks(7, List.of());
+
+    Snapshot snapshot = run();
+
+    assertThat(snapshot.sources().getFirst().status()).isEqualTo(Source.Status.OK);
+    assertThat(snapshot.pullRequests())
+        .extracting(PullRequest::id, PullRequest::state)
+        .containsExactly(tuple("gh-rainmaker-7", PullRequest.State.MERGED));
+  }
+
+  @Test
+  void closedPullRequestsAnswerThatIsNotListIsError() {
+    stubOpen(List.of());
+    github.stubFor(
+        get(urlPathEqualTo("/repos/" + REPO + "/pulls"))
+            .withQueryParam("state", equalTo("closed"))
+            .willReturn(okJson("{\"message\": \"unexpected\"}")));
+
+    Source result = run().sources().getFirst();
+
+    assertThat(result.status()).isEqualTo(Source.Status.ERROR);
+    assertThat(result.message()).contains("not a list");
+  }
+
+  @Test
+  void moreCheckRunsThanOnePageIsLogged(CapturedOutput output) {
+    JsonNode answer =
+        JSON.readTree(
+            "{\"total_count\": 150, \"check_runs\": "
+                + "[{\"status\": \"completed\", \"conclusion\": \"success\"}]}");
+
+    assertThat(GithubPullRequestsSource.checks(answer)).isEqualTo(PullRequest.Checks.PASSING);
+    assertThat(output.getOut()).contains("only the first page counts");
   }
 
   @Test
@@ -205,6 +254,12 @@ class GithubPullRequestsSourceTest {
                 okJson(
                     JSON.writeValueAsString(
                         Map.of("total_count", checkRuns.size(), "check_runs", checkRuns)))));
+  }
+
+  private static Map<String, Object> closedWithoutMerge(int number) {
+    Map<String, Object> pull = pullRequest(number, false, null);
+    pull.put("state", "closed");
+    return pull;
   }
 
   private static Map<String, Object> pullRequest(int number, boolean draft, Instant mergedAt) {
