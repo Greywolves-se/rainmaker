@@ -1,6 +1,13 @@
 import {describe, expect, it} from 'vitest';
 import type {Story} from '../../data/types';
-import {assigneesOf, filterStories, labelsOf, sprintProgress} from './stories';
+import {
+  assigneesOf,
+  effectiveFilters,
+  filterChoices,
+  filterStories,
+  labelsOf,
+  sprintProgress,
+} from './stories';
 
 const story = (overrides: Partial<Story>): Story => ({
   id: '1',
@@ -96,6 +103,29 @@ describe('filterStories', () => {
       )
     ).toEqual(['101', '103']);
     expect(filterStories(STORIES, {...ALL, assignee: 'Nobody'})).toEqual([]);
+  });
+});
+
+describe('filterChoices and effectiveFilters', () => {
+  it('offers only the assignees and labels the sprint toggle allows', () => {
+    expect(filterChoices(STORIES, true)).toEqual({
+      assignees: ['Alex', 'Sam'],
+      labels: ['area: collector', 'area: web', 'prio: must'],
+    });
+    const sprintOnly = filterChoices([STORIES[2]!], true);
+    expect(sprintOnly).toEqual({assignees: [], labels: []});
+  });
+
+  it('treats a choice that is no longer offered as "All"', () => {
+    const choices = {assignees: ['Alex'], labels: ['area: web']};
+
+    expect(
+      effectiveFilters(
+        {assignee: 'Sam', label: 'area: web', currentSprintOnly: true},
+        choices
+      )
+    ).toEqual({assignee: null, label: 'area: web', currentSprintOnly: true});
+    expect(effectiveFilters({...ALL, label: 'gone'}, choices).label).toBeNull();
   });
 });
 

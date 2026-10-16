@@ -7,10 +7,11 @@ import {formatAge, formatDay} from '../../i18n/format';
 import {useNow} from '../../layout/useNow';
 import {
   DEFAULT_FILTERS,
-  assigneesOf,
+  effectiveFilters,
+  filterChoices,
   filterStories,
-  labelsOf,
   sprintProgress,
+  type FilterChoices,
   type StoryFilters,
 } from './stories';
 
@@ -26,7 +27,9 @@ export function StoryBoard({
   stories: Story[];
 }) {
   const {t, i18n} = useTranslation();
-  const [filters, setFilters] = useState<StoryFilters>(DEFAULT_FILTERS);
+  const [chosen, setChosen] = useState<StoryFilters>(DEFAULT_FILTERS);
+  const choices = filterChoices(stories, chosen.currentSprintOnly);
+  const filters = effectiveFilters(chosen, choices);
   const progress = sprintProgress(stories);
   const shown = filterStories(stories, filters);
 
@@ -44,7 +47,7 @@ export function StoryBoard({
           </h2>
           <span className="kpi__note">
             {t('development.storySummary', {
-              total: progress.total,
+              count: progress.total,
               done: progress.byStatus.done,
               blocked: progress.byStatus.blocked,
             })}
@@ -64,13 +67,13 @@ export function StoryBoard({
       </div>
 
       <StoryFilterBar
-        stories={stories}
+        choices={choices}
         filters={filters}
-        onChange={setFilters}
+        onChange={setChosen}
       />
 
       {shown.length === 0 ? (
-        <p className="item__meta">{t('development.noMatches')}</p>
+        <p className="item__meta">{t(emptyMessage(filters))}</p>
       ) : (
         <StoryTable stories={shown} />
       )}
@@ -78,12 +81,22 @@ export function StoryBoard({
   );
 }
 
+/** "No stories match" only when a filter is set; otherwise the list really is empty. */
+function emptyMessage({assignee, label, currentSprintOnly}: StoryFilters) {
+  if (assignee !== null || label !== null) {
+    return 'development.noMatches';
+  }
+  return currentSprintOnly
+    ? 'development.noStoriesInSprint'
+    : 'development.noStories';
+}
+
 function StoryFilterBar({
-  stories,
+  choices,
   filters,
   onChange,
 }: {
-  stories: Story[];
+  choices: FilterChoices;
   filters: StoryFilters;
   onChange: (filters: StoryFilters) => void;
 }) {
@@ -100,7 +113,7 @@ function StoryFilterBar({
           }
         >
           <option value="">{t('development.filterAll')}</option>
-          {assigneesOf(stories).map(name => (
+          {choices.assignees.map(name => (
             <option key={name} value={name}>
               {name}
             </option>
@@ -117,7 +130,7 @@ function StoryFilterBar({
           }
         >
           <option value="">{t('development.filterAll')}</option>
-          {labelsOf(stories).map(label => (
+          {choices.labels.map(label => (
             <option key={label} value={label}>
               {label}
             </option>
@@ -148,7 +161,7 @@ function StoryTable({stories}: {stories: Story[]}) {
           <tr>
             <th>{t('development.columnId')}</th>
             <th>{t('development.columnStory')}</th>
-            <th>{t('development.columnOwner')}</th>
+            <th>{t('development.columnAssignees')}</th>
             <th>{t('development.columnStatus')}</th>
             <th>{t('development.columnAge')}</th>
           </tr>

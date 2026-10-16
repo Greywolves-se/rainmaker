@@ -115,13 +115,67 @@ describe('StoryBoard', () => {
     expect(rowTitles()).toHaveLength(3);
   });
 
-  it('says so when no story matches', async () => {
+  it('says the sprint is empty when no filter is set', async () => {
     render(wrap(<StoryBoard sprint={null} stories={[]} />));
 
     expect(screen.getByRole('heading', {level: 2})).toHaveTextContent(
       'No active sprint'
     );
+    expect(screen.getByText('No stories in this sprint')).toBeVisible();
+
+    await userEvent.click(screen.getByLabelText('Only the current sprint'));
+    expect(screen.getByText('No stories yet')).toBeVisible();
+  });
+
+  it('says no story matches only when a filter is set', async () => {
+    render(wrap(<StoryBoard sprint={SPRINT} stories={STORIES} />));
+
+    await userEvent.selectOptions(screen.getByLabelText('Assignee'), 'Alex');
+    await userEvent.selectOptions(
+      screen.getByLabelText('Label'),
+      'area: collector'
+    );
+
     expect(screen.getByText('No stories match the filters')).toBeVisible();
+  });
+
+  it('resets a filter whose choice is gone after a snapshot refresh', async () => {
+    const {rerender} = render(
+      wrap(<StoryBoard sprint={SPRINT} stories={STORIES} />)
+    );
+    await userEvent.selectOptions(screen.getByLabelText('Assignee'), 'Alex');
+
+    rerender(
+      wrap(
+        <StoryBoard
+          sprint={SPRINT}
+          stories={[story({id: '104', title: 'New', assignees: ['Kim']})]}
+        />
+      )
+    );
+
+    expect(screen.getByLabelText('Assignee')).toHaveDisplayValue('All');
+    expect(rowTitles()).toEqual(['New']);
+  });
+
+  it('offers only the people the sprint toggle allows', async () => {
+    render(wrap(<StoryBoard sprint={SPRINT} stories={STORIES} />));
+    const options = () =>
+      within(screen.getByLabelText('Assignee'))
+        .getAllByRole('option')
+        .map(option => option.textContent);
+
+    // Sam only has a backlog item, so is not offered while the sprint toggle is on.
+    expect(options()).toEqual(['All', 'Alex']);
+
+    await userEvent.click(screen.getByLabelText('Only the current sprint'));
+    expect(options()).toEqual(['All', 'Alex', 'Sam']);
+  });
+
+  it('uses the singular for one story', () => {
+    render(wrap(<StoryBoard sprint={SPRINT} stories={[story({})]} />));
+
+    expect(screen.getByText('1 story · 0 done · 0 blocked')).toBeVisible();
   });
 
   it('follows the snapshot instead of keeping its own copy', () => {
