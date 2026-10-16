@@ -90,6 +90,10 @@
     "green": "grön",
     "yellow": "gul"
   },
+  "decisions": {
+    "meta": "{{owner}} · {{date}}",
+    "metaWithReference": "{{owner}} · {{date}} · {{reference}}"
+  },
   "overview": {
     "sprintProgress": "Sprintens framsteg",
     "sprintDone": "{{done}} av {{total}} klara",
@@ -117,7 +121,7 @@
     "blockedCount": "Blockerat · {{count}}",
     "decisionsFor": "Beslut som behöver {{names}}",
     "decisionsPending": "Beslut som väntar på en ägare",
-    "open": "Öppna",
+    "noDecisionsWaiting": "Inga beslut väntar",
     "risksPilotsCost": "Risker, piloter och kostnad",
     "risk": "Risk: {{title}}",
     "awsCost": "AWS-kostnad, {{month}}",
@@ -152,6 +156,7 @@
     "lint": "Lint",
     "staging": "Staging",
     "techDecisions": "Tekniska beslut och beroenden",
+    "noDecisions": "Inga beslut än",
     "questionsFor": "Blockerare och frågor till {{audience}}",
     "questions": "Blockerare och frågor",
     "noSprint": "Ingen aktiv sprint",

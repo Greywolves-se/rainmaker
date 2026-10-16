@@ -5,6 +5,7 @@ import type {
   WorkItem,
 } from '../contract/snapshot';
 import type {
+  DecisionItem,
   LinkedItem,
   Snapshot as PageSnapshot,
   SourceCode,
@@ -22,7 +23,9 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
   const sprintItems = snapshot.workItems.filter(item => item.inCurrentSprint);
   const byStatus = (status: WorkItem['status']) =>
     sprintItems.filter(item => item.status === status).map(toLinkedItem);
-  const needOwner = snapshot.decisions.filter(d => d.needsOwnerDecision);
+  const waiting = snapshot.decisions
+    .filter(isWaitingForOwner)
+    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
   const sprint = snapshot.sprint;
 
   return {
@@ -44,13 +47,8 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
       done: byStatus('done'),
       inProgress: byStatus('in_progress'),
       blocked: byStatus('blocked'),
-      decisionMakers: [...new Set(needOwner.map(d => d.owner))],
-      decisions: needOwner.map(d => ({
-        id: d.id,
-        title: d.title,
-        meta: `${d.owner} · ${d.date}`,
-        initial: d.owner.charAt(0),
-      })),
+      decisionMakers: [...new Set(waiting.map(d => d.owner))],
+      decisions: waiting.map(toDecisionItem),
       pilotList: [],
       risk: mostSeriousRisk(snapshot.risks),
       awsCost: null,
@@ -93,12 +91,9 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
           status: pr.state === 'merged' ? 'merged' : 'review',
         })),
       build: null,
-      techDecisions: snapshot.decisions.map(d => ({
-        id: d.id,
-        title: d.title,
-        meta: d.reference ? `${d.owner} · ${d.reference}` : d.owner,
-        status: DECISION_STATUS[d.status],
-      })),
+      techDecisions: snapshot.decisions
+        .filter(d => !isWaitingForOwner(d))
+        .map(toDecisionItem),
       questionAudience: null,
       questions: snapshot.questions
         .filter(q => q.status === 'open')
@@ -141,6 +136,23 @@ const STORY_STATUS: Record<WorkItem['status'], StoryStatus> = {
   blocked: 'blocked',
   done: 'done',
 };
+
+/** Peter or Staffan still has to decide: it needs them and is not decided or replaced yet. */
+function isWaitingForOwner(decision: Decision): boolean {
+  return decision.needsOwnerDecision && decision.status === 'proposed';
+}
+
+function toDecisionItem(decision: Decision): DecisionItem {
+  return {
+    id: decision.id,
+    title: decision.title,
+    owner: decision.owner,
+    date: decision.date,
+    status: DECISION_STATUS[decision.status],
+    reference: decision.reference,
+    url: decision.url,
+  };
+}
 
 const DECISION_STATUS: Record<Decision['status'], StatusCode> = {
   proposed: 'proposed',

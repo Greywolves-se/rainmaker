@@ -1,4 +1,22 @@
-import type {Snapshot, Story, StoryStatus} from './types';
+import type {
+  DecisionItem,
+  Snapshot,
+  StatusCode,
+  Story,
+  StoryStatus,
+} from './types';
+
+/** A fictional decision without a link (demo data only). */
+function demoDecision(
+  id: string,
+  title: string,
+  owner: string,
+  date: string,
+  status: StatusCode,
+  reference: string | null
+): DecisionItem {
+  return {id, title, owner, date, status, reference, url: null};
+}
 
 /** A fictional current-sprint story without a link (demo data only). */
 function demoStory(
@@ -106,24 +124,30 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     ],
     decisionMakers: ['Peter', 'Staffan'],
     decisions: [
-      {
-        id: 'decision-1',
-        initial: 'P',
-        title: 'Approve Service company pilot start 20 Oct',
-        meta: 'Peter · Friction Intelligence · by Fri',
-      },
-      {
-        id: 'decision-2',
-        initial: 'P',
-        title: 'Which customer do we show in Friday’s demo?',
-        meta: 'Peter · Slack #rainmaker',
-      },
-      {
-        id: 'decision-3',
-        initial: 'S',
-        title: 'Budget for AWS staging',
-        meta: 'Staffan · cost rises with the new environment',
-      },
+      demoDecision(
+        'decision-1',
+        'Approve Service company pilot start 20 Oct',
+        'Peter',
+        '2026-10-08',
+        'proposed',
+        'Friction Intelligence'
+      ),
+      demoDecision(
+        'decision-2',
+        'Which customer do we show in Friday’s demo?',
+        'Peter',
+        '2026-10-12',
+        'proposed',
+        null
+      ),
+      demoDecision(
+        'decision-3',
+        'Budget for AWS staging',
+        'Staffan',
+        '2026-10-13',
+        'proposed',
+        'Cost rises with the new environment'
+      ),
     ],
     pilotList: [
       {
@@ -308,30 +332,38 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
       steps: ['install · 38 s', 'test · 2 min 41 s', 'deploy staging · 53 s'],
     },
     techDecisions: [
-      {
-        id: 'tech-1',
-        title: 'One shared data model in Postgres (RDS)',
-        meta: 'Decision · Simon · Architecture v2.1',
-        status: 'decided',
-      },
-      {
-        id: 'tech-2',
-        title: 'Slack via Events API instead of polling',
-        meta: 'Proposal · Erik',
-        status: 'proposed',
-      },
-      {
-        id: 'tech-3',
-        title: 'IAM role for reading CloudWatch',
-        meta: 'Dependency for MC-06',
-        status: 'missing',
-      },
-      {
-        id: 'tech-4',
-        title: 'API key for Rainmaker traffic',
-        meta: 'Dependency for the business status card',
-        status: 'done',
-      },
+      demoDecision(
+        'tech-1',
+        'One shared data model in Postgres (RDS)',
+        'Simon',
+        '2026-10-02',
+        'decided',
+        'Architecture v2.1'
+      ),
+      demoDecision(
+        'tech-2',
+        'Slack via Events API instead of polling',
+        'Erik',
+        '2026-10-09',
+        'proposed',
+        null
+      ),
+      demoDecision(
+        'tech-3',
+        'IAM role for reading CloudWatch',
+        'Erik',
+        '2026-10-10',
+        'missing',
+        'Dependency for MC-06'
+      ),
+      demoDecision(
+        'tech-4',
+        'API key for Rainmaker traffic',
+        'Erik',
+        '2026-10-11',
+        'done',
+        'Dependency for the business status card'
+      ),
     ],
     questionAudience: 'Simon / supervisors',
     questions: [

@@ -1,7 +1,9 @@
 import {useTranslation} from 'react-i18next';
 import {ItemText} from '../../components/ItemText';
 import {NoData} from '../../components/NoData';
+import {SourceLink} from '../../components/SourceLink';
 import {StatusPill} from '../../components/StatusPill';
+import {decisionMeta} from '../../components/decisionMeta';
 import {CheckIcon} from '../../components/icons';
 import type {Snapshot} from '../../data/types';
 import {useSnapshot} from '../../data/useSnapshot';
@@ -114,15 +116,26 @@ function BuildFact({label, value}: {label: string; value: string}) {
   );
 }
 
+/** Every decision not waiting for the owners, in log order; each links to its line on GitHub. */
 function TechDecisions({decisions}: {decisions: Development['techDecisions']}) {
-  const {t} = useTranslation();
+  const {t, i18n} = useTranslation();
   return (
     <section className="card">
       <h2 className="card__title">{t('development.techDecisions')}</h2>
-      {decisions.length === 0 && <NoData />}
+      {decisions.length === 0 && (
+        <p className="item__meta">{t('development.noDecisions')}</p>
+      )}
       {decisions.map(decision => (
         <div key={decision.id} className="row row--top row--spread">
-          <ItemText title={decision.title} meta={decision.meta} />
+          <ItemText
+            title={
+              <>
+                <span className="mono muted">{decision.id}</span>{' '}
+                <SourceLink url={decision.url}>{decision.title}</SourceLink>
+              </>
+            }
+            meta={decisionMeta(decision, t, i18n.language)}
+          />
           <StatusPill status={decision.status} />
         </div>
       ))}

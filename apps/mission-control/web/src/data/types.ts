@@ -53,6 +53,19 @@ export interface TitledItem {
   meta: string;
 }
 
+/** A decision from decisions.yaml; url is the line in the file on GitHub. */
+export interface DecisionItem {
+  id: string;
+  title: string;
+  owner: string;
+  /** YYYY-MM-DD */
+  date: string;
+  status: StatusCode;
+  /** Free text such as "Section 6; D17", not a link. */
+  reference: string | null;
+  url: string | null;
+}
+
 export interface StatusItem extends TitledItem {
   status: StatusCode;
 }
@@ -88,7 +101,8 @@ export interface Snapshot {
     inProgress: LinkedItem[];
     blocked: LinkedItem[];
     decisionMakers: string[];
-    decisions: (TitledItem & {initial: string})[];
+    /** Decisions waiting for the owners, oldest first. */
+    decisions: DecisionItem[];
     pilotList: StatusItem[];
     risk: {title: string; text: string} | null;
     awsCost: {month: string; amountSek: number | null} | null;
@@ -122,7 +136,8 @@ export interface Snapshot {
       staging: string;
       steps: string[];
     } | null;
-    techDecisions: StatusItem[];
+    /** Every decision not waiting for the owners, in log order. */
+    techDecisions: DecisionItem[];
     questionAudience: string | null;
     questions: (StatusItem & {audience: string})[];
     links: TitledItem[];
