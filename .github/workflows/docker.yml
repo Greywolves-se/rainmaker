@@ -122,7 +122,10 @@ jobs:
         if: env.BAKE_SNAPSHOT == 'true'
         with:
           name: snapshot
-          path: apps/mission-control/out/snapshot.json
+          # start-here.md (#25) is optional until the collector writes it; a missing file is skipped.
+          path: |
+            apps/mission-control/out/snapshot.json
+            apps/mission-control/out/start-here.md
           retention-days: 14
 
       - uses: docker/setup-buildx-action@v3
