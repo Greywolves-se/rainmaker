@@ -18,6 +18,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import se.rainmaker.missioncontrol.collector.pipeline.FakeSource;
 import se.rainmaker.missioncontrol.collector.pipeline.SourceCollector;
 import se.rainmaker.missioncontrol.collector.snapshot.ContractFiles;
+import se.rainmaker.missioncontrol.collector.snapshot.ProjectList;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotJson;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
@@ -59,6 +60,22 @@ class CollectorRunTest {
         .isEmpty();
     // The START HERE report (#25) is written next to each snapshot in the same run.
     assertThat(folder.resolve(projectId).resolve("start-here.md")).isNotEmptyFile();
+  }
+
+  @Test
+  void projectListNamesEveryProjectAndMatchesItsSchema() {
+    Path output = folder.resolve("projects.json");
+
+    ProjectList projects = SnapshotJson.mapper().readValue(output.toFile(), ProjectList.class);
+
+    assertThat(projects.projects())
+        .extracting(ProjectList.Entry::id, ProjectList.Entry::name)
+        .containsExactly(
+            tuple("rainmaker", "Rainmaker"), tuple("mission-control", "Mission Control"));
+    assertThat(
+            ContractFiles.projectsSchema()
+                .validate(SnapshotJson.mapper().readTree(output.toFile())))
+        .isEmpty();
   }
 
   @Test

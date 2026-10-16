@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "projects": [
+    {"id": "rainmaker", "name": "Rainmaker"},
+    {"id": "mission-control", "name": "Mission Control"}
+  ]
+}

@@ -1,8 +1,10 @@
 package se.rainmaker.missioncontrol.collector;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,10 +15,13 @@ import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
 import se.rainmaker.missioncontrol.collector.report.StartHereReport;
+import se.rainmaker.missioncontrol.collector.snapshot.ProjectList;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
+import se.rainmaker.missioncontrol.collector.snapshot.SnapshotJson;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotValidator;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotWriter;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
+import tools.jackson.core.JacksonException;
 
 /**
  * Runs one collector run: for each project, all sources, then its snapshot file and START HERE
@@ -25,6 +30,8 @@ import se.rainmaker.missioncontrol.collector.snapshot.Source;
  */
 @Component
 class CollectorRunner implements CommandLineRunner {
+
+  static final String PROJECT_LIST_FILE = "projects.json";
 
   private static final Logger log = LoggerFactory.getLogger(CollectorRunner.class);
 
@@ -70,6 +77,7 @@ class CollectorRunner implements CommandLineRunner {
           failedProjects.add(project.id());
         }
       }
+      writeProjectList();
       log.atInfo()
           .addKeyValue("projects", properties.projects().size())
           .addKeyValue("failedProjects", failedProjects)
@@ -77,6 +85,46 @@ class CollectorRunner implements CommandLineRunner {
       if (!failedProjects.isEmpty()) {
         throw new IllegalStateException("Projects failed: " + failedProjects + "; see the log");
       }
+    }
+  }
+
+  /**
+   * Writes {@code projects.json} after all projects ran, listing only projects that have a
+   * snapshot: this run's, or the previous one when the project failed. The name comes from that
+   * snapshot, so the list and the pages always agree. With no snapshot at all, the file is not
+   * written and the previous one stays.
+   */
+  private void writeProjectList() {
+    List<ProjectList.Entry> entries = new ArrayList<>();
+    for (ProjectSettings project : properties.projects()) {
+      projectName(properties.snapshotFile(project))
+          .ifPresent(name -> entries.add(new ProjectList.Entry(project.id(), name)));
+    }
+    if (entries.isEmpty()) {
+      log.atWarn().log("no project has a snapshot; projects.json was not written");
+      return;
+    }
+    writer.write(
+        new ProjectList(ProjectList.SCHEMA_VERSION, entries),
+        properties.outputFolder().resolve(PROJECT_LIST_FILE));
+  }
+
+  /** The project name in a snapshot file; empty when there is no file or it cannot be read. */
+  private static Optional<String> projectName(Path snapshotFile) {
+    if (!Files.exists(snapshotFile)) {
+      return Optional.empty();
+    }
+    try {
+      String name =
+          SnapshotJson.mapper().readTree(snapshotFile.toFile()).at("/project/name").asString("");
+      return name.isBlank() ? Optional.empty() : Optional.of(name);
+    } catch (JacksonException e) {
+      // A broken file would fail in the web app too, so the project is left out of the list.
+      log.atError()
+          .addKeyValue("file", snapshotFile.toString())
+          .setCause(e)
+          .log("snapshot cannot be read; project left out of projects.json");
+      return Optional.empty();
     }
   }
 

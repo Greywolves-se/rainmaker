@@ -7,6 +7,10 @@ folder is the single source of truth for its shape.
 |---|---|
 | `snapshot.schema.json` | JSON Schema (draft 2020-12) with a description for every field |
 | `fixtures/snapshot.sample.json` | Fictional sample. Both the collector and the web app test against it |
+| `projects.schema.json` | `projects.json`: the projects that have a snapshot (#99). The web app builds its project list from it |
+| `fixtures/projects.sample.json` | Sample `projects.json`, tested on both sides |
+
+The collector writes `out/projects.json` and one folder per project, `out/<id>/snapshot.json`. The same rules apply to both files. `projects.json` lists only projects whose `snapshot.json` exists, named as in that snapshot, so every listed project can be loaded. Ids are unique: JSON Schema cannot say so, so the collector checks it in its settings and the web app when it reads the file.
 
 ## Rules
 - **Domain-shaped, not page-shaped.** The snapshot describes work items, pull requests, risks and so on. How a page shows them is decided in the web app (#18).
@@ -34,3 +38,7 @@ The contract tests on both sides fail when they disagree.
 
 ### Web app
 `src/contract/snapshot.ts` holds the zod schemas, the TypeScript types (derived from them) and `parseSnapshot()`, the runtime check for a fetched snapshot. Unknown fields are dropped there, so a newer collector never breaks an older dashboard. `snapshot.contract.test.ts` checks the sample with the JSON Schema (ajv), reads it without losing or changing a field, rejects missing fields and unknown values, and compares every enum with the schema. It is excluded from `tsc`, because the web Docker build copies only `web/`; Vitest runs it.
+
+`src/contract/projects.ts` does the same for `projects.json` (`parseProjectList()`), tested by `projects.contract.test.ts`. It accepts and rejects the same files as the JSON Schema, with two deliberate differences:
+- **Unknown fields** are dropped instead of rejected, as for the snapshot. Writers are strict (the schema, the Java records), readers are lenient, so adding a field never breaks a deployed dashboard.
+- **Duplicate ids** are rejected, which JSON Schema cannot express.
