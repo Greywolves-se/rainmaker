@@ -29,7 +29,9 @@ describe('START HERE page', () => {
     expect(
       await screen.findByRole('heading', {name: 'START HERE – Example project'})
     ).toBeVisible();
-    expect(fetch).toHaveBeenCalledWith('/start-here.md', {cache: 'no-store'});
+    expect(fetch).toHaveBeenCalledWith('/rainmaker/start-here.md', {
+      cache: 'no-store',
+    });
   });
 
   it('copies the exact file content', async () => {
@@ -77,13 +79,13 @@ describe('START HERE page', () => {
     );
   });
 
-  it('downloads the file as start-here.md', async () => {
+  it('downloads the file of the selected project', async () => {
     serve(new Response(REPORT));
     renderApp({path: '/start-here'});
 
     const download = await screen.findByRole('link', {name: 'Download .md'});
-    expect(download).toHaveAttribute('href', '/start-here.md');
-    expect(download).toHaveAttribute('download', 'start-here.md');
+    expect(download).toHaveAttribute('href', '/rainmaker/start-here.md');
+    expect(download).toHaveAttribute('download', 'start-here-rainmaker.md');
   });
 
   it('explains when the report has not been generated yet', async () => {

@@ -31,7 +31,6 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
 
   return {
     generatedAt: snapshot.generatedAt,
-    projects: [{id: 'project', name: snapshot.project.name, health: null}],
     sourceSummary: {
       synced: snapshot.sources.filter(s => s.status === 'ok').length,
       total: snapshot.sources.length,

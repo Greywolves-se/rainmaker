@@ -1,19 +1,23 @@
-/** Written by the collector next to snapshot.json (#25) and served at the same place. */
-export const START_HERE_URL = '/start-here.md';
+/** Written by the collector next to the project's snapshot (#25, #99). */
+export function startHereUrl(projectId: string): string {
+  return `/${projectId}/start-here.md`;
+}
 
 /**
  * The report's exact text, or null when it has not been generated yet (404). Other failures
  * throw, so they show as an error instead of looking like a missing report.
  */
 export async function fetchStartHere(
+  projectId: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<string | null> {
-  const response = await fetchImpl(START_HERE_URL, {cache: 'no-store'});
+  const url = startHereUrl(projectId);
+  const response = await fetchImpl(url, {cache: 'no-store'});
   if (response.status === 404) {
     return null;
   }
   if (!response.ok) {
-    throw new Error(`${START_HERE_URL} returned HTTP ${response.status}`);
+    throw new Error(`${url} returned HTTP ${response.status}`);
   }
   return response.text();
 }

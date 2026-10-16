@@ -8,11 +8,8 @@ import {fromContract} from './fromContract';
 const page = fromContract(parseSnapshot(sample));
 
 describe('fromContract', () => {
-  it('maps the shell: time, project and source summary', () => {
+  it('maps the shell: time and source summary', () => {
     expect(page.generatedAt).toBe('2026-11-02T06:00:00Z');
-    expect(page.projects).toEqual([
-      {id: 'project', name: 'Example project', health: null},
-    ]);
     expect(page.sourceSummary).toEqual({
       synced: 1,
       total: 2,

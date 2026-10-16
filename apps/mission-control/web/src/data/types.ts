@@ -99,7 +99,6 @@ export interface SourceEvent {
 
 export interface Snapshot {
   generatedAt: string;
-  projects: {id: string; name: string; health: Health | null}[];
   sourceSummary: {synced: number; total: number; note: string | null};
   overview: {
     sprint: {

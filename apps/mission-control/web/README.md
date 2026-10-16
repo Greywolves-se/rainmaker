@@ -4,7 +4,7 @@ The Mission Control dashboard: React + TypeScript, built with Vite (#8). It foll
 Mission Control design mockup: three pages (Overview, Development, Sources) and the
 Navigator panel on the right.
 
-The pages show the collector's snapshot (`snapshot.json`). Without one, local dev shows
+The pages show the collector's snapshot of the selected project. Without one, local dev shows
 fictional demo data under a "Sample data" banner. See [Where the data comes from](#where-the-data-comes-from).
 
 ## Contents
@@ -71,7 +71,7 @@ index.html  →  src/main.tsx  →  src/App.tsx (routes)  →  Layout  →  page
 ### Data flow
 
 ```
-snapshot.json  →  snapshotClient (fetch + parseSnapshot)  →  fromContract()  →  SnapshotProvider
+<project>/snapshot.json  →  snapshotClient (fetch + parseSnapshot)  →  fromContract()  →  layout/Layout (per project)
                →  useSnapshot()  →  Layout and the three pages  →  smaller components
 ```
 
@@ -120,7 +120,7 @@ Only two places keep state that changes while you use the page:
 | `src/layout/` | Page frame: layout, sidebar, top bar, Navigator, page list |
 | `src/pages/` | One component per page; Development has its own folder |
 | `src/components/` | Small shared pieces: `StatusPill`, `SourceTile`, `ItemText`, `UnavailableAction`, icons |
-| `src/data/` | Loading (`snapshotClient`, `SnapshotProvider`), contract mapping (`fromContract`), page types, demo sample, `useSnapshot()`, status colours |
+| `src/data/` | Loading (`dataSource`, `projectsClient`, `snapshotClient`, `SnapshotProvider`), last viewed project, contract mapping (`fromContract`), page types, demo sample, `useSnapshot()`, status colours |
 | `src/contract/` | The snapshot contract in TypeScript (zod) and `parseSnapshot()` (#10) |
 | `src/i18n/` | i18next setup, `sv.json` and `en.json`, saved language, date/number formatting |
 | `src/styles/` | Plain CSS: `theme.css` (colours, fonts as variables), `layout.css` (frame), `components.css` (shared classes), `pages.css` (single-page styles) |
@@ -151,20 +151,33 @@ Only two places keep state that changes while you use the page:
 
 ## Where the data comes from
 
-The collector writes one JSON file, `snapshot.json`, in the shape of the snapshot contract
-(`../contract/`, #10). The web app loads it once when the page opens.
+The collector writes one snapshot per project (#99): `out/projects.json` lists the projects
+(id and name), and each project has `out/<id>/snapshot.json` and `out/<id>/start-here.md`, in the
+shape of the contracts in `../contract/` (#10, #99). The web app serves them at the same paths:
+nginx in Docker (`nginx.conf`), Vite in `npm run dev` (`vite.config.ts`).
 
-1. **Fetch** – `src/data/snapshotClient.ts` reads `/snapshot.json` (change the address with
-   `VITE_SNAPSHOT_URL` at build time). In Docker the web container (nginx) serves it; in
-   `npm run dev`, Vite serves `apps/mission-control/out/snapshot.json` (see `vite.config.ts`).
+### Projects and URLs (#100)
+
+- The sidebar lists the projects from `/projects.json`; each opens the page you are on in that
+  project, and the selected one is highlighted. Pages are `/<project>/overview`,
+  `/<project>/development`, `/<project>/sources` and `/<project>/start-here`, so a URL can be shared.
+- `/` and the old routes (`/development` …) go to the last viewed project (`missionControl.project`
+  in localStorage), else the first in the list. An unknown id shows "Project not found".
+- Switching project loads that project's snapshot without a page reload; the menu stays while
+  it loads or fails.
+
+### Loading one project
+
+1. **Fetch** – `src/data/snapshotClient.ts` reads `/<project>/snapshot.json`
+   (`src/data/dataSource.tsx` decides where data comes from; tests hand in their own).
 2. **Check** – `parseSnapshot()` (`src/contract/snapshot.ts`) validates the file against the
    contract. A wrong file fails here, with the failing fields in the error.
 3. **Map** – `fromContract()` turns the domain-shaped contract (work items, pull requests,
    decisions, risks …) into the page-shaped data. Parts the contract does not have yet
    (KPIs, pilots, AWS cost, Navigator texts, source descriptions) become `null` or empty and
    show "No data yet"; nothing is invented.
-4. **Provide** – `SnapshotProvider` shows a loading page, then either the app or an error page
-   with the reason. `useSnapshot()` gives the pages their data.
+4. **Provide** – `layout/Layout.tsx` shows a loading or error message, then the pages.
+   `useSnapshot()` gives the pages their data.
 
 What the shell shows about the data:
 
@@ -173,20 +186,19 @@ What the shell shows about the data:
 | Always | "Last updated: …" and "Updated 5 minutes ago" in the top bar |
 | Snapshot older than 24 hours | Red banner: run the collector |
 | A source has `status: error` | One red banner per source, with its message |
-| `npm run dev` and no `out/snapshot.json` | The fictional demo sample under the "Sample data" banner |
-| Snapshot missing or invalid anywhere else | Error page; a deployed app never shows demo data |
+| `npm run dev` and a file missing in `out/` | The fictional demo (two demo projects, sample data) under the "Sample data" banner |
+| A file missing or invalid anywhere else | Error message; a deployed app never shows demo data |
 
-To see real data locally, run the collector so it writes `apps/mission-control/out/snapshot.json`
+To see real data locally, run the collector so it writes `apps/mission-control/out/`
 (git-ignored, never commit it), then `npm run dev`.
 
 ### START HERE
 
-The collector also writes `out/start-here.md` (#25), served at `/start-here.md` the same way
-(nginx in Docker, Vite in `npm run dev`). The START HERE page (`/start-here`, #26) shows it, with
-**Download .md** (the file itself) and **Copy** (its exact text, ready to paste into Claude Code).
-`src/pages/startHere/markdown.tsx` renders only the Markdown the report uses, as React elements,
-so raw HTML in the file is shown as text and only http(s) links are clickable. Without the file the
-page says the report has not been generated yet.
+Each project's START HERE page (`/<project>/start-here`, #26) shows `/<project>/start-here.md`
+(#25), with **Download .md** (the file itself) and **Copy** (its exact text, ready to paste into
+Claude Code). `src/pages/startHere/markdown.tsx` renders only the Markdown the report uses, as
+React elements, so raw HTML in the file is shown as text and only http(s) links are clickable.
+Without the file the page says the report has not been generated yet.
 
 ## Current limitations
 

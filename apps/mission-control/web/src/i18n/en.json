@@ -17,6 +17,13 @@
   "common": {
     "noData": "No data yet"
   },
+  "projects": {
+    "loading": "Loading the projects …",
+    "errorTitle": "Could not load the projects",
+    "errorHelp": "Run the collector so it writes projects.json, then reload the page.",
+    "notFoundTitle": "Project not found",
+    "notFoundHelp": "There is no project “{{id}}”. Pick one of the projects in the menu."
+  },
   "snapshot": {
     "loading": "Loading the snapshot …",
     "errorTitle": "Could not load the snapshot",

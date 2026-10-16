@@ -44,11 +44,6 @@ function demoStory(
  */
 export const SAMPLE_SNAPSHOT: Snapshot = {
   generatedAt: '2026-10-14T08:24:00Z',
-  projects: [
-    {id: 'project-1', name: 'Rainmaker', health: 'green'},
-    {id: 'project-2', name: 'Friction Intelligence', health: 'green'},
-    {id: 'project-3', name: 'Mission Control', health: 'yellow'},
-  ],
   sourceSummary: {synced: 5, total: 6, note: 'AWS awaiting permissions'},
   overview: {
     sprint: {name: 'Sprint 2', done: 2, total: 7, url: null},

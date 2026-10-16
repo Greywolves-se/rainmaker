@@ -4,7 +4,13 @@ import {NoData} from '../components/NoData';
 import {SparkleIcon} from '../components/icons';
 import type {Snapshot} from '../data/types';
 
-export function Navigator({navigator}: {navigator: Snapshot['navigator']}) {
+export function Navigator({
+  navigator,
+  projectName,
+}: {
+  navigator: Snapshot['navigator'];
+  projectName: string;
+}) {
   const {t} = useTranslation();
   const [selectedQuestion, setSelectedQuestion] = useState(0);
   const answer = navigator.questions[selectedQuestion]?.answer ?? '';
@@ -17,6 +23,7 @@ export function Navigator({navigator}: {navigator: Snapshot['navigator']}) {
         </span>
         <div className="item">
           <h2 className="navigator__title">{t('navigator.title')}</h2>
+          <span className="item__meta">{projectName}</span>
           {navigator.summaryTime && (
             <span className="item__meta">
               {t('navigator.summaryAt', {time: navigator.summaryTime})}

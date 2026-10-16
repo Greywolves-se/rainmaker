@@ -17,6 +17,13 @@
   "common": {
     "noData": "Inga data ännu"
   },
+  "projects": {
+    "loading": "Läser in projekten …",
+    "errorTitle": "Det gick inte att läsa in projekten",
+    "errorHelp": "Kör insamlaren så att den skriver projects.json och ladda sedan om sidan.",
+    "notFoundTitle": "Projektet finns inte",
+    "notFoundHelp": "Det finns inget projekt ”{{id}}”. Välj ett av projekten i menyn."
+  },
   "snapshot": {
     "loading": "Läser in ögonblicksbilden …",
     "errorTitle": "Det gick inte att läsa in ögonblicksbilden",
