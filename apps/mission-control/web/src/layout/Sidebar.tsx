@@ -59,10 +59,12 @@ export function Sidebar({
         <ul className="nav-list" aria-labelledby="project-list-heading">
           {projects.map(project => (
             <li key={project.id}>
+              {/* "true", not "page": the page link already marks the current page. */}
               <NavLink
                 to={projectPath(project.id, page)}
                 end
                 className={linkClass}
+                aria-current="true"
               >
                 {project.name}
               </NavLink>

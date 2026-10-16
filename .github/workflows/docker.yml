@@ -129,7 +129,13 @@ jobs:
         run: |
           ./mvnw -B -ntp -q -f apps/mission-control/pom.xml -pl collector -am package -DskipTests
           java -jar apps/mission-control/collector/target/collector-*.jar
-          test -s apps/mission-control/out/projects.json
+          # Every project in projects.json needs its snapshot, or staging shows an error for it.
+          out=apps/mission-control/out
+          test -s "$out/projects.json"
+          ids=$(jq -er '.projects[].id' "$out/projects.json")  # fails the step on invalid JSON
+          for id in $ids; do
+            test -s "$out/$id/snapshot.json" || { echo "::error::$id is in projects.json but has no snapshot.json"; exit 1; }
+          done
 
       - uses: actions/upload-artifact@v4
         if: env.BAKE_SNAPSHOT == 'true'

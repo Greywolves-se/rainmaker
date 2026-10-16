@@ -44,6 +44,19 @@ describe('loadProjects', () => {
     ).rejects.toThrow('rainmaker');
   });
 
+  it.each(['assets', 'overview', 'development', 'sources', 'start-here'])(
+    'rejects the reserved id "%s", which would clash with a URL the app or nginx uses',
+    async id => {
+      const reserved = {
+        schemaVersion: 1,
+        projects: [sample.projects[0], {id, name: 'Clash'}],
+      };
+      await expect(
+        loadProjects({demoFallback: true, fetchImpl: respond(reserved)})
+      ).rejects.toThrow(`"${id}"`);
+    }
+  );
+
   it('demo projects match the contract sample', () => {
     expect(DEMO_PROJECTS).toEqual(sample);
   });

@@ -36,9 +36,18 @@ describe('projects', () => {
     );
     expect(projectLink('Mission Control')).toHaveAttribute(
       'aria-current',
-      'page'
+      'true'
     );
     expect(projectLink('Rainmaker')).not.toHaveAttribute('aria-current');
+  });
+
+  it('marks only the page link as the current page', () => {
+    renderApp({path: '/mission-control/development', loaded: snapshotFor});
+
+    const current = within(menu())
+      .getAllByRole('link')
+      .filter(link => link.getAttribute('aria-current') === 'page');
+    expect(current.map(link => link.textContent)).toEqual(['Development']);
   });
 
   it('opens a shared URL straight on that project and page', () => {
@@ -56,7 +65,7 @@ describe('projects', () => {
   it('sends / to the first project when none was viewed before', () => {
     renderApp({loaded: snapshotFor});
 
-    expect(projectLink('Rainmaker')).toHaveAttribute('aria-current', 'page');
+    expect(projectLink('Rainmaker')).toHaveAttribute('aria-current', 'true');
     expect(screen.getByText('Rainmaker sprint')).toBeVisible();
   });
 
@@ -67,7 +76,7 @@ describe('projects', () => {
 
     expect(projectLink('Mission Control')).toHaveAttribute(
       'aria-current',
-      'page'
+      'true'
     );
     expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
       'Development'
@@ -79,7 +88,7 @@ describe('projects', () => {
 
     renderApp({loaded: snapshotFor});
 
-    expect(projectLink('Rainmaker')).toHaveAttribute('aria-current', 'page');
+    expect(projectLink('Rainmaker')).toHaveAttribute('aria-current', 'true');
   });
 
   it('switches project on the same page without a reload, and remembers it', async () => {
@@ -135,7 +144,7 @@ describe('projects', () => {
 
     expect(projectLink('Mission Control')).toHaveAttribute(
       'aria-current',
-      'page'
+      'true'
     );
     expect(screen.getByText('Mission Control sprint')).toBeVisible();
   });
@@ -158,7 +167,7 @@ describe('projects', () => {
 
     expect(projectLink('Mission Control')).toHaveAttribute(
       'aria-current',
-      'page'
+      'true'
     );
   });
 });

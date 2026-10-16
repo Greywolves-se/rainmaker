@@ -1,4 +1,5 @@
 import {parseProjectList, type ProjectList} from '../contract/projects';
+import {PAGES} from '../layout/pages';
 import {SnapshotMissingError} from './snapshotClient';
 
 /** Written by the collector next to the project folders (#99). */
@@ -51,5 +52,21 @@ export async function loadProjects({
     // The schema cannot say ids are unique (contract README), so the web app checks it.
     throw new Error(`${PROJECTS_URL} lists the project "${duplicate}" twice`);
   }
+  const reserved = ids.find(id => RESERVED_PROJECT_IDS.has(id));
+  if (reserved) {
+    throw new Error(
+      `${PROJECTS_URL} uses the reserved project id "${reserved}"; its pages would not open`
+    );
+  }
   return list;
 }
+
+/**
+ * Ids that are already a URL of their own: the old page routes (/development …, redirected to a
+ * project) and nginx's /assets/ (the app's static files). A project with one of these ids could
+ * never be opened, so the list is rejected instead of failing quietly.
+ */
+const RESERVED_PROJECT_IDS: ReadonlySet<string> = new Set([
+  'assets',
+  ...PAGES.map(page => page.segment),
+]);
