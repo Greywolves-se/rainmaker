@@ -1,5 +1,8 @@
 package se.rainmaker.missioncontrol.collector.github;
 
+import static se.rainmaker.missioncontrol.collector.github.GithubFields.instant;
+import static se.rainmaker.missioncontrol.collector.github.GithubFields.itemId;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -133,12 +136,6 @@ public class GithubIssuesSource implements SourceCollector {
     return WorkItem.Status.TODO;
   }
 
-  /** {@code gh-<repository name>-<number>}, e.g. {@code gh-rainmaker-12}. */
-  private static String itemId(String repository, int number) {
-    String name = repository.substring(repository.indexOf('/') + 1).toLowerCase(Locale.ROOT);
-    return "gh-" + name + "-" + number;
-  }
-
   /**
    * The open milestone due today or later with the nearest due date. If every open milestone is
    * overdue (a sprint left open by mistake), the most recently overdue one. Milestones without a
@@ -187,11 +184,6 @@ public class GithubIssuesSource implements SourceCollector {
         .filter(line -> !line.isEmpty())
         .findFirst()
         .orElse(null);
-  }
-
-  private static Instant instant(JsonNode node, String field) {
-    JsonNode value = node.get(field);
-    return value == null || value.isNull() ? null : Instant.parse(value.asString());
   }
 
   private static LocalDate date(Instant instant) {

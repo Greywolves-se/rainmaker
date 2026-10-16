@@ -45,7 +45,8 @@ class CollectorRunTest {
             tuple("broken", Source.Status.ERROR),
             tuple("data-files", Source.Status.OK),
             tuple("fake-ok", Source.Status.OK),
-            tuple("github", Source.Status.DISABLED));
+            tuple("github", Source.Status.DISABLED),
+            tuple("github-pull-requests", Source.Status.DISABLED));
     assertThat(ContractFiles.schema().validate(SnapshotJson.mapper().readTree(output.toFile())))
         .isEmpty();
   }

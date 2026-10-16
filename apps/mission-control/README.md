@@ -54,6 +54,11 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 - **Events:** issues closed in the last 7 days also appear as events.
 - **Token:** read from `MC_GITHUB_TOKEN`, else `GITHUB_TOKEN`; it is never logged. Use a fine-grained, read-only token for the listed repositories. Without one, the source shows `error` ("No GitHub token") and the rest of the run continues.
 
+**GitHub pull requests (#13, source `github-pull-requests`):** open pull requests (drafts included) and those merged in the last 7 days. Merged ones also appear as events.
+- **Review:** the latest review of each reviewer counts (a dismissed review cancels it). Any "changes requested" wins, then any approval; otherwise `pending`.
+- **Checks:** no check runs → `none`; a failed, timed-out or action-required run → `failing`; else a run still going → `pending`; else `passing`.
+- **Waiting time:** how long a PR has waited for review is shown by the dashboard from `createdAt` and `review` (#21).
+
 **Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method adds items to the `SnapshotBuilder` it is given. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
 
 ## CI
