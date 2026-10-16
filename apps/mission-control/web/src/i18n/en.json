@@ -90,6 +90,10 @@
     "green": "green",
     "yellow": "yellow"
   },
+  "decisions": {
+    "meta": "{{owner}} · {{date}}",
+    "metaWithReference": "{{owner}} · {{date}} · {{reference}}"
+  },
   "overview": {
     "sprintProgress": "Sprint progress",
     "sprintDone": "{{done}} of {{total}} done",
@@ -117,7 +121,7 @@
     "blockedCount": "Blocked · {{count}}",
     "decisionsFor": "Decisions needing {{names}}",
     "decisionsPending": "Decisions waiting for an owner",
-    "open": "Open",
+    "noDecisionsWaiting": "No decisions waiting",
     "risksPilotsCost": "Risks, pilots and cost",
     "risk": "Risk: {{title}}",
     "awsCost": "AWS cost, {{month}}",
@@ -152,6 +156,7 @@
     "lint": "Lint",
     "staging": "Staging",
     "techDecisions": "Technical decisions and dependencies",
+    "noDecisions": "No decisions yet",
     "questionsFor": "Blockers and questions for {{audience}}",
     "questions": "Blockers and questions",
     "noSprint": "No active sprint",

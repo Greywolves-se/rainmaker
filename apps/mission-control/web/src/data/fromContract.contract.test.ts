@@ -63,19 +63,44 @@ describe('fromContract', () => {
     });
   });
 
-  it('lists only decisions that need an owner on the overview', () => {
+  it('puts decisions waiting for an owner on the overview, the rest on development', () => {
     expect(page.overview.decisionMakers).toEqual(['Kim Ek']);
     expect(page.overview.decisions).toEqual([
       {
         id: 'B-13',
         title: 'Pilot price model',
-        meta: 'Kim Ek · 2026-10-28',
-        initial: 'K',
+        owner: 'Kim Ek',
+        date: '2026-10-28',
+        status: 'proposed',
+        reference: null,
+        url: 'https://github.com/example-org/example-repo/blob/develop/data/decisions.yaml#L9',
       },
     ]);
     expect(page.development.techDecisions.map(d => [d.id, d.status])).toEqual([
       ['B-12', 'decided'],
-      ['B-13', 'proposed'],
+    ]);
+  });
+
+  it('only counts a decision as waiting while it is still proposed', () => {
+    const decision = sample.decisions[1]!;
+    const decisions = [
+      {...decision, id: 'newer', date: '2026-10-28'},
+      {...decision, id: 'older', date: '2026-10-02'},
+      {...decision, id: 'already-decided', status: 'decided'},
+      {...decision, id: 'replaced', status: 'superseded'},
+      {...decision, id: 'technical', needsOwnerDecision: false},
+    ];
+
+    const mapped = fromContract(parseSnapshot({...sample, decisions}));
+
+    expect(mapped.overview.decisions.map(d => d.id)).toEqual([
+      'older',
+      'newer',
+    ]);
+    expect(mapped.development.techDecisions.map(d => d.id)).toEqual([
+      'already-decided',
+      'replaced',
+      'technical',
     ]);
   });
 
