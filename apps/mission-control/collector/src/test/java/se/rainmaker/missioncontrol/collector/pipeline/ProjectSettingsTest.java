@@ -60,6 +60,18 @@ class ProjectSettingsTest {
             .asString();
 
     assertThat(ProjectSettings.PROJECT_ID.pattern()).isEqualTo(schemaPattern);
+    assertThat(ProjectSettings.MAX_ID_LENGTH)
+        .isEqualTo(
+            ContractFiles.projectsSchemaTree()
+                .at("/properties/projects/items/properties/id/maxLength")
+                .asInt());
+  }
+
+  @Test
+  void idLongerThanTheLimitIsRejected() {
+    assertThat(new ProjectSettings("a".repeat(40), "Name", null, null).id()).hasSize(40);
+    assertThatThrownBy(() -> new ProjectSettings("a".repeat(41), "Name", null, null))
+        .hasMessageContaining("at most 40 characters");
   }
 
   @Test
