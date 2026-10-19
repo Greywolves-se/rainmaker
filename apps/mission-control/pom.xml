@@ -18,5 +18,6 @@
   <!-- Java parts of Mission Control. A backend for AWS can be added later as another module (roadmap, #32). -->
   <modules>
     <module>collector</module>
+    <module>navigator-api</module>
   </modules>
 </project>
