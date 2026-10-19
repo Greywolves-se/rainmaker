@@ -73,9 +73,14 @@ nobody puts a value in the repository, an issue, a PR, a log or a chat.
 | `mission-control/openai-api-key` | API key of the team's OpenAI organisation, which has a monthly spending limit | `OPENAI_API_KEY` |
 
 - **Access:** the `read-mission-control-secrets` policy lets the deploy role read exactly these two
-  secrets (`secretsmanager:GetSecretValue`), nothing else. `docker.yml` reads them inside the
-  "Collect the snapshot" step only and masks them in the log. A secret that is not set up yet is
-  skipped with a notice; the collector then runs without it.
+  secrets (`secretsmanager:GetSecretValue`), nothing else. In `docker.yml` the collector is built
+  before the job has any AWS credentials. "Collect the snapshot" then reads the secrets, masks
+  them in the log, removes the AWS credentials and passes the secrets to the collector process
+  only. A secret that does not exist yet gives a notice; any other error (for example
+  `AccessDeniedException`) gives a warning with the AWS error code. Either way the collector runs
+  without that secret.
+- **Encryption key:** create both secrets with the default `aws/secretsmanager` KMS key. A
+  customer-managed key would also need `kms:Decrypt` in the policy.
 - **Who sets them up:** an admin of the staging account creates both secrets by hand with exactly
   these names (`aws secretsmanager create-secret --name …`, or the console), and pastes the value
   directly into Secrets Manager. The Google service account is created by a Google Workspace admin;
