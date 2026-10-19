@@ -22,7 +22,7 @@ import tools.jackson.databind.node.ObjectNode;
  * become an {@link OpenAiException} with a safe message: never the key, the question or the body of
  * OpenAI's response.
  */
-public final class OpenAiClient {
+public final class OpenAiClient implements AnswerSource {
 
   private static final String CHAT_COMPLETIONS = "/v1/chat/completions";
   private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -56,6 +56,7 @@ public final class OpenAiClient {
    *
    * @throws OpenAiException when OpenAI is unreachable, too slow or answers with an error
    */
+  @Override
   public String complete(String systemPrompt, String userMessage) {
     String body = requestBody(systemPrompt, userMessage);
     try {

@@ -36,6 +36,12 @@
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Contract test against contract/navigator-ask.schema.json; already used by the collector. -->
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+      <scope>test</scope>
+    </dependency>
     <!-- A fake OpenAI in tests; never the real API (CLAUDE.md). -->
     <dependency>
       <groupId>org.wiremock</groupId>
