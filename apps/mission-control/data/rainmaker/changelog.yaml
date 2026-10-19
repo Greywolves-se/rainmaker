@@ -6,4 +6,14 @@
 #   title: ECR repositories for Mission Control created
 #   owner: Maruf
 #   rollbackPlan: Delete the repositories; docker.yml then fails to push
-[]
+# Changes to the staging account itself, used by the whole repository, belong here (#82).
+- id: C-1
+  date: 2026-10-19
+  title: CDK bootstrap of the staging account (659947636280, eu-north-1), stack CDKToolkit (#82)
+  owner: Maruf
+  rollbackPlan: Delete the CDKToolkit stack, but only when no CDK stack is left in the account; cdk deploy then stops working. Its assets bucket is retained, so empty and delete the bucket by hand before running cdk bootstrap again
+- id: C-2
+  date: 2026-10-19
+  title: The GitHub OIDC provider and the github-actions-rainmaker role imported into GithubDeployAccess-staging, unchanged (#82)
+  owner: Maruf
+  rollbackPlan: Delete the stack; the provider and the role are retained (DeletionPolicy Retain) with all their inline policies, including read-mission-control-secrets, and are managed by hand again. docker.yml keeps working
