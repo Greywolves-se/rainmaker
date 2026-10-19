@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:rainmaker:mission-control:navigator-ask:1",
+  "title": "Ask Navigator API",
+  "description": "POST /api/navigator/ask (#117, ADR 0003). The web app sends a request; the Lambda answers with an answer (200) or an error (4xx/5xx). Errors are codes that the web app translates; they never contain the question or OpenAI's error text.",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project", "page", "question", "language"],
+      "properties": {
+        "project": {"type": "string", "description": "A project id from projects.json."},
+        "page": {"enum": ["overview", "development", "sources"]},
+        "question": {"type": "string", "minLength": 1, "maxLength": 500, "description": "At most 500 characters as the reader sees them; the server counts an emoji as one."},
+        "language": {"enum": ["sv", "en"], "description": "The language of the answer."}
+      }
+    },
+    "answer": {
+      "description": "200: the answer, shown as plain text and labelled as AI.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["answer", "model", "generatedAt"],
+      "properties": {
+        "answer": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "generatedAt": {"type": "string", "format": "date-time", "description": "UTC instant."}
+      }
+    },
+    "error": {
+      "description": "400 invalid_request, 401 not_logged_in, 429 person_limit or team_limit, 503 switched_off or unavailable, 504 timeout.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error", "problems"],
+      "properties": {
+        "error": {"enum": ["invalid_request", "not_logged_in", "person_limit", "team_limit", "switched_off", "unavailable", "timeout"]},
+        "problems": {
+          "type": "array",
+          "description": "Only for invalid_request; empty otherwise.",
+          "items": {"enum": ["unreadable_body", "unknown_project", "unknown_page", "unknown_language", "empty_question", "question_too_long"]}
+        }
+      }
+    }
+  }
+}
