@@ -21,10 +21,13 @@ export function Navigator({
   navigator,
   projectName,
   page,
+  demo,
 }: {
   navigator: NavigatorAi;
   projectName: string;
   page: PageKey;
+  /** Demo data is fictional and old on purpose: no stale hint, like the app's banner. */
+  demo: boolean;
 }) {
   const {t} = useTranslation();
   return (
@@ -41,7 +44,7 @@ export function Navigator({
 
       {/* Hidden when the AI step is off, before #115, and on pages without AI text. */}
       {navigator.status === 'on' && isAiPage(page) && (
-        <AiText navigator={navigator} page={page} />
+        <AiText navigator={navigator} page={page} demo={demo} />
       )}
 
       <div className="navigator__section">
@@ -75,9 +78,11 @@ export function Navigator({
 function AiText({
   navigator,
   page,
+  demo,
 }: {
   navigator: Extract<NavigatorAi, {status: 'on'}>;
   page: AiPage;
+  demo: boolean;
 }) {
   const {t, i18n} = useTranslation();
   const now = useNow();
@@ -94,7 +99,12 @@ function AiText({
 
   const insight = i18n.language === 'en' ? pageText.en : pageText.sv;
   const {model, generatedAt} = navigator.text;
-  const stale = now - Date.parse(generatedAt) > STALE_AFTER_MS;
+  const stale = !demo && now - Date.parse(generatedAt) > STALE_AFTER_MS;
+  const generated = formatTimestamp(generatedAt, i18n.language);
+  // The day only when it is not today (in Stockholm), so yesterday's text never looks new.
+  const isToday =
+    generated.day ===
+    formatTimestamp(new Date(now).toISOString(), i18n.language).day;
   return (
     <div className="navigator__summary">
       <p>{insight.summary}</p>
@@ -105,10 +115,13 @@ function AiText({
       />
       <AiList titleKey="navigator.suggestions" items={insight.suggestions} />
       <p className="item__meta">
-        {t('navigator.aiLabel', {
-          model,
-          time: formatTimestamp(generatedAt, i18n.language).time,
-        })}{' '}
+        {isToday
+          ? t('navigator.aiLabel', {model, time: generated.time})
+          : t('navigator.aiLabelWithDate', {
+              model,
+              day: generated.day,
+              time: generated.time,
+            })}{' '}
         <a href="#main-content">{t('navigator.basedOn')}</a>
       </p>
       {stale && <p className="warning-banner">{t('snapshot.stale')}</p>}

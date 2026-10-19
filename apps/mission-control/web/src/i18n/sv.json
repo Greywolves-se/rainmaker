@@ -234,6 +234,7 @@
     "deviations": "Avvikelser",
     "suggestions": "Förslag",
     "aiLabel": "Genererad av AI ({{model}}) kl. {{time}}. Kan innehålla fel.",
+    "aiLabelWithDate": "Genererad av AI ({{model}}) {{day}} kl. {{time}}. Kan innehålla fel.",
     "basedOn": "Baserad på uppgifterna på den här sidan",
     "comingLater": "Kommer senare",
     "ask": "Fråga Navigator",
