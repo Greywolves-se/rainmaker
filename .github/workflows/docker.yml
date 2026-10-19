@@ -38,12 +38,14 @@ on:
       - ".mvn/**"
       - ".dockerignore"
       - ".github/workflows/docker.yml"
-  # Three times on weekdays, 05, 09 and 13 UTC (07, 11, 15 Stockholm summer time; 06, 10, 14
-  # winter time): rebuild staging with a fresh snapshot (#17, #101). Kept low to save Actions
-  # minutes on the free plan (team decision, 16 Oct 2026). Scheduled runs use the default branch,
-  # develop. GitHub may start them 5–30 minutes late.
+  # Three times on weekdays, 04:23, 08:23 and 12:23 UTC (06:23, 10:23, 14:23 Stockholm summer
+  # time; 05:23, 09:23, 13:23 winter time): rebuild staging with a fresh snapshot (#17, #101).
+  # Kept low to save Actions minutes on the free plan (team decision, 16 Oct 2026). Scheduled
+  # runs use the default branch, develop. Minute 23, not the full hour: GitHub delays or drops
+  # scheduled runs at busy times such as the start of an hour (the 05:00 run was skipped and
+  # others started 1–4 hours late, #101).
   schedule:
-    - cron: "0 5,9,13 * * 1-5"
+    - cron: "23 4,8,12 * * 1-5"
   workflow_dispatch:
 
 permissions:
