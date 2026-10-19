@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import se.rainmaker.missioncontrol.collector.navigator.NavigatorStep;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
@@ -40,18 +41,21 @@ class CollectorRunner implements CommandLineRunner {
   private final SnapshotWriter writer;
   private final CollectorProperties properties;
   private final StartHereReport startHere;
+  private final NavigatorStep navigatorStep;
 
   CollectorRunner(
       CollectorPipeline pipeline,
       SnapshotValidator validator,
       SnapshotWriter writer,
       CollectorProperties properties,
-      StartHereReport startHere) {
+      StartHereReport startHere,
+      NavigatorStep navigatorStep) {
     this.pipeline = pipeline;
     this.validator = validator;
     this.writer = writer;
     this.properties = properties;
     this.startHere = startHere;
+    this.navigatorStep = navigatorStep;
   }
 
   /**
@@ -129,7 +133,8 @@ class CollectorRunner implements CommandLineRunner {
   }
 
   private void collect(ProjectSettings project) {
-    Snapshot snapshot = pipeline.run(project);
+    // The AI step runs after all sources and never throws: it reports itself in sources[] (#115).
+    Snapshot snapshot = navigatorStep.addTo(pipeline.run(project));
     // Last line of defence: every source's data was already checked, so this only fails on a bug
     // in the pipeline itself. Nothing is written then, and the previous snapshot stays.
     List<String> problems = validator.problems(snapshot);

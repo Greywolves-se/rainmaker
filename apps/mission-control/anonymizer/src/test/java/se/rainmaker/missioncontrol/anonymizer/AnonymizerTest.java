@@ -125,6 +125,46 @@ class AnonymizerTest {
     assertThat(anonymizer.restore("Person AA and Person A")).isEqualTo("nameba and nameaa");
   }
 
+  /** Swedish genitive: "Kim Eks ansvar" must be hidden, and "Person As" must come back. */
+  @Test
+  void swedishGenitiveIsHiddenAndRestored() {
+    Anonymizer anonymizer = Anonymizer.forNames(List.of("Kim Ek"));
+
+    String hidden = anonymizer.anonymize("Kim Eks ansvar och Kim Ek själv");
+
+    assertThat(hidden).isEqualTo("Person As ansvar och Person A själv");
+    assertThat(anonymizer.restore("Person As ansvar")).isEqualTo("Kim Eks ansvar");
+  }
+
+  /** A name ending in s, x or z takes no extra s in the Swedish genitive. */
+  @Test
+  void genitiveOfNameEndingInSibilantAddsNothing() {
+    Anonymizer anonymizer = Anonymizer.forNames(List.of("Lars", "Max"));
+
+    assertThat(anonymizer.restore("Person As och Person Bs plan")).isEqualTo("Lars och Max plan");
+  }
+
+  @Test
+  void englishPossessiveStillWorks() {
+    Anonymizer anonymizer = Anonymizer.forNames(List.of("Kim Ek"));
+
+    assertThat(anonymizer.anonymize("Kim Ek's task")).isEqualTo("Person A's task");
+    assertThat(anonymizer.restore("Person A's task")).isEqualTo("Kim Ek's task");
+  }
+
+  /** "Person A" must never change part of "Person AB" (27 or more people). */
+  @Test
+  void shortLabelNeverChangesPartOfLongerLabel() {
+    List<String> names = new ArrayList<>();
+    for (int i = 0; i < 28; i++) {
+      names.add("name" + (char) ('a' + i / 26) + (char) ('a' + i % 26));
+    }
+    Anonymizer anonymizer = Anonymizer.forNames(names);
+
+    assertThat(anonymizer.restore("Person AB, Person A and Person ABs plan"))
+        .isEqualTo("namebb, nameaa and namebbs plan");
+  }
+
   @Test
   void unknownLabelsFromTheModelAreLeftAsTheyAre() {
     Anonymizer anonymizer = Anonymizer.forNames(List.of("Kim"));

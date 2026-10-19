@@ -9,8 +9,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -18,6 +21,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import se.rainmaker.missioncontrol.collector.navigator.NavigatorProperties;
+import se.rainmaker.missioncontrol.collector.navigator.NavigatorStep;
+import se.rainmaker.missioncontrol.collector.navigator.OpenAiClient;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorPipeline;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
@@ -122,7 +128,24 @@ class CollectorRunnerTest {
         new SnapshotValidator(),
         new SnapshotWriter(),
         new CollectorProperties(List.of(RAINMAKER, MISSION_CONTROL), folder, Map.of()),
-        report);
+        report,
+        switchedOffNavigator());
+  }
+
+  /** The AI step switched off, as in every test that does not test it (#115). */
+  private static NavigatorStep switchedOffNavigator() {
+    NavigatorProperties off =
+        new NavigatorProperties(
+            false,
+            URI.create("https://api.openai.com/v1"),
+            "",
+            "gpt-6-luna",
+            1200,
+            Duration.ofSeconds(1),
+            Duration.ofSeconds(1),
+            1,
+            Duration.ofMillis(1));
+    return new NavigatorStep(new OpenAiClient(off), off, Clock.systemUTC());
   }
 
   private static Snapshot sample() {
