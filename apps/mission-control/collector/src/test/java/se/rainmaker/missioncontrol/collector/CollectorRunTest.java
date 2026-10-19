@@ -57,7 +57,8 @@ class CollectorRunTest {
             tuple("fake-ok", Source.Status.OK),
             tuple("github", Source.Status.DISABLED),
             tuple("github-pull-requests", Source.Status.DISABLED),
-            tuple("google-drive", Source.Status.DISABLED));
+            tuple("google-drive", Source.Status.DISABLED),
+            tuple("navigator-ai", Source.Status.DISABLED));
     assertThat(ContractFiles.schema().validate(SnapshotJson.mapper().readTree(output.toFile())))
         .isEmpty();
     // The START HERE report (#25) is written next to each snapshot in the same run.

@@ -43,6 +43,12 @@
       <groupId>io.github.resilience4j</groupId>
       <artifactId>resilience4j-retry</artifactId>
     </dependency>
+    <!-- Hides names before text goes to OpenAI (#115, ADR 0002). -->
+    <dependency>
+      <groupId>se.rainmaker</groupId>
+      <artifactId>anonymizer</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!-- Google Drive source (#113): service-account access token (read-only Drive scope). -->
     <dependency>
       <groupId>com.google.auth</groupId>

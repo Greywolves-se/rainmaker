@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
  *   <li>Names match as whole words and without case ({@code KIM EK} is {@code Kim Ek}), also
  *       outside English letters. A longer name wins over a shorter one inside it.
  *   <li>The text is replaced in one pass, so a label is never replaced again.
+ *   <li>A Swedish genitive s is kept: "Kim Eks" becomes "Person As" and back.
  *   <li>{@link #restore} puts the names back in the spelling they were given. A label the model
  *       invents, which was never handed out, is left as it is.
  * </ul>
@@ -79,14 +80,33 @@ public final class Anonymizer {
     return new Anonymizer(labelByName, nameByLabel);
   }
 
-  /** {@code text} with every known name replaced by its label; {@code null} stays {@code null}. */
+  /**
+   * {@code text} with every known name replaced by its label; {@code null} stays {@code null}. A
+   * Swedish genitive keeps its s: "Kim Eks" becomes "Person As".
+   */
   public String anonymize(String text) {
-    return replace(text, namePattern, labelByName::get);
+    return replace(text, namePattern, (name, genitive) -> labelByName.get(name) + genitive);
   }
 
-  /** {@code text} with every label handed out by this anonymizer replaced by its name. */
+  /**
+   * {@code text} with every label handed out by this anonymizer replaced by its name. A Swedish
+   * genitive comes back right: "Person As" becomes "Kim Eks", but "Lars" for a name ending in s, x
+   * or z.
+   */
   public String restore(String text) {
-    return replace(text, labelPattern, nameByLabel::get);
+    return replace(
+        text,
+        labelPattern,
+        (label, genitive) -> {
+          String name = nameByLabel.get(label);
+          return genitive.isEmpty() ? name : name + swedishGenitive(name);
+        });
+  }
+
+  /** The Swedish genitive ending: none after s, x or z ("Lars", "Max"), else "s". */
+  private static String swedishGenitive(String name) {
+    char last = Character.toLowerCase(name.charAt(name.length() - 1));
+    return last == 's' || last == 'x' || last == 'z' ? "" : "s";
   }
 
   /** The labels in use, in order ({@code Person A}, {@code Person B} and so on). */
@@ -94,20 +114,27 @@ public final class Anonymizer {
     return List.copyOf(nameByLabel.keySet());
   }
 
+  /**
+   * Replaces every match; {@code replacement} gets the matched name or label (group {@code word})
+   * and the genitive s after it, if any (group {@code genitive}, otherwise empty).
+   */
   private static String replace(
-      String text, Pattern pattern, Function<String, String> replacement) {
+      String text, Pattern pattern, BiFunction<String, String, String> replacement) {
     if (text == null || pattern == null) {
       return text;
     }
     Matcher matcher = pattern.matcher(text);
     return matcher.replaceAll(
         match ->
-            Matcher.quoteReplacement(Objects.requireNonNull(replacement.apply(match.group()))));
+            Matcher.quoteReplacement(
+                Objects.requireNonNull(
+                    replacement.apply(matcher.group("word"), matcher.group("genitive")))));
   }
 
   /**
    * One pattern that matches any of {@code words} as a whole word, longest first, so "Kim Ek" wins
-   * over "Kim". {@code null} when there are no words.
+   * over "Kim", and "Person AB" over "Person A". An optional genitive s may follow (Swedish "Kim
+   * Eks"); the match must still end at a word boundary. {@code null} when there are no words.
    */
   private static Pattern alternatives(List<String> words, boolean ignoreCase) {
     if (words.isEmpty()) {
@@ -120,7 +147,8 @@ public final class Anonymizer {
             .reduce((left, right) -> left + "|" + right)
             .orElseThrow();
     int flags = ignoreCase ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE : 0;
-    return Pattern.compile(WORD_START + "(?:" + alternatives + ")" + WORD_END, flags);
+    return Pattern.compile(
+        WORD_START + "(?<word>" + alternatives + ")(?<genitive>s?)" + WORD_END, flags);
   }
 
   /** 1 → A, 26 → Z, 27 → AA, like spreadsheet columns. */
