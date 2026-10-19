@@ -15,13 +15,15 @@ A Java collector reads GitHub and YAML data files, writes one JSON snapshot, and
 | `out/` | Generated snapshot and reports – git-ignored, never commit | |
 
 ## Build
-`pom.xml` in this folder groups Mission Control's Java modules (today: `collector`). Each module inside lists this POM (`mission-control`, `../pom.xml`) as its `<parent>`. Build only Mission Control from the repository root:
+`pom.xml` in this folder groups Mission Control's Java modules (today: `anonymizer` and `collector`). Each module inside lists this POM (`mission-control`, `../pom.xml`) as its `<parent>`. Build only Mission Control from the repository root:
 
 ```
 ./mvnw -f apps/mission-control/pom.xml verify
 ```
 
 The web app is built with npm inside `web/`.
+
+**Anonymizer (#115, ADR 0002):** `anonymizer/` is a small plain-Java module with no dependencies. It replaces people's names and logins with neutral labels ("Person A", "Person B" …) before text goes to an AI model, and puts them back in the answer. The collector (#115) and the Ask Navigator backend (ADR 0003, #117) both use it, so there is one implementation. Only the names it is given are hidden; see the class Javadoc for the rules and the known limit. It has the 80 % coverage gate.
 
 ### Run the collector
 The collector is a command-line app (Spring Boot, no web server): it runs once and exits with code 0 on success. Every run logs JSON lines that share one `correlation_id`. From the repository root, after the build above:
@@ -89,7 +91,7 @@ Every list is sorted and capped, so the report stays about two pages. The same s
 **Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method is called once per project and adds that project's items to the `SnapshotBuilder` it is given. A source that only covers some projects overrides `notSetUpFor`, so it is listed as `disabled` with a reason for the others instead of as synced. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
 
 ## CI
-`.github/workflows/mission-control-ci.yml` runs on every pull request into `develop` and `main` (so its checks can be required before merging, #109), and on pushes to them that change `apps/mission-control/**` or `infra/**`. Jobs a change does not need are skipped, which counts as passing. The web job (lint, typecheck, tests, build on Node 22) only runs when `web/` or `contract/` changed. The collector job (format, Checkstyle, tests) runs when `collector/`, `contract/`, `data/` or the Maven setup changed. The infra job (CDK synth and tests, JDK 21 + Node 22, no AWS access, #125) runs when `infra/` or the Maven setup changed; see `infra/README.md`.
+`.github/workflows/mission-control-ci.yml` runs on every pull request into `develop` and `main` (so its checks can be required before merging, #109), and on pushes to them that change `apps/mission-control/**` or `infra/**`. Jobs a change does not need are skipped, which counts as passing. The web job (lint, typecheck, tests, build on Node 22) only runs when `web/` or `contract/` changed. The collector job (format, Checkstyle, tests for all of Mission Control's Java) runs when `anonymizer/`, `collector/`, `contract/`, `data/` or the Maven setup changed. The infra job (CDK synth and tests, JDK 21 + Node 22, no AWS access, #125) runs when `infra/` or the Maven setup changed; see `infra/README.md`.
 
 ## Run with Docker
 Needs only Docker; no local Java, Maven or Node. Run from this folder:

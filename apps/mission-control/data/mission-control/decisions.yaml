@@ -14,6 +14,12 @@
   date: 2026-10-16
   status: decided
   reference: Section 10.6; docs/adr/0001-mission-control-v1-snapshot.md
+- id: B35
+  title: The collector generates the Navigator's AI summary, deviations and suggestions per page with OpenAI (default model gpt-6-luna), sending no personal names (ADR 0002).
+  owner: Mission Control developers (Emil, Gabriel, Mai)
+  date: 2026-10-19
+  status: proposed
+  reference: "docs/adr/0002-navigator-ai-from-collector.md; #115"
 - id: B36
   title: Live "Ask Navigator" questions run in one Lambda behind the @graywolf.se login, with per-person and team limits, a separate OpenAI budget and a kill switch (ADR 0003).
   owner: Mission Control developers (Emil, Gabriel, Mai)

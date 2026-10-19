@@ -17,6 +17,7 @@
 
   <!-- Java parts of Mission Control. A backend for AWS can be added later as another module (roadmap, #32). -->
   <modules>
+    <module>anonymizer</module>
     <module>collector</module>
   </modules>
 </project>
