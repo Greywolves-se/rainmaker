@@ -1,0 +1,23 @@
+# Mission Control's change log for infrastructure changes (architecture 10.8); Rainmaker's is in
+# ../rainmaker/changelog.yaml. One item per change, newest last:
+#
+# - id: C-1                        # unique
+#   date: 2026-10-19               # YYYY-MM-DD
+#   title: What changed
+#   owner: Who made the change
+#   rollbackPlan: How to undo it, and what then stops working
+- id: C-1
+  date: 2026-10-19
+  title: CDK bootstrap of the staging account (659947636280, eu-north-1), stack CDKToolkit (#82)
+  owner: Maruf
+  rollbackPlan: Delete the CDKToolkit stack, but only when no CDK stack is left in the account; cdk deploy then stops working
+- id: C-2
+  date: 2026-10-19
+  title: The GitHub OIDC provider and the github-actions-rainmaker role imported into GithubDeployAccess-staging, unchanged (#82)
+  owner: Maruf
+  rollbackPlan: Delete the stack; the provider and the role are retained (DeletionPolicy Retain) and are managed by hand again, and docker.yml keeps working
+- id: C-3
+  date: 2026-10-19
+  title: Inline policy read-mission-control-secrets added to github-actions-rainmaker, so the collector can read the OpenAI key (#112)
+  owner: Maruf
+  rollbackPlan: Remove the policy from GithubDeployAccessStack and run cdk deploy; the collector then runs without the OpenAI key and that source shows an error
