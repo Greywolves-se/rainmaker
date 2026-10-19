@@ -1,0 +1,205 @@
+package se.rainmaker.missioncontrol.collector.drive;
+
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
+import io.github.resilience4j.core.IntervalFunction;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
+import se.rainmaker.missioncontrol.collector.pipeline.SourceException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Read-only client for the Google Drive REST API (#113). It logs in as the service account with
+ * Google's auth library (scope {@code drive.metadata.readonly}, so it can never read content or
+ * write), retries server errors and timeouts with back-off, and turns every other failure into a
+ * {@link SourceException} with a message that is safe to show. Neither the key nor the access token
+ * is ever logged, and the token is only sent to {@code apiUrl}.
+ */
+@Component
+public class GoogleDriveClient {
+
+  /** Read-only access to file metadata; no content, no changes. */
+  static final String SCOPE = "https://www.googleapis.com/auth/drive.metadata.readonly";
+
+  /** The newest files per folder; enough for "latest documents", so no paging is needed. */
+  static final int MAX_FILES = 50;
+
+  static final String FOLDER_TYPE = "application/vnd.google-apps.folder";
+
+  private static final Logger log = LoggerFactory.getLogger(GoogleDriveClient.class);
+  private static final JsonMapper JSON = JsonMapper.builder().build();
+
+  private final GoogleDriveProperties properties;
+  private final RestClient http;
+  private final Retry retry;
+  private GoogleCredentials credentials;
+
+  /** Builds the HTTP client with the timeouts and retry policy from the settings. */
+  public GoogleDriveClient(GoogleDriveProperties properties) {
+    this.properties = properties;
+    JdkClientHttpRequestFactory requestFactory =
+        new JdkClientHttpRequestFactory(
+            HttpClient.newBuilder().connectTimeout(properties.connectTimeout()).build());
+    requestFactory.setReadTimeout(properties.readTimeout());
+    this.http =
+        RestClient.builder()
+            .requestFactory(requestFactory)
+            .defaultHeader(HttpHeaders.USER_AGENT, "rainmaker-mission-control")
+            .build();
+    this.retry =
+        Retry.of(
+            "google-drive",
+            RetryConfig.custom()
+                .maxAttempts(properties.maxAttempts())
+                .retryExceptions(RetryableDriveException.class)
+                .intervalFunction(IntervalFunction.ofExponentialBackoff(properties.backoff(), 2.0))
+                .build());
+  }
+
+  /**
+   * The newest files directly in {@code folderId}, newest first: not trashed, no subfolders, at
+   * most {@link #MAX_FILES}. Shared drives work too.
+   *
+   * @throws SourceException when there is no key or Drive cannot deliver
+   */
+  public List<JsonNode> latestFiles(String folderId) {
+    if (!GoogleDriveProperties.FOLDER_ID.matcher(folderId).matches()) {
+      // Settings are checked at startup; this keeps the query safe if that ever changes.
+      throw new SourceException("Google Drive folder id is not a valid Drive id");
+    }
+    String token = accessToken();
+    URI uri =
+        UriComponentsBuilder.fromUri(properties.apiUrl())
+            .path("/files")
+            .queryParam(
+                "q",
+                "'"
+                    + folderId
+                    + "' in parents and trashed = false and mimeType != '"
+                    + FOLDER_TYPE
+                    + "'")
+            .queryParam(
+                "fields",
+                "files(id,name,mimeType,modifiedTime,webViewLink,lastModifyingUser(displayName))")
+            .queryParam("orderBy", "modifiedTime desc")
+            .queryParam("pageSize", MAX_FILES)
+            .queryParam("supportsAllDrives", true)
+            .queryParam("includeItemsFromAllDrives", true)
+            .encode()
+            .build()
+            .toUri();
+    JsonNode answer = fetchWithRetry(uri, token);
+    JsonNode files = answer.get("files");
+    if (files == null || !files.isArray()) {
+      throw new SourceException("Google Drive answered with something that is not a file list");
+    }
+    return files.valueStream().toList();
+  }
+
+  /** A fresh access token; the library caches it and renews it shortly before it expires. */
+  private String accessToken() {
+    if (!properties.hasCredentials()) {
+      throw new SourceException("No Google Drive key: set MC_GOOGLE_DRIVE_CREDENTIALS");
+    }
+    try {
+      if (credentials == null) {
+        credentials = serviceAccount();
+      }
+      credentials.refreshIfExpired();
+      return credentials.getAccessToken().getTokenValue();
+    } catch (IOException e) {
+      // The library's message can quote Google's answer; only the type is logged, never the key.
+      log.atWarn()
+          .addKeyValue("error", e.getClass().getSimpleName())
+          .log("Google token request failed");
+      throw new SourceException(
+          "Google did not give an access token; check that the service-account key is valid");
+    }
+  }
+
+  private GoogleCredentials serviceAccount() {
+    try {
+      return ServiceAccountCredentials.fromStream(
+              new ByteArrayInputStream(properties.credentials().getBytes(StandardCharsets.UTF_8)))
+          .createScoped(List.of(SCOPE));
+    } catch (IOException | RuntimeException e) {
+      // RuntimeException too: a JSON key of another type fails with a ClassCastException or
+      // IllegalArgumentException. The message is never shown, since it could quote the key.
+      throw new SourceException(
+          "MC_GOOGLE_DRIVE_CREDENTIALS is not a valid Google service-account key");
+    }
+  }
+
+  private JsonNode fetchWithRetry(URI uri, String token) {
+    try {
+      return retry.executeSupplier(() -> fetch(uri, token));
+    } catch (RetryableDriveException e) {
+      throw new SourceException(
+          "Google Drive did not answer after "
+              + properties.maxAttempts()
+              + " attempts (last: "
+              + e.getMessage()
+              + ")");
+    }
+  }
+
+  private JsonNode fetch(URI uri, String token) {
+    try {
+      return http.get()
+          .uri(uri)
+          .headers(headers -> headers.setBearerAuth(token))
+          .exchange((request, response) -> toJson(response));
+    } catch (ResourceAccessException e) {
+      log.atWarn().log("Google Drive request timed out or failed to connect");
+      throw new RetryableDriveException("no answer in time");
+    }
+  }
+
+  private static JsonNode toJson(
+      RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse response) throws IOException {
+    int status = response.getStatusCode().value();
+    if (status == 200) {
+      return JSON.readTree(new String(response.getBody().readAllBytes(), StandardCharsets.UTF_8));
+    }
+    if (status == 401) {
+      throw new SourceException("Google Drive rejected the access token (HTTP 401)");
+    }
+    if (status == 403) {
+      throw new SourceException(
+          "Google Drive denied access (HTTP 403); share the folder with the service account");
+    }
+    if (status == 404) {
+      throw new SourceException(
+          "Google Drive found no such folder (HTTP 404); check the folder id and that it is"
+              + " shared with the service account");
+    }
+    if (status == 429 || status >= 500) {
+      log.atWarn().addKeyValue("status", status).log("Google Drive busy or failing");
+      throw new RetryableDriveException("HTTP " + status);
+    }
+    throw new SourceException("Google Drive answered with HTTP " + status);
+  }
+
+  /** A failure worth retrying: a timeout, a rate limit or a server error. */
+  static final class RetryableDriveException extends RuntimeException {
+
+    RetryableDriveException(String message) {
+      super(message);
+    }
+  }
+}

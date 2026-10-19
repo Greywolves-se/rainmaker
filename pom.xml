@@ -30,6 +30,9 @@
     <archunit.version>1.5.1</archunit.version>
     <json-schema-validator.version>3.0.8</json-schema-validator.version>
     <resilience4j.version>2.4.0</resilience4j.version>
+    <!-- Service-account login for the Google Drive source (#113): only the access token; Drive
+         calls go through our own RestClient. -->
+    <google-auth-library.version>1.54.0</google-auth-library.version>
     <!-- 4.x is still beta. The standalone jar bundles its own Jetty, so it cannot clash with
          the libraries Spring Boot brings. -->
     <wiremock.version>3.13.2</wiremock.version>
@@ -69,6 +72,11 @@
         <groupId>io.github.resilience4j</groupId>
         <artifactId>resilience4j-retry</artifactId>
         <version>${resilience4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.auth</groupId>
+        <artifactId>google-auth-library-oauth2-http</artifactId>
+        <version>${google-auth-library.version}</version>
       </dependency>
       <!-- External APIs are mocked with WireMock in tests, never called (CLAUDE.md, "Testing"). -->
       <dependency>

@@ -67,6 +67,12 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 - **Checks:** no check runs → `none`; a failed, timed-out or action-required run → `failing`; else a run still going → `pending`; else `passing`.
 - **Waiting time:** how long a PR has waited for review is shown by the dashboard from `createdAt` and `review` (#21).
 
+**Google Drive (#113, source `google-drive`):** the newest 50 files directly in each project's Drive folder become `documents`: title, kind (document, spreadsheet, presentation, PDF or other), last editor, modified time and link. **Metadata only:** the source never reads a document's content.
+- **Events:** files changed in the last 7 days also appear as events.
+- **Folders:** each project's folder is set in `mission-control.collector.google-drive.folders.<project id>` (Rainmaker's "Project files" folder is prepared but commented out until the key exists, #112). Subfolders and trashed files are left out, and shared drives work too.
+- **Login:** a Google **service account** with the read-only scope `drive.metadata.readonly`. Share each folder with it as **Viewer**. Its JSON key is read from `MC_GOOGLE_DRIVE_CREDENTIALS` (the whole file as text, AWS Secrets Manager in CI, #112) and is never logged. Without a key, a project with a folder shows the source as `error`.
+- **Errors:** timeouts, rate limits and server errors are retried with back-off. A 403 usually means the folder isn't shared with the service account.
+
 **START HERE report (#25):** every run also writes `out/<project>/start-here.md` next to each snapshot. It's a Markdown briefing for a new team member or an AI assistant:
 - the hand-written intro from `data/<project>/start-here-intro.md` (product goal, architecture in short, how we work);
 - then generated sections: status (sprint, key dates, sources with problems), next work, pull requests waiting for review, decisions, red and yellow risks, open questions, latest release and links.
