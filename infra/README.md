@@ -11,7 +11,7 @@ are created with CDK through the pipeline, never by hand in the console.
 
 | Stack | What | Issue |
 |---|---|---|
-| `GithubDeployAccess-staging` | GitHub OIDC provider and the `github-actions-rainmaker` role with two inline policies: `ecr-push-mission-control` (push the images) and `ecs-deploy-mission-control-web` (roll out the web service). Only jobs in the GitHub environment `staging` of `Greywolves-se/rainmaker` can assume the role. `docker.yml` uses it. | #61, #82 |
+| `GithubDeployAccess-staging` | GitHub OIDC provider and the `github-actions-rainmaker` role with three inline policies: `ecr-push-mission-control` (push the images), `ecs-deploy-mission-control-web` (roll out the web service) and `read-mission-control-secrets` (read the two collector secrets below). Only jobs in the GitHub environment `staging` of `Greywolves-se/rainmaker` can assume the role. `docker.yml` uses it. | #61, #82, #112 |
 
 ECR repositories and the ECS service follow in #62.
 
@@ -60,3 +60,29 @@ requires and which keeps them if the stack is ever deleted.
 4. After the next merge to `develop`, `docker.yml` must still push to ECR and deploy staging.
 
 Never run `cdk deploy` on this stack before steps 1–3 are clean.
+
+## Collector secrets (#112)
+
+The collector's Google Drive and OpenAI sources (#113, #115) need two secrets. They live in
+**AWS Secrets Manager** in the staging account (`eu-north-1`). Only their **names** are in code;
+nobody puts a value in the repository, an issue, a PR, a log or a chat.
+
+| Secret name | Contents | Environment variable in the collector step |
+|---|---|---|
+| `mission-control/google-drive-service-account` | JSON key of a read-only Google service account (scope `drive.metadata.readonly`, Viewer on the shared project folders) | `MC_GOOGLE_SERVICE_ACCOUNT_JSON` |
+| `mission-control/openai-api-key` | API key of the team's OpenAI organisation, which has a monthly spending limit | `MC_OPENAI_API_KEY` |
+
+- **Access:** the `read-mission-control-secrets` policy lets the deploy role read exactly these two
+  secrets (`secretsmanager:GetSecretValue`), nothing else. `docker.yml` reads them inside the
+  "Collect the snapshot" step only and masks them in the log. A secret that is not set up yet is
+  skipped with a notice; the collector then runs without it.
+- **Who sets them up:** an admin of the staging account creates both secrets by hand with exactly
+  these names (`aws secretsmanager create-secret --name …`, or the console), and pastes the value
+  directly into Secrets Manager. The Google service account is created by a Google Workspace admin;
+  the OpenAI key by whoever owns the team's OpenAI billing.
+- **Rotate:** create a new key (Google Cloud console or OpenAI dashboard), store it with
+  `aws secretsmanager put-secret-value --secret-id <name> --secret-string file://<file>` (or in the
+  console), check the next collector run, then delete the old key at the source. No code change is
+  needed, because the name stays the same.
+- **Revoke:** delete the key at the source (Google or OpenAI). The collector then reports that source
+  as `error` and the rest of the snapshot is unaffected.
