@@ -15,28 +15,20 @@ class GoogleDrivePropertiesTest {
   @ParameterizedTest
   @ValueSource(strings = {"abc' or name contains 'x", "a b", "a/b", ""})
   void folderIdThatCouldChangeTheQueryIsRejected(String folder) {
-    assertThatThrownBy(() -> properties("", Map.of("rainmaker", folder)))
+    assertThatThrownBy(() -> properties(Map.of("rainmaker", folder)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("not a valid Drive id");
   }
 
   @Test
   void realLookingFolderIdIsAccepted() {
-    assertThat(properties("", Map.of("rainmaker", "1zh8BBu_31YV7W2a0N_CELxMNXDOf0vBG")).folders())
+    assertThat(properties(Map.of("rainmaker", "1zh8BBu_31YV7W2a0N_CELxMNXDOf0vBG")).folders())
         .containsEntry("rainmaker", "1zh8BBu_31YV7W2a0N_CELxMNXDOf0vBG");
   }
 
-  @Test
-  void keyNeverShowsInToString() {
-    String text = properties("{\"private_key\": \"secret-key-material\"}", Map.of()).toString();
-
-    assertThat(text).contains("credentials=***").doesNotContain("secret-key-material");
-  }
-
-  private static GoogleDriveProperties properties(String credentials, Map<String, String> folders) {
+  private static GoogleDriveProperties properties(Map<String, String> folders) {
     return new GoogleDriveProperties(
         URI.create("https://www.googleapis.com/drive/v3"),
-        credentials,
         folders,
         Duration.ofSeconds(1),
         Duration.ofSeconds(1),

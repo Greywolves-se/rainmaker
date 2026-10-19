@@ -15,7 +15,11 @@ import static org.assertj.core.groups.Tuple.tuple;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import com.google.auth.oauth2.ServiceAccountCredentials;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -120,7 +124,7 @@ class GoogleDriveSourceTest {
                     true),
                 "2026-10-18T08:00:00Z")));
 
-    Snapshot snapshot = run(Map.of("rainmaker", FOLDER), RAINMAKER, key);
+    Snapshot snapshot = run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount());
 
     assertThat(snapshot.sources().getFirst().status()).isEqualTo(Source.Status.OK);
     assertThat(snapshot.documents())
@@ -181,7 +185,7 @@ class GoogleDriveSourceTest {
     stubToken();
     stubFiles(FOLDER, List.of());
 
-    run(Map.of("rainmaker", FOLDER), RAINMAKER, key);
+    run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount());
 
     google.verify(
         getRequestedFor(urlPathEqualTo("/drive/v3/files"))
@@ -221,17 +225,17 @@ class GoogleDriveSourceTest {
                 true)));
     Map<String, String> folders = Map.of("rainmaker", FOLDER, "mission-control", "folder-mc");
 
-    assertThat(run(folders, RAINMAKER, key).documents())
+    assertThat(run(folders, RAINMAKER, serviceAccount()).documents())
         .extracting(Document::id)
         .containsExactly("gd-doc1");
-    assertThat(run(folders, MISSION_CONTROL, key).documents())
+    assertThat(run(folders, MISSION_CONTROL, serviceAccount()).documents())
         .extracting(Document::id)
         .containsExactly("gd-doc2");
   }
 
   @Test
   void projectWithoutFolderShowsDriveAsDisabledAndMakesNoCalls() {
-    Snapshot snapshot = run(Map.of("rainmaker", FOLDER), MISSION_CONTROL, "");
+    Snapshot snapshot = run(Map.of("rainmaker", FOLDER), MISSION_CONTROL, noLogin());
 
     assertThat(snapshot.sources().getFirst())
         .extracting(Source::status, Source::message)
@@ -250,7 +254,7 @@ class GoogleDriveSourceTest {
             file(
                 "doc1", "Pilot agreement", "application/pdf", "2026-10-18T10:00:00Z", null, true)));
 
-    Snapshot snapshot = run(Map.of("rainmaker", FOLDER), RAINMAKER, key);
+    Snapshot snapshot = run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount());
 
     assertThat(snapshot.sources().getFirst().status()).isEqualTo(Source.Status.OK);
     assertThat(snapshot.documents()).extracting(Document::id).containsExactly("gd-doc1");
@@ -284,7 +288,7 @@ class GoogleDriveSourceTest {
                                     null,
                                     true)))))));
 
-    Snapshot snapshot = run(Map.of("rainmaker", FOLDER), RAINMAKER, key);
+    Snapshot snapshot = run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount());
 
     assertThat(snapshot.documents()).extracting(Document::id).containsExactly("gd-doc1");
     google.verify(2, postRequestedFor(urlPathEqualTo("/token")));
@@ -295,7 +299,8 @@ class GoogleDriveSourceTest {
     stubToken();
     google.stubFor(get(urlPathEqualTo("/drive/v3/files")).willReturn(aResponse().withStatus(401)));
 
-    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, key).sources().getFirst();
+    Source result =
+        run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount()).sources().getFirst();
 
     assertThat(result.message())
         .isEqualTo("Google Drive rejected the access token (HTTP 401), also after renewing it");
@@ -317,7 +322,8 @@ class GoogleDriveSourceTest {
                     .withStatus(status)
                     .withBody("{\"error\": {\"errors\": [{\"reason\": \"" + reason + "\"}]}}")));
 
-    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, key).sources().getFirst();
+    Source result =
+        run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount()).sources().getFirst();
 
     assertThat(result.message())
         .isEqualTo("Google Drive did not answer after 2 attempts (last: " + last + ")");
@@ -329,7 +335,8 @@ class GoogleDriveSourceTest {
     stubToken();
     google.stubFor(get(urlPathEqualTo("/drive/v3/files")).willReturn(aResponse().withStatus(404)));
 
-    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, key).sources().getFirst();
+    Source result =
+        run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount()).sources().getFirst();
 
     assertThat(result.message())
         .contains("HTTP 404")
@@ -344,7 +351,7 @@ class GoogleDriveSourceTest {
             .willReturn(okJson("{\"files\": []}").withFixedDelay(2000)));
 
     Source result =
-        run(Map.of("rainmaker", FOLDER), RAINMAKER, key, Duration.ofMillis(300))
+        run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount(), Duration.ofMillis(300))
             .sources()
             .getFirst();
 
@@ -354,23 +361,18 @@ class GoogleDriveSourceTest {
   }
 
   @Test
-  void withoutKeyTheSourceIsAnErrorWithClearMessage() {
-    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, " ").sources().getFirst();
-
-    assertThat(result.status()).isEqualTo(Source.Status.ERROR);
-    assertThat(result.message()).isEqualTo("No Google Drive key: set MC_GOOGLE_DRIVE_CREDENTIALS");
-  }
-
-  @Test
-  void keyOfWrongShapeGivesSafeError(CapturedOutput output) {
-    String broken = "{\"type\": \"service_account\", \"private_key\": \"secret-key-material\"}";
-
-    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, broken).sources().getFirst();
+  void withoutGoogleLoginTheSourceIsAnErrorWithClearMessage(CapturedOutput output) {
+    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, noLogin()).sources().getFirst();
 
     assertThat(result.status()).isEqualTo(Source.Status.ERROR);
     assertThat(result.message())
-        .isEqualTo("MC_GOOGLE_DRIVE_CREDENTIALS is not a valid Google service-account key");
-    assertThat(output.getAll()).doesNotContain("secret-key-material");
+        .isEqualTo(
+            "No Google login: run google-github-actions/auth in CI, or gcloud auth"
+                + " application-default login locally");
+    // The library's own message names local files; it is never shown or logged.
+    assertThat(result.message()).doesNotContain("private-path");
+    assertThat(output.getAll()).doesNotContain("private-path");
+    assertThat(google.getAllServeEvents()).isEmpty();
   }
 
   @Test
@@ -379,7 +381,8 @@ class GoogleDriveSourceTest {
         post(urlPathEqualTo("/token"))
             .willReturn(aResponse().withStatus(400).withBody("{\"error\": \"invalid_grant\"}")));
 
-    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, key).sources().getFirst();
+    Source result =
+        run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount()).sources().getFirst();
 
     assertThat(result.message()).contains("did not give an access token");
     assertThat(output.getAll()).doesNotContain("BEGIN PRIVATE KEY");
@@ -390,7 +393,8 @@ class GoogleDriveSourceTest {
     stubToken();
     google.stubFor(get(urlPathEqualTo("/drive/v3/files")).willReturn(aResponse().withStatus(403)));
 
-    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, key).sources().getFirst();
+    Source result =
+        run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount()).sources().getFirst();
 
     assertThat(result.status()).isEqualTo(Source.Status.ERROR);
     assertThat(result.message())
@@ -403,7 +407,8 @@ class GoogleDriveSourceTest {
     stubToken();
     google.stubFor(get(urlPathEqualTo("/drive/v3/files")).willReturn(aResponse().withStatus(503)));
 
-    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, key).sources().getFirst();
+    Source result =
+        run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount()).sources().getFirst();
 
     assertThat(result.message())
         .isEqualTo("Google Drive did not answer after 2 attempts (last: HTTP 503)");
@@ -411,21 +416,37 @@ class GoogleDriveSourceTest {
     assertThat(output.getAll()).doesNotContain(TOKEN).doesNotContain("BEGIN PRIVATE KEY");
   }
 
+  /**
+   * Logs in as the generated test service account, whose token address is WireMock. Never Google's
+   * standard login: no test may use a real login or call Google.
+   */
+  private static GoogleLogin serviceAccount() {
+    return () ->
+        ServiceAccountCredentials.fromStream(
+            new ByteArrayInputStream(key.getBytes(StandardCharsets.UTF_8)));
+  }
+
+  /** No login available, like the standard login on a machine without gcloud or CI auth. */
+  private static GoogleLogin noLogin() {
+    return () -> {
+      throw new IOException("No credentials found in /home/someone/private-path/adc.json");
+    };
+  }
+
   private static Snapshot run(
-      Map<String, String> folders, ProjectSettings project, String credentials) {
-    return run(folders, project, credentials, Duration.ofSeconds(5));
+      Map<String, String> folders, ProjectSettings project, GoogleLogin login) {
+    return run(folders, project, login, Duration.ofSeconds(5));
   }
 
   /** A short {@code readTimeout} only in the timeout test: a cold first request can be slow. */
   private static Snapshot run(
       Map<String, String> folders,
       ProjectSettings project,
-      String credentials,
+      GoogleLogin login,
       Duration readTimeout) {
     GoogleDriveProperties properties =
         new GoogleDriveProperties(
             URI.create(google.baseUrl() + "/drive/v3"),
-            credentials,
             folders,
             Duration.ofSeconds(1),
             readTimeout,
@@ -433,7 +454,7 @@ class GoogleDriveSourceTest {
             Duration.ofMillis(1));
     Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     GoogleDriveSource source =
-        new GoogleDriveSource(new GoogleDriveClient(properties), properties, clock);
+        new GoogleDriveSource(new GoogleDriveClient(properties, login), properties, clock);
     CollectorProperties collector =
         new CollectorProperties(List.of(project), Path.of("unused"), Map.of());
     return new CollectorPipeline(List.of(source), collector, new SnapshotValidator(), clock)
