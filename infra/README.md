@@ -11,7 +11,7 @@ are created with CDK through the pipeline, never by hand in the console.
 
 | Stack | What | Issue |
 |---|---|---|
-| `GithubDeployAccess-staging` | GitHub OIDC provider and the `github-actions-rainmaker` role with three inline policies: `ecr-push-mission-control` (push the images), `ecs-deploy-mission-control-web` (roll out the web service) and `read-mission-control-secrets` (read the two collector secrets below). Only jobs in the GitHub environment `staging` of `Greywolves-se/rainmaker` can assume the role. `docker.yml` uses it. | #61, #82, #112 |
+| `GithubDeployAccess-staging` | GitHub OIDC provider and the `github-actions-rainmaker` role with three inline policies: `ecr-push-mission-control` (push the images), `ecs-deploy-mission-control-web` (roll out the web service) and `read-mission-control-secrets` (read the collector's OpenAI key, see below). Only jobs in the GitHub environment `staging` of `Greywolves-se/rainmaker` can assume the role. `docker.yml` uses it. | #61, #82, #112 |
 
 ECR repositories and the ECS service follow in #62.
 
@@ -26,6 +26,12 @@ From the repository root:
 The tests turn each stack into a CloudFormation template in memory and check it
 (`software.amazon.awscdk.assertions.Template`). The CDK Java library runs on Node.js
 internally, so Node.js must be installed (22 or newer).
+
+**CI (#125):** the "Infra (CDK synth and tests)" job in `.github/workflows/mission-control-ci.yml`
+runs the same command, with JDK 21 and Node.js 22, on every pull request that changes `infra/`,
+the root `pom.xml`, `mvnw`, `.mvn/` or the workflow file. Other pull requests skip it, and a
+skipped job counts as passing, so the check can be required. The job has no AWS credentials, so
+`cdk diff` stays a manual step in every infra PR.
 
 ## Synth, diff and deploy (needs the CDK CLI and AWS access)
 
@@ -61,33 +67,69 @@ requires and which keeps them if the stack is ever deleted.
 
 Never run `cdk deploy` on this stack before steps 1–3 are clean.
 
-## Collector secrets (#112)
+## Collector credentials (#112)
 
-The collector's Google Drive and OpenAI sources (#113, #115) need two secrets. They live in
-**AWS Secrets Manager** in the staging account (`eu-north-1`). Only their **names** are in code;
-nobody puts a value in the repository, an issue, a PR, a log or a chat.
+The collector's OpenAI and Google Drive sources (#115, #113) need credentials. Only **names and
+identifiers** are in code; nobody puts a key in the repository, an issue, a PR, a log or a chat.
 
-| Secret name | Contents | Environment variable in the collector step |
+### OpenAI key (secret in AWS Secrets Manager)
+
+| Secret name | Contents | Environment variable in the collector |
 |---|---|---|
-| `mission-control/google-drive-service-account` | JSON key of a read-only Google service account (scope `drive.metadata.readonly`, Viewer on the shared project folders) | `MC_GOOGLE_SERVICE_ACCOUNT_JSON` |
 | `mission-control/openai-api-key` | API key of the team's OpenAI organisation, which has a monthly spending limit | `OPENAI_API_KEY` |
 
-- **Access:** the `read-mission-control-secrets` policy lets the deploy role read exactly these two
-  secrets (`secretsmanager:GetSecretValue`), nothing else. In `docker.yml` the collector is built
-  before the job has any AWS credentials. "Collect the snapshot" then reads the secrets, masks
-  them in the log, removes the AWS credentials and passes the secrets to the collector process
-  only. A secret that does not exist yet gives a notice; any other error (for example
+- **Access:** the `read-mission-control-secrets` policy lets the deploy role read exactly this
+  secret (`secretsmanager:GetSecretValue`), nothing else. In `docker.yml` the collector is built
+  before the job has any AWS credentials. "Collect the snapshot" then reads the key, masks it in
+  the log, removes the AWS credentials and passes the key to the collector process only. A
+  secret that does not exist yet gives a notice; any other error (for example
   `AccessDeniedException`) gives a warning with the AWS error code. Either way the collector runs
-  without that secret.
-- **Encryption key:** create both secrets with the default `aws/secretsmanager` KMS key. A
-  customer-managed key would also need `kms:Decrypt` in the policy.
-- **Who sets them up:** an admin of the staging account creates both secrets by hand with exactly
-  these names (`aws secretsmanager create-secret --name …`, or the console), and pastes the value
-  directly into Secrets Manager. The Google service account is created by a Google Workspace admin;
-  the OpenAI key by whoever owns the team's OpenAI billing.
-- **Rotate:** create a new key (Google Cloud console or OpenAI dashboard), store it with
-  `aws secretsmanager put-secret-value --secret-id <name> --secret-string file://<file>` (or in the
-  console), check the next collector run, then delete the old key at the source. No code change is
-  needed, because the name stays the same.
-- **Revoke:** delete the key at the source (Google or OpenAI). The collector then reports that source
-  as `error` and the rest of the snapshot is unaffected.
+  without it.
+- **Who sets it up:** an admin of the staging account creates the secret by hand with exactly this
+  name and pastes the key directly into Secrets Manager. The key comes from whoever owns the
+  team's OpenAI billing.
+- **Encryption key:** use the default `aws/secretsmanager` KMS key. A customer-managed key would
+  also need `kms:Decrypt` in the policy.
+- **Rotate:** create a new key in the OpenAI dashboard, store it with
+  `aws secretsmanager put-secret-value --secret-id mission-control/openai-api-key --secret-string file://<file>`
+  (or in the console), check the next collector run, then revoke the old key. No code change is
+  needed.
+- **Revoke:** revoke the key in OpenAI. The collector then reports that source as `error` and the
+  rest of the snapshot is unaffected.
+
+### Google Drive (Workload Identity Federation, no key)
+
+GitHub Actions signs in to Google with its OIDC token, the same way it signs in to AWS, and acts
+as the read-only service account `mission-control-drive-reader` in the Google Cloud project
+`mission-control-512109`. **No Google key exists**, which also follows the `greywolves.se`
+organisation rule that blocks service-account keys.
+
+- **In `docker.yml`:** `google-github-actions/auth` runs before the collector and sets
+  `GOOGLE_APPLICATION_CREDENTIALS` to a short-lived credentials file (`gha-creds-*.json`, git- and
+  docker-ignored). The collector uses it through Application Default Credentials with the scope
+  `drive.metadata.readonly` (#120). The step is skipped until the `staging` environment has the
+  two variables below.
+- **GitHub variables** (environment `staging`, not secrets): `GCP_WORKLOAD_IDENTITY_PROVIDER`
+  (`projects/<project number>/locations/global/workloadIdentityPools/github/providers/rainmaker`)
+  and `GCP_SERVICE_ACCOUNT` (the service account's email).
+- **One-time setup by a Google Cloud admin** (project `mission-control-512109`):
+  1. Create a workload identity pool `github` and an OIDC provider `rainmaker` with issuer
+     `https://token.actions.githubusercontent.com`, attribute mapping
+     `google.subject=assertion.sub,attribute.repository_id=assertion.repository_id,attribute.environment=assertion.environment`
+     and the **condition**
+     `assertion.repository_owner_id == '341957527' && assertion.repository_id == '1416917981' && assertion.environment == 'staging'`.
+     Without the condition, any GitHub repository could get a token. The numeric ids (owner
+     `Greywolves-se` = 341957527, repository = 1416917981, the same as in the AWS trust policy)
+     never change, so a repository that is renamed or transferred, or a new one that takes over
+     the name, cannot match.
+  2. Grant `roles/iam.workloadIdentityUser` on the service account to
+     `principalSet://iam.googleapis.com/projects/<project number>/locations/global/workloadIdentityPools/github/attribute.repository_id/1416917981`.
+  3. The Drive API is enabled, and the project folder ("Google Drive – Project files" in
+     `data/rainmaker/links.yaml`) is shared with the service account as **Viewer**, by the
+     folder's owner.
+- **Revoke:** remove the `workloadIdentityUser` binding or disable the provider. Unsharing the
+  folder removes access to its files.
+- **Locally:** `gcloud auth application-default login --impersonate-service-account=mission-control-drive-reader@mission-control-512109.iam.gserviceaccount.com`. Without
+  the flag the collector refuses the login (#120), since a plain user login cannot be limited to
+  the read-only scope. Needs the role "Service Account Token Creator" on the service account;
+  documented in #120.

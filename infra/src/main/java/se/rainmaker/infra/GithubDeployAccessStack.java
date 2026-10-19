@@ -35,8 +35,7 @@ public class GithubDeployAccessStack extends Stack {
       List.of("repo:Greywolves-se/rainmaker", "repo:Greywolves-se@341957527/rainmaker@1416917981");
 
   /** Secrets the collector reads in staging (#112). Names only; the values never go in code. */
-  private static final List<String> COLLECTOR_SECRETS =
-      List.of("mission-control/google-drive-service-account", "mission-control/openai-api-key");
+  private static final List<String> COLLECTOR_SECRETS = List.of("mission-control/openai-api-key");
 
   private static final List<String> ECR_REPOSITORIES =
       List.of("rainmaker-mission-control-collector", "rainmaker-mission-control-web");
@@ -136,8 +135,9 @@ public class GithubDeployAccessStack extends Stack {
   }
 
   /**
-   * Lets the collector step in {@code docker.yml} read the Google Drive and OpenAI secrets (#112),
-   * and nothing else in Secrets Manager. The values are set by hand; only the names are in code.
+   * Lets the collector step in {@code docker.yml} read the OpenAI key (#112), and nothing else in
+   * Secrets Manager. The value is set by hand; only the name is in code. Google Drive needs no
+   * secret: GitHub Actions signs in to Google with Workload Identity Federation.
    */
   private PolicyDocument readSecretsPolicy() {
     List<String> secretArns =
