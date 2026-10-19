@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>se.rainmaker</groupId>
+    <artifactId>mission-control</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>anonymizer</artifactId>
+  <name>Mission Control anonymizer</name>
+  <description>Hides people's names before text goes to an AI model, and restores them (#115).
+    Plain Java with no dependencies, so the collector and the Ask Navigator backend (ADR 0003)
+    share one implementation.</description>
+
+  <properties>
+    <!-- Domain logic: the 80 % line-coverage gate applies (CLAUDE.md, "Testing"). -->
+    <jacoco.check.skip>false</jacoco.check.skip>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

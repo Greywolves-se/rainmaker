@@ -2,6 +2,7 @@ import {useSnapshot} from '../../data/useSnapshot';
 import {CurrentStatusCard} from './CurrentStatusCard';
 import {DecisionsCard} from './DecisionsCard';
 import {KpiCards} from './KpiCards';
+import {LatestDocumentsCard} from './LatestDocumentsCard';
 import {LatestReleaseCard} from './LatestReleaseCard';
 import {RecentEventsCard} from './RecentEventsCard';
 import {RisksPilotsCostCard} from './RisksPilotsCostCard';
@@ -21,6 +22,7 @@ export function OverviewPage() {
         <LatestReleaseCard release={overview.release} />
         <RecentEventsCard events={overview.events} />
       </div>
+      <LatestDocumentsCard documents={overview.documents} />
     </div>
   );
 }

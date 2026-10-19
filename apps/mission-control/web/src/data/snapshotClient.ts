@@ -61,19 +61,23 @@ export async function loadSnapshot({
   fetchImpl?: typeof fetch;
 }): Promise<LoadedSnapshot> {
   try {
-    const snapshot = await fetchSnapshot(url, fetchImpl);
-    return {
-      page: fromContract(snapshot),
-      demo: false,
-      generatedAt: snapshot.generatedAt,
-      failedSources: snapshot.sources
-        .filter(source => source.status === 'error')
-        .map(({id, name, message}) => ({id, name, message})),
-    };
+    return toLoadedSnapshot(await fetchSnapshot(url, fetchImpl));
   } catch (error) {
     if (demoFallback && error instanceof SnapshotMissingError) {
       return DEMO_SNAPSHOT;
     }
     throw error;
   }
+}
+
+/** A real snapshot as the app shows it: the page data plus which sources failed. */
+export function toLoadedSnapshot(snapshot: Snapshot): LoadedSnapshot {
+  return {
+    page: fromContract(snapshot),
+    demo: false,
+    generatedAt: snapshot.generatedAt,
+    failedSources: snapshot.sources
+      .filter(source => source.status === 'error')
+      .map(({id, name, message}) => ({id, name, message})),
+  };
 }

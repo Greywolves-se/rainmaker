@@ -100,6 +100,13 @@
     "riskYellow": "Yellow",
     "riskGreen": "Green"
   },
+  "documentKind": {
+    "document": "Document",
+    "spreadsheet": "Spreadsheet",
+    "presentation": "Presentation",
+    "pdf": "PDF",
+    "other": "File"
+  },
   "environment": {
     "dev": "Development",
     "uat": "UAT",
@@ -135,6 +142,11 @@
     "nothingInProgress": "Nothing in progress",
     "noBlockers": "No blockers",
     "noEvents": "No events yet",
+    "latestDocuments": "Latest documents",
+    "noDocuments": "No documents yet",
+    "documentsOff": "Not switched on for this project: {{sources}}.",
+    "documentMeta": "{{kind}} · {{editor}} · {{ago}}",
+    "documentMetaNoEditor": "{{kind}} · {{ago}}",
     "eventMeta": "{{source}} · {{ago}}",
     "noPilots": "No pilots yet",
     "awsCostLabel": "AWS cost",
