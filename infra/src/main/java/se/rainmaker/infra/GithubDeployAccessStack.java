@@ -34,6 +34,10 @@ public class GithubDeployAccessStack extends Stack {
   private static final List<String> GITHUB_REPOSITORY_SUBJECT_PREFIXES =
       List.of("repo:Greywolves-se/rainmaker", "repo:Greywolves-se@341957527/rainmaker@1416917981");
 
+  /** Secrets the collector reads in staging (#112). Names only; the values never go in code. */
+  private static final List<String> COLLECTOR_SECRETS =
+      List.of("mission-control/google-drive-service-account", "mission-control/openai-api-key");
+
   private static final List<String> ECR_REPOSITORIES =
       List.of("rainmaker-mission-control-collector", "rainmaker-mission-control-web");
 
@@ -64,7 +68,8 @@ public class GithubDeployAccessStack extends Stack {
         new TreeMap<>(
             Map.of(
                 "ecr-push-mission-control", ecrPushPolicy(),
-                "ecs-deploy-mission-control-web", ecsDeployPolicy()));
+                "ecs-deploy-mission-control-web", ecsDeployPolicy(),
+                "read-mission-control-secrets", readSecretsPolicy()));
 
     Role deployRole =
         Role.Builder.create(this, "GithubActionsRole")
@@ -126,6 +131,35 @@ public class GithubDeployAccessStack extends Stack {
                     .sid("DeployMissionControlWebStaging")
                     .actions(List.of("ecs:UpdateService", "ecs:DescribeServices"))
                     .resources(List.of(webServiceArn))
+                    .build()))
+        .build();
+  }
+
+  /**
+   * Lets the collector step in {@code docker.yml} read the Google Drive and OpenAI secrets (#112),
+   * and nothing else in Secrets Manager. The values are set by hand; only the names are in code.
+   */
+  private PolicyDocument readSecretsPolicy() {
+    List<String> secretArns =
+        COLLECTOR_SECRETS.stream()
+            // Secrets Manager adds "-" and six random characters to the name in the ARN.
+            .map(
+                name ->
+                    "arn:aws:secretsmanager:"
+                        + getRegion()
+                        + ":"
+                        + getAccount()
+                        + ":secret:"
+                        + name
+                        + "-??????")
+            .toList();
+    return PolicyDocument.Builder.create()
+        .statements(
+            List.of(
+                PolicyStatement.Builder.create()
+                    .sid("ReadMissionControlSecrets")
+                    .actions(List.of("secretsmanager:GetSecretValue"))
+                    .resources(secretArns)
                     .build()))
         .build();
   }
