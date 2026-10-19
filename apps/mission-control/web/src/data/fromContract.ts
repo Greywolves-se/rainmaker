@@ -6,6 +6,7 @@ import type {
 } from '../contract/snapshot';
 import type {
   DecisionItem,
+  DocumentItem,
   LinkedItem,
   Snapshot as PageSnapshot,
   SourceCode,
@@ -69,6 +70,7 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
           occurredAt: event.occurredAt,
           url: event.url,
         })),
+      documents: latestDocuments(snapshot),
     },
     development: {
       sprint: sprint && {
@@ -199,6 +201,31 @@ function toLinkedItem(item: WorkItem): LinkedItem {
 /** Compares timestamps by time, so "…30.5Z" and "…30Z" sort correctly (text order would not). */
 function newestFirst(a: string, b: string): number {
   return Date.parse(b) - Date.parse(a);
+}
+
+/** How many documents the Overview lists (#114 asks for 5–10). */
+const MAX_DOCUMENTS = 8;
+
+/**
+ * The most recently changed documents, newest first. Null when the Drive source is missing (a
+ * snapshot from before #113) or failed: then the page says "No data yet", not "No documents".
+ */
+function latestDocuments(snapshot: ContractSnapshot): DocumentItem[] | null {
+  const drive = snapshot.sources.find(source => source.id === 'google-drive');
+  if (drive?.status !== 'ok') {
+    return null;
+  }
+  return [...snapshot.documents]
+    .sort((a, b) => newestFirst(a.modifiedAt, b.modifiedAt))
+    .slice(0, MAX_DOCUMENTS)
+    .map(entry => ({
+      id: entry.id,
+      title: entry.title,
+      kind: entry.kind,
+      lastEditor: entry.lastEditor,
+      modifiedAt: entry.modifiedAt,
+      url: entry.url,
+    }));
 }
 
 /** The most recently published release, in any environment. */

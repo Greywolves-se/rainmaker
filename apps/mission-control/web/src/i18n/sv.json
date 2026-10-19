@@ -100,6 +100,13 @@
     "riskYellow": "Gul",
     "riskGreen": "Grön"
   },
+  "documentKind": {
+    "document": "Dokument",
+    "spreadsheet": "Kalkylark",
+    "presentation": "Presentation",
+    "pdf": "PDF",
+    "other": "Fil"
+  },
   "environment": {
     "dev": "Utveckling",
     "uat": "UAT",
@@ -135,6 +142,10 @@
     "nothingInProgress": "Inget pågår",
     "noBlockers": "Inget blockerat",
     "noEvents": "Inga händelser än",
+    "latestDocuments": "Senaste dokument",
+    "noDocuments": "Inga dokument än",
+    "documentMeta": "{{kind}} · {{editor}} · {{ago}}",
+    "documentMetaNoEditor": "{{kind}} · {{ago}}",
     "eventMeta": "{{source}} · {{ago}}",
     "noPilots": "Inga piloter än",
     "awsCostLabel": "AWS-kostnad",

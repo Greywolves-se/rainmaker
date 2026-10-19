@@ -130,6 +130,33 @@ describe('fromContract', () => {
     ]);
   });
 
+  it('maps the latest documents newest first, or null without a working Drive source', () => {
+    expect(page.overview.documents).toEqual([
+      {
+        id: 'gd-1a2b3c',
+        title: 'Pilot agreement draft',
+        kind: 'document',
+        lastEditor: 'Kim Ek',
+        modifiedAt: '2026-11-01T14:20:00Z',
+        url: 'https://docs.google.com/document/d/1a2b3c/edit',
+      },
+      {
+        id: 'gd-4d5e6f',
+        title: 'Sprint 3 test report',
+        kind: 'spreadsheet',
+        lastEditor: null,
+        modifiedAt: '2026-10-30T08:05:00Z',
+        url: 'https://docs.google.com/spreadsheets/d/4d5e6f/edit',
+      },
+    ]);
+
+    const sources = sample.sources.map(source =>
+      source.id === 'google-drive' ? {...source, status: 'error'} : source
+    );
+    const failed = fromContract(parseSnapshot({...sample, sources}));
+    expect(failed.overview.documents).toBeNull();
+  });
+
   it('sorts events by time, not by text', () => {
     // As text, "…30.5Z" sorts before "…30Z", although it is half a second later.
     const events = [
