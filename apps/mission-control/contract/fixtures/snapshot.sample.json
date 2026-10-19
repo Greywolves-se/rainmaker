@@ -64,5 +64,20 @@
   "documents": [
     {"id": "gd-1a2b3c", "title": "Pilot agreement draft", "kind": "document", "lastEditor": "Kim Ek", "modifiedAt": "2026-11-01T14:20:00Z", "source": "google-drive", "url": "https://docs.google.com/document/d/1a2b3c/edit"},
     {"id": "gd-4d5e6f", "title": "Sprint 3 test report", "kind": "spreadsheet", "lastEditor": null, "modifiedAt": "2026-10-30T08:05:00Z", "source": "google-drive", "url": "https://docs.google.com/spreadsheets/d/4d5e6f/edit"}
-  ]
+  ],
+  "navigator": {
+    "generatedAt": "2026-11-02T06:00:30Z",
+    "model": "gpt-6-luna",
+    "pages": {
+      "overview": {
+        "sv": {"summary": "Sprinten ligger i fas, men en röd risk och en försenad fråga behöver ägarna.", "deviations": ["Q-7 om samtyckestext är försenad sedan 30 okt.", "Risken R-3 (pilotutgivare inte signerad) är röd."], "suggestions": ["Be Kim Ek om svar på Q-7 den här veckan."]},
+        "en": {"summary": "The sprint is on track, but one red risk and one overdue question need the owners.", "deviations": ["Q-7 about the consent text is overdue since 30 Oct.", "Risk R-3 (pilot publisher not signed) is red."], "suggestions": ["Ask Kim Ek to answer Q-7 this week."]}
+      },
+      "development": {
+        "sv": {"summary": "Två pull requests väntar på granskning, och CI misslyckades på develop i går.", "deviations": ["CI misslyckades på develop."], "suggestions": []},
+        "en": {"summary": "Two pull requests wait for review, and CI failed on develop yesterday.", "deviations": ["CI failed on develop."], "suggestions": []}
+      },
+      "sources": null
+    }
+  }
 }

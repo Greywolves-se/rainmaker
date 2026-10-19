@@ -62,4 +62,50 @@ class SnapshotSchemaTest {
 
     assertThat(SCHEMA.validate(snapshot)).isNotEmpty();
   }
+
+  @Test
+  void navigatorMayBeNullButNotMissing() {
+    ObjectNode switchedOff = ContractFiles.sampleTree();
+    switchedOff.putNull("navigator");
+    ObjectNode missing = ContractFiles.sampleTree();
+    missing.remove("navigator");
+
+    assertThat(SCHEMA.validate(switchedOff)).isEmpty();
+    assertThat(SCHEMA.validate(missing)).isNotEmpty();
+  }
+
+  @Test
+  void navigatorNeedsBothLanguages() {
+    ObjectNode snapshot = ContractFiles.sampleTree();
+    ((ObjectNode) snapshot.at("/navigator/pages/overview")).remove("sv");
+
+    assertThat(SCHEMA.validate(snapshot)).isNotEmpty();
+  }
+
+  @Test
+  void navigatorTextHasLimits() {
+    ObjectNode tooMany = ContractFiles.sampleTree();
+    ArrayNode deviations = (ArrayNode) tooMany.at("/navigator/pages/overview/en/deviations");
+    for (int i = 0; i < 5; i++) {
+      deviations.add("Another deviation");
+    }
+    ObjectNode tooLong = ContractFiles.sampleTree();
+    ((ObjectNode) tooLong.at("/navigator/pages/overview/en")).put("summary", "x".repeat(601));
+    ObjectNode empty = ContractFiles.sampleTree();
+    ((ObjectNode) empty.at("/navigator/pages/overview/en")).put("summary", "");
+
+    assertThat(SCHEMA.validate(tooMany)).isNotEmpty();
+    assertThat(SCHEMA.validate(tooLong)).isNotEmpty();
+    assertThat(SCHEMA.validate(empty)).isNotEmpty();
+  }
+
+  /** The web app counts the same way (snapshot.contract.test.ts), so both accept this text. */
+  @Test
+  void navigatorTextLimitCountsAnEmojiAsOneCharacter() {
+    ObjectNode snapshot = ContractFiles.sampleTree();
+    ((ObjectNode) snapshot.at("/navigator/pages/overview/en"))
+        .put("summary", "x".repeat(599) + "😀");
+
+    assertThat(SCHEMA.validate(snapshot)).isEmpty();
+  }
 }

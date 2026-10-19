@@ -44,4 +44,20 @@ The contract tests on both sides fail when they disagree.
 - **Unknown fields** are dropped instead of rejected, as for the snapshot. Writers are strict (the schema, the Java records), readers are lenient, so adding a field never breaks a deployed dashboard.
 - **Duplicate ids** are rejected, which JSON Schema cannot express.
 
-`snapshot.ts` reads a missing `documents` list (a snapshot written before #113) as empty, so a new web app never fails on an older snapshot. The schema and the collector still require it.
+`snapshot.ts` reads a missing `documents` list (a snapshot written before #113) as empty, and a missing `navigator` (before #115) as `null`, so a new web app never fails on an older snapshot. The schema and the collector still require both.
+
+**`navigator` (#115, ADR 0002)** holds AI-written text: a summary, deviations and suggestions per page (`overview`, `development`, `sources`), each in `sv` and `en`. It is `null` when the AI step is off or failed, and a single page is `null` when only its text failed. Because a model wrote it, the web app must show it as plain text, never HTML or links, and label it as AI (#116).
+
+What the web app should show, from `navigator` and the step's own entry in `sources[]`, which has the id **`navigator-ai`**:
+
+| `navigator` | `sources[]` entry `navigator-ai` | Meaning | Panel |
+|---|---|---|---|
+| set | `ok`, no message | Text for every page | Show it |
+| set, one page `null` | `ok`, message "No AI text for: …" | That page failed | "AI summary unavailable" on that page |
+| `null` | `error`, with a message | Every page failed, or no API key | "AI summary unavailable" |
+| `null` | `disabled` | The step is switched off | Hide the panel |
+| `null` (field missing) | no entry | A snapshot from before #115 | Hide the panel |
+| `null` | any | The text broke the contract; the web app logs a warning | "AI summary unavailable" |
+
+- **Never reused:** a run whose AI step fails writes no text, not the last good one. So `navigator.generatedAt` always belongs to the same collector run as the snapshot; it is a few seconds after `generatedAt`, never older.
+- **Characters** are counted as code points, like JSON Schema (an emoji is one). The collector also cuts every text to the limits, so a broken section should not happen. If it does, only the panel is lost: `snapshot.ts` reads it as `null` and logs which paths failed, never the text.
