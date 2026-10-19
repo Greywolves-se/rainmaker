@@ -3,7 +3,7 @@
 // would not resolve there. Vitest runs it locally and in CI.
 import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import schema from '../../../contract/snapshot.schema.json';
 import sample from '../../../contract/fixtures/snapshot.sample.json';
 import {
@@ -80,18 +80,35 @@ describe('snapshot contract', () => {
     expect(pages.sources).toBeNull();
   });
 
-  it('rejects AI text over the limits, like the JSON Schema', () => {
+  it('reads broken AI text as none, so only the panel is lost, never the snapshot', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const tooMany = clone();
     tooMany.navigator!.pages.overview!.en.deviations = Array(6).fill('Late');
+    const tooLong = clone();
+    tooLong.navigator!.pages.overview!.en.summary = 'x'.repeat(601);
     const noSwedish = clone() as unknown as {
       navigator: {pages: {overview: {sv?: unknown}}};
     };
     delete noSwedish.navigator.pages.overview.sv;
 
-    for (const broken of [tooMany, noSwedish]) {
+    for (const broken of [tooMany, tooLong, noSwedish]) {
       expect(matchesJsonSchema(broken)).toBe(false);
-      expect(() => parseSnapshot(broken)).toThrow(/navigator/);
+      const parsed = parseSnapshot(broken);
+      expect(parsed.navigator).toBeNull();
+      expect(parsed.workItems).toEqual(sample.workItems);
     }
+    expect(warn).toHaveBeenCalledTimes(3);
+    // The warning names where it failed, never the AI text itself.
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('xxxxxxxxxx');
+    warn.mockRestore();
+  });
+
+  it('counts characters like the JSON Schema, so an emoji counts once', () => {
+    const withEmoji = clone();
+    withEmoji.navigator!.pages.overview!.en.summary = 'x'.repeat(599) + '😀';
+
+    expect(matchesJsonSchema(withEmoji)).toBe(true);
+    expect(parseSnapshot(withEmoji).navigator).not.toBeNull();
   });
 
   it.each([
