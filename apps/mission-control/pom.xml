@@ -19,5 +19,6 @@
   <modules>
     <module>anonymizer</module>
     <module>collector</module>
+    <module>navigator-api</module>
   </modules>
 </project>

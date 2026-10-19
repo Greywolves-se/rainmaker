@@ -1,0 +1,14 @@
+# Mission Control's change log for infrastructure changes (architecture 10.8). Changes to the
+# staging account that the whole repository uses (bootstrap, the GitHub deploy role) are in
+# ../rainmaker/changelog.yaml. One item per change, newest last:
+#
+# - id: C-1                        # unique
+#   date: 2026-10-19               # YYYY-MM-DD
+#   title: What changed
+#   owner: Who made the change
+#   rollbackPlan: How to undo it, and what then stops working
+- id: C-1
+  date: 2026-10-19
+  title: Inline policy read-mission-control-secrets added to github-actions-rainmaker, so the collector can read the OpenAI key (#112). Deployed from a88422e, after #124, so it allows only mission-control/openai-api-key, never a Google secret
+  owner: Maruf
+  rollbackPlan: Remove the policy from GithubDeployAccessStack and run cdk deploy; the collector then runs without the OpenAI key and that source shows an error
