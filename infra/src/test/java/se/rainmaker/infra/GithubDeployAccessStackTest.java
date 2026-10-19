@@ -49,7 +49,7 @@ class GithubDeployAccessStackTest {
         "AWS::IAM::Role",
         Map.of(
             "RoleName",
-            "github-actions-rainmaker-RED-TEST",
+            "github-actions-rainmaker",
             "AssumeRolePolicyDocument",
             Match.objectLike(
                 Map.of(
