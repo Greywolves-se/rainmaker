@@ -109,16 +109,20 @@ organisation rule that blocks service-account keys.
 - **One-time setup by a Google Cloud admin** (project `mission-control-512109`):
   1. Create a workload identity pool `github` and an OIDC provider `rainmaker` with issuer
      `https://token.actions.githubusercontent.com`, attribute mapping
-     `google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.environment=assertion.environment`
+     `google.subject=assertion.sub,attribute.repository_id=assertion.repository_id,attribute.environment=assertion.environment`
      and the **condition**
-     `assertion.repository == 'Greywolves-se/rainmaker' && assertion.environment == 'staging'`.
-     Without the condition, any GitHub repository could get a token.
+     `assertion.repository_owner_id == '341957527' && assertion.repository_id == '1416917981' && assertion.environment == 'staging'`.
+     Without the condition, any GitHub repository could get a token. The numeric ids (owner
+     `Greywolves-se` = 341957527, repository = 1416917981, the same as in the AWS trust policy)
+     never change, so a repository that is renamed or transferred, or a new one that takes over
+     the name, cannot match.
   2. Grant `roles/iam.workloadIdentityUser` on the service account to
-     `principalSet://iam.googleapis.com/projects/<project number>/locations/global/workloadIdentityPools/github/attribute.repository/Greywolves-se/rainmaker`.
+     `principalSet://iam.googleapis.com/projects/<project number>/locations/global/workloadIdentityPools/github/attribute.repository_id/1416917981`.
   3. The Drive API is enabled, and the project folder ("Google Drive – Project files" in
      `data/rainmaker/links.yaml`) is shared with the service account as **Viewer**, by the
      folder's owner.
 - **Revoke:** remove the `workloadIdentityUser` binding or disable the provider. Unsharing the
   folder removes access to its files.
-- **Locally:** sign in with `gcloud auth application-default login` and impersonate the service
-  account (needs "Service Account Token Creator"); documented in #120.
+- **Locally:** `gcloud auth application-default login --impersonate-service-account=mission-control-drive-reader@mission-control-512109.iam.gserviceaccount.com`. Without
+  the flag your own Google access is used instead of the read-only account. Needs the role
+  "Service Account Token Creator" on the service account; documented in #120.

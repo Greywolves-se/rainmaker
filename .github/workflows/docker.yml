@@ -135,8 +135,8 @@ jobs:
       # Federation, so no Google key exists anywhere. The action writes short-lived credentials to
       # a gha-creds-*.json file (git- and docker-ignored) and sets GOOGLE_APPLICATION_CREDENTIALS,
       # which the collector uses (Application Default Credentials). Skipped until the staging
-      # environment has both variables; the Drive source then reports an error in the snapshot.
-      - uses: google-github-actions/auth@v2
+      # environment has both variables; the Drive source then fails or stays disabled, as configured.
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.13
         if: env.BAKE_SNAPSHOT == 'true' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && vars.GCP_SERVICE_ACCOUNT != ''
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
