@@ -98,4 +98,14 @@ class SnapshotSchemaTest {
     assertThat(SCHEMA.validate(tooLong)).isNotEmpty();
     assertThat(SCHEMA.validate(empty)).isNotEmpty();
   }
+
+  /** The web app counts the same way (snapshot.contract.test.ts), so both accept this text. */
+  @Test
+  void navigatorTextLimitCountsAnEmojiAsOneCharacter() {
+    ObjectNode snapshot = ContractFiles.sampleTree();
+    ((ObjectNode) snapshot.at("/navigator/pages/overview/en"))
+        .put("summary", "x".repeat(599) + "😀");
+
+    assertThat(SCHEMA.validate(snapshot)).isEmpty();
+  }
 }

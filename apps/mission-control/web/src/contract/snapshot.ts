@@ -175,11 +175,19 @@ const documentItem = z.object({
 });
 
 // The Navigator's AI text (#115, ADR 0002): written by an AI model, so show it as plain text
-// and label it as AI. Limits match the JSON Schema.
+// and label it as AI. Limits match the JSON Schema, which counts characters as code points:
+// an emoji is one character there but two in a JavaScript string's length.
+const aiText = (max: number) =>
+  z
+    .string()
+    .min(1)
+    .refine(text => [...text].length <= max, {
+      message: `At most ${max} characters`,
+    });
 const insight = z.object({
-  summary: z.string().min(1).max(600),
-  deviations: z.array(z.string().min(1).max(300)).max(5),
-  suggestions: z.array(z.string().min(1).max(300)).max(5),
+  summary: aiText(600),
+  deviations: z.array(aiText(300)).max(5),
+  suggestions: z.array(aiText(300)).max(5),
 });
 const pageInsight = z.object({sv: insight, en: insight});
 // Named navigatorText, not navigator, so it never hides the browser's global navigator.
@@ -215,8 +223,19 @@ export const snapshotSchema = z.object({
   events: z.array(event),
   // Lenient on purpose: a snapshot written before #113 has no documents list; read it as empty.
   documents: z.array(documentItem).default([]),
-  // Lenient on purpose: a snapshot written before #115 has no navigator; read it as none.
-  navigator: navigatorText.nullable().default(null),
+  // Lenient on purpose: a snapshot written before #115 has no navigator (read as none), and a
+  // broken navigator only costs the panel, never the rest of the dashboard (#134 review).
+  navigator: navigatorText
+    .nullable()
+    .default(null)
+    .catch(context => {
+      // Only the failing paths are logged, never the AI text itself.
+      console.warn(
+        'Navigator AI text does not match the contract and is ignored:',
+        context.error.issues.map(issue => issue.path.join('.'))
+      );
+      return null;
+    }),
 });
 
 export type Snapshot = z.infer<typeof snapshotSchema>;
