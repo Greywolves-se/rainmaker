@@ -8,6 +8,7 @@ import se.rainmaker.missioncontrol.collector.datafiles.DataFilesProperties;
 import se.rainmaker.missioncontrol.collector.drive.GoogleDriveProperties;
 import se.rainmaker.missioncontrol.collector.drive.GoogleLogin;
 import se.rainmaker.missioncontrol.collector.github.GithubProperties;
+import se.rainmaker.missioncontrol.collector.navigator.NavigatorProperties;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 
 /** Beans the collector needs besides its components. */
@@ -16,7 +17,8 @@ import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
   CollectorProperties.class,
   DataFilesProperties.class,
   GithubProperties.class,
-  GoogleDriveProperties.class
+  GoogleDriveProperties.class,
+  NavigatorProperties.class
 })
 class CollectorConfiguration {
 

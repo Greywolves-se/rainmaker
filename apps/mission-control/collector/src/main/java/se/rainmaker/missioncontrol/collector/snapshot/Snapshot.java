@@ -1,6 +1,7 @@
 package se.rainmaker.missioncontrol.collector.snapshot;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,5 +44,32 @@ public record Snapshot(
     changes = List.copyOf(changes);
     events = List.copyOf(events);
     documents = List.copyOf(documents);
+  }
+
+  /**
+   * This snapshot with the Navigator's AI text and the AI step's own entry in {@code sources}
+   * (#115). The step runs after all sources, so it adds itself last.
+   */
+  public Snapshot withNavigator(Navigator navigator, Source step) {
+    List<Source> withStep = new ArrayList<>(sources);
+    withStep.add(step);
+    return new Snapshot(
+        schemaVersion,
+        generatedAt,
+        project,
+        withStep,
+        sprint,
+        workItems,
+        pullRequests,
+        builds,
+        releases,
+        decisions,
+        risks,
+        questions,
+        links,
+        changes,
+        events,
+        documents,
+        navigator);
   }
 }

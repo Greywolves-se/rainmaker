@@ -82,6 +82,12 @@ Settings live in `collector/src/main/resources/application.properties` and can b
   - **Without a login,** a project with a folder shows the source as `error` ("No Google login …"). Tokens are never logged.
 - **Errors:** timeouts, rate limits (HTTP 429, or 403 with a rate-limit reason) and server errors are retried with back-off. A rejected token (401) is renewed once. Any other 403 usually means the folder isn't shared with the service account.
 
+**Navigator AI text (#115, ADR 0002, source `navigator-ai`):** after all sources ran, the collector asks OpenAI once per page (Overview, Development, Sources) and project for a summary, deviations and suggested next steps, in **Swedish and English from one call**. It stores the result in the snapshot's `navigator` section.
+- **No names leave:** every person in the snapshot (assignees, authors, owners, also each name inside an owner list, and last editors) is replaced with "Person A", "Person B" … by the `anonymizer` module before the call, and put back in the answer. Only the page's data is sent, never URLs. A name that appears only in free text, and in no person field, is not hidden.
+- **Model and settings:** `mission-control.collector.navigator.*` in `application.properties`. The default model is `gpt-6-luna`; change it there, no code change needed. The API is OpenAI's Responses API with a JSON Schema for the answer (structured output).
+- **Off until switched on:** `MC_NAVIGATOR_ENABLED=true` and an API key in `OPENAI_API_KEY` (Peter's OpenAI account; AWS Secrets Manager in CI, #112). Switched off, the source shows `disabled`; without a key, `error`.
+- **Never stops the snapshot:** a page that fails (a timeout, a refusal, an answer that isn't the agreed JSON) gets no text and the others are kept; if every page fails, `navigator` is `null` and the source shows `error` with a safe message. Answers are cut to the contract's limits. The key is never logged.
+
 **START HERE report (#25):** every run also writes `out/<project>/start-here.md` next to each snapshot. It's a Markdown briefing for a new team member or an AI assistant:
 - the hand-written intro from `data/<project>/start-here-intro.md` (product goal, architecture in short, how we work);
 - then generated sections: status (sprint, key dates, sources with problems), next work, pull requests waiting for review, decisions, red and yellow risks, open questions, latest release and links.
