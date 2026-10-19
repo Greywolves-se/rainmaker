@@ -617,84 +617,59 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
     ],
   },
   navigator: {
-    summaryTime: '10:20',
-    summary:
-      'Rainmaker: green. Sprint 2: 2 of 7 stories done. Two open blockers. New architecture file from Simon in Drive. Three PRs awaiting review. Pilot starts in 6 days. No critical outage.',
-    projects: [
-      {
-        id: 'nav-project-1',
-        title: 'Rainmaker',
-        health: 'green',
-        text: 'Sprint 2: 2 of 7 stories done. Three PRs awaiting review.',
+    status: 'on',
+    reason: null,
+    text: {
+      model: 'demo',
+      generatedAt: '2026-10-14T08:24:30Z',
+      pages: {
+        overview: {
+          sv: {
+            summary:
+              'Sprint 2 är på väg: 2 av 7 stories klara. Två hinder behöver lösas före pilotstarten.',
+            deviations: [
+              'AWS-hälsan saknar en IAM-roll.',
+              'Pilotdata från Service company saknas.',
+            ],
+            suggestions: ['Ge Erik IAM-rollen för CloudWatch i dag.'],
+          },
+          en: {
+            summary:
+              'Sprint 2 is under way: 2 of 7 stories done. Two blockers need solving before the pilot start.',
+            deviations: [
+              'AWS health is missing an IAM role.',
+              'Pilot data from the Service company is missing.',
+            ],
+            suggestions: ['Give Erik the IAM role for CloudWatch today.'],
+          },
+        },
+        development: {
+          sv: {
+            summary:
+              'Tre pull requests väntar på granskning; bygget på main är grönt.',
+            deviations: ['#236 har ett test som misslyckas.'],
+            suggestions: ['Granska #234 och #237 före fredagens demo.'],
+          },
+          en: {
+            summary:
+              'Three pull requests wait for review; the build on main is green.',
+            deviations: ['#236 has a failing test.'],
+            suggestions: ['Review #234 and #237 before Friday’s demo.'],
+          },
+        },
+        sources: {
+          sv: {
+            summary: 'Fem av sex källor är synkade.',
+            deviations: ['AWS CloudWatch saknar behörighet.'],
+            suggestions: [],
+          },
+          en: {
+            summary: 'Five of six sources are synced.',
+            deviations: ['AWS CloudWatch has no access.'],
+            suggestions: [],
+          },
+        },
       },
-      {
-        id: 'nav-project-2',
-        title: 'Friction Intelligence',
-        health: 'green',
-        text: 'Two pilots running. New pilot starts in 6 days.',
-      },
-      {
-        id: 'nav-project-3',
-        title: 'Operations (AWS)',
-        health: 'green',
-        text: 'All systems stable. No critical outage.',
-      },
-      {
-        id: 'nav-project-4',
-        title: 'Key notes',
-        health: 'yellow',
-        text: 'Two open blockers. New architecture file from Simon in Drive.',
-      },
-    ],
-    nextSteps: [
-      'Get the three PRs reviewed (Simon).',
-      'Fix the IAM role so AWS health shows up.',
-      'Prepare material for the 20 Oct pilot start.',
-      'Peter: approve the customer for Friday’s demo.',
-    ],
-    questions: [
-      {
-        id: 'ask-1',
-        question: 'What is happening now?',
-        answer:
-          'Sprint 2 is underway (75%). Three PRs await review, and the Retail and Industrial pilots are running.',
-      },
-      {
-        id: 'ask-2',
-        question: 'What is done?',
-        answer:
-          'Release v0.8.1 is in production, Architecture v2.1 and Pilot plan Q1 are in Drive, PR #233 is merged.',
-      },
-      {
-        id: 'ask-3',
-        question: 'What are the next steps?',
-        answer:
-          'Review PRs #234, #236 and #237, fix the AWS IAM role and prepare the pilot start on 20 Oct.',
-      },
-      {
-        id: 'ask-4',
-        question: 'Any blockers?',
-        answer:
-          'Yes, two: AWS health is missing an IAM role (Erik) and pilot data from the Service company is missing (Caroline).',
-      },
-      {
-        id: 'ask-5',
-        question: 'Who is responsible?',
-        answer:
-          'Simon: architecture and review. Erik: integrations. Caroline: pilots and overview. Peter and Staffan: decisions.',
-      },
-      {
-        id: 'ask-6',
-        question: 'How are the systems?',
-        answer:
-          'All systems stable. CPU back to normal after a spike this morning. No 5xx errors in the last 24 hours.',
-      },
-      {
-        id: 'ask-7',
-        question: 'How is the business doing?',
-        answer:
-          'Rainmaker is growing: traffic +12% and 24 active customers. The Retail pilot shows +18% in results.',
-      },
-    ],
+    },
   },
 };

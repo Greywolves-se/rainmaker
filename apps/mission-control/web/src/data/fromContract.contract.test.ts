@@ -291,12 +291,7 @@ describe('fromContract', () => {
     expect(page.development.build).toBeNull();
     expect(page.sources.mapping).toEqual([]);
     expect(page.sources.syncLog).toEqual([]);
-    expect(page.navigator).toEqual({
-      summaryTime: null,
-      summary: null,
-      projects: [],
-      nextSteps: [],
-      questions: [],
-    });
+    // The sample has AI text (#115) but no navigator-ai source entry: shown, no reason.
+    expect(page.navigator).toMatchObject({status: 'on', reason: null});
   });
 });

@@ -118,10 +118,6 @@
     "blocked": "Blockerad",
     "done": "Klar"
   },
-  "health": {
-    "green": "grön",
-    "yellow": "gul"
-  },
   "decisions": {
     "meta": "{{owner}} · {{date}}",
     "metaWithReference": "{{owner}} · {{date}} · {{reference}}"
@@ -234,9 +230,13 @@
   "navigator": {
     "label": "Navigator",
     "title": "NAVIGATOR",
-    "summaryAt": "AI-sammanfattning · {{time}}",
-    "managementSummary": "LEDNINGSSAMMANFATTNING",
-    "nextSteps": "Förslag på nästa steg",
+    "noSummary": "Ingen AI-sammanfattning än",
+    "deviations": "Avvikelser",
+    "suggestions": "Förslag",
+    "aiLabel": "Genererad av AI ({{model}}) kl. {{time}}. Kan innehålla fel.",
+    "aiLabelWithDate": "Genererad av AI ({{model}}) {{day}} kl. {{time}}. Kan innehålla fel.",
+    "basedOn": "Baserad på uppgifterna på den här sidan",
+    "comingLater": "Kommer senare",
     "ask": "Fråga Navigator",
     "askOwnLabel": "Ställ en egen fråga",
     "askOwnPlaceholder": "Ställ en egen fråga …",

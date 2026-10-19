@@ -94,12 +94,16 @@ function ProjectContent({project}: {project: ProjectEntry}) {
         </p>
       </div>
       <div className="columns">
-        <main className="main-column">
+        {/* The Navigator's "Based on the data on this page" link points here. */}
+        {/* tabIndex -1: the link target can take focus, so screen readers move there too. */}
+        <main className="main-column" id="main-content" tabIndex={-1}>
           <Outlet />
         </main>
         <Navigator
           navigator={loaded.page.navigator}
           projectName={project.name}
+          page={page.key}
+          demo={loaded.demo}
         />
       </div>
     </>

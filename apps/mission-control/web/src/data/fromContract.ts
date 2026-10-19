@@ -8,6 +8,7 @@ import type {
   DecisionItem,
   LatestDocuments,
   LinkedItem,
+  NavigatorAi,
   Snapshot as PageSnapshot,
   SourceCode,
   StatusCode,
@@ -128,14 +129,24 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
       mapping: [],
       syncLog: [],
     },
-    navigator: {
-      summaryTime: null,
-      summary: null,
-      projects: [],
-      nextSteps: [],
-      questions: [],
-    },
+    navigator: toNavigatorAi(snapshot),
   };
+}
+
+/** The AI step's own entry in sources[] (contract README, #115). */
+const NAVIGATOR_SOURCE_ID = 'navigator-ai';
+
+/**
+ * Text present: show it. No text: hidden when the step is off or the snapshot predates #115
+ * (no entry), otherwise "No AI summary yet" with the step's message as the reason.
+ */
+function toNavigatorAi(snapshot: ContractSnapshot): NavigatorAi {
+  const step = snapshot.sources.find(s => s.id === NAVIGATOR_SOURCE_ID);
+  const text = snapshot.navigator;
+  if (!text && (!step || step.status === 'disabled')) {
+    return {status: 'off'};
+  }
+  return {status: 'on', reason: step?.message ?? null, text};
 }
 
 const STORY_STATUS: Record<WorkItem['status'], StoryStatus> = {
