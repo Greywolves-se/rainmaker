@@ -6,6 +6,7 @@ import type {
 } from '../contract/snapshot';
 import type {
   DecisionItem,
+  LatestDocuments,
   LinkedItem,
   Snapshot as PageSnapshot,
   SourceCode,
@@ -69,6 +70,7 @@ export function fromContract(snapshot: ContractSnapshot): PageSnapshot {
           occurredAt: event.occurredAt,
           url: event.url,
         })),
+      documents: latestDocuments(snapshot),
     },
     development: {
       sprint: sprint && {
@@ -199,6 +201,50 @@ function toLinkedItem(item: WorkItem): LinkedItem {
 /** Compares timestamps by time, so "…30.5Z" and "…30Z" sort correctly (text order would not). */
 function newestFirst(a: string, b: string): number {
   return Date.parse(b) - Date.parse(a);
+}
+
+/** How many documents the Overview lists (#114 asks for 5–10). */
+const MAX_DOCUMENTS = 8;
+
+/** Sources that provide documents even when they have none yet (#113). */
+const KNOWN_DOCUMENT_SOURCES = ['google-drive'];
+
+/**
+ * The most recently changed documents, newest first, from the document sources that work. A
+ * document whose own source failed is left out, so one failing store never hides another.
+ */
+function latestDocuments(snapshot: ContractSnapshot): LatestDocuments {
+  const documentSourceIds = new Set([
+    ...KNOWN_DOCUMENT_SOURCES,
+    ...snapshot.documents.map(entry => entry.source),
+  ]);
+  const documentSources = snapshot.sources.filter(source =>
+    documentSourceIds.has(source.id)
+  );
+  const working = new Set(
+    documentSources.filter(s => s.status === 'ok').map(s => s.id)
+  );
+  if (working.size === 0) {
+    const allOff =
+      documentSources.length > 0 &&
+      documentSources.every(source => source.status === 'disabled');
+    return allOff
+      ? {status: 'off', sources: documentSources.map(source => source.name)}
+      : {status: 'unavailable'};
+  }
+  const items = snapshot.documents
+    .filter(entry => working.has(entry.source))
+    .sort((a, b) => newestFirst(a.modifiedAt, b.modifiedAt))
+    .slice(0, MAX_DOCUMENTS)
+    .map(entry => ({
+      id: entry.id,
+      title: entry.title,
+      kind: entry.kind,
+      lastEditor: entry.lastEditor,
+      modifiedAt: entry.modifiedAt,
+      url: entry.url,
+    }));
+  return {status: 'ok', items};
 }
 
 /** The most recently published release, in any environment. */
