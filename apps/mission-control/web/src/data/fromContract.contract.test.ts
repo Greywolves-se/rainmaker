@@ -11,8 +11,8 @@ describe('fromContract', () => {
   it('maps the shell: time and source summary', () => {
     expect(page.generatedAt).toBe('2026-11-02T06:00:00Z');
     expect(page.sourceSummary).toEqual({
-      synced: 1,
-      total: 2,
+      synced: 2,
+      total: 3,
       note: 'risks.yaml: line 14 has no owner',
     });
   });
@@ -189,6 +189,7 @@ describe('fromContract', () => {
     ).toEqual([
       ['GH', 'synced', null],
       ['DA', 'error', 'risks.yaml: line 14 has no owner'],
+      ['GD', 'synced', null],
     ]);
   });
 

@@ -9,6 +9,7 @@ import sample from '../../../contract/fixtures/snapshot.sample.json';
 import {
   buildStatus,
   decisionStatus,
+  documentKind,
   linkCategory,
   parseSnapshot,
   pullRequestChecks,
@@ -58,6 +59,13 @@ describe('snapshot contract', () => {
     expect(parseSnapshot(snapshot)).not.toHaveProperty('costSek');
   });
 
+  it('reads a snapshot from before #113, without documents, as having none', () => {
+    const older: Partial<typeof sample> = clone();
+    delete older.documents;
+    expect(matchesJsonSchema(older)).toBe(false);
+    expect(parseSnapshot(older).documents).toEqual([]);
+  });
+
   it.each([
     {definition: 'source', field: 'status', zodEnum: sourceStatus},
     {definition: 'workItem', field: 'status', zodEnum: workItemStatus},
@@ -70,6 +78,7 @@ describe('snapshot contract', () => {
     {definition: 'risk', field: 'level', zodEnum: riskLevel},
     {definition: 'question', field: 'status', zodEnum: questionStatus},
     {definition: 'link', field: 'category', zodEnum: linkCategory},
+    {definition: 'document', field: 'kind', zodEnum: documentKind},
   ])(
     '$definition.$field has exactly the schema values',
     ({definition, field, zodEnum}) => {

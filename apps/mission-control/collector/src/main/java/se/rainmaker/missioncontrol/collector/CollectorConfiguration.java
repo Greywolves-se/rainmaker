@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import se.rainmaker.missioncontrol.collector.datafiles.DataFilesProperties;
+import se.rainmaker.missioncontrol.collector.drive.GoogleDriveProperties;
 import se.rainmaker.missioncontrol.collector.github.GithubProperties;
 import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 
@@ -13,7 +14,8 @@ import se.rainmaker.missioncontrol.collector.pipeline.CollectorProperties;
 @EnableConfigurationProperties({
   CollectorProperties.class,
   DataFilesProperties.class,
-  GithubProperties.class
+  GithubProperties.class,
+  GoogleDriveProperties.class
 })
 class CollectorConfiguration {
 

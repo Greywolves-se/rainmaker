@@ -22,7 +22,8 @@ public record Snapshot(
     List<Question> questions,
     List<Link> links,
     List<Change> changes,
-    List<Event> events) {
+    List<Event> events,
+    List<Document> documents) {
 
   /** The contract version these records implement. */
   public static final int SCHEMA_VERSION = 1;
@@ -40,5 +41,6 @@ public record Snapshot(
     links = List.copyOf(links);
     changes = List.copyOf(changes);
     events = List.copyOf(events);
+    documents = List.copyOf(documents);
   }
 }

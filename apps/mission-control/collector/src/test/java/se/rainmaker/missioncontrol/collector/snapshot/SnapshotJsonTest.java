@@ -58,6 +58,7 @@ class SnapshotJsonTest {
             List.of(),
             List.of(),
             List.of(),
+            List.of(),
             List.of());
 
     assertThat(ContractFiles.schema().validate(JSON.valueToTree(snapshot))).isEmpty();

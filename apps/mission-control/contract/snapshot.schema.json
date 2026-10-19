@@ -5,7 +5,7 @@
   "description": "Everything the Mission Control dashboard shows, written by the collector in one run. Every field is required; a value that is unknown is null, never missing. Every item that comes from a source has `source` (a sources[].id) and a `url` back to the details.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "generatedAt", "project", "sources", "sprint", "workItems", "pullRequests", "builds", "releases", "decisions", "risks", "questions", "links", "changes", "events"],
+  "required": ["schemaVersion", "generatedAt", "project", "sources", "sprint", "workItems", "pullRequests", "builds", "releases", "decisions", "risks", "questions", "links", "changes", "events", "documents"],
   "properties": {
     "schemaVersion": {"const": 1, "description": "Version of this contract. Bumped only for breaking changes."},
     "generatedAt": {"$ref": "#/$defs/timestamp", "description": "When the collector wrote this snapshot."},
@@ -21,7 +21,8 @@
     "questions": {"type": "array", "items": {"$ref": "#/$defs/question"}, "description": "Open and answered questions for owners and the team."},
     "links": {"type": "array", "items": {"$ref": "#/$defs/link"}, "description": "Environments, dashboards and documents."},
     "changes": {"type": "array", "items": {"$ref": "#/$defs/change"}, "description": "Change log for infrastructure and DNS changes."},
-    "events": {"type": "array", "items": {"$ref": "#/$defs/event"}, "description": "Recent events from all sources, newest first."}
+    "events": {"type": "array", "items": {"$ref": "#/$defs/event"}, "description": "Recent events from all sources, newest first."},
+    "documents": {"type": "array", "items": {"$ref": "#/$defs/document"}, "description": "Latest documents from document stores such as Google Drive (#113): metadata only, never their content."}
   },
   "$defs": {
     "timestamp": {"type": "string", "format": "date-time", "description": "UTC instant, ISO 8601 (e.g. 2026-10-15T07:30:00Z)."},
@@ -191,6 +192,18 @@
         "title": {"$ref": "#/$defs/text", "description": "One-line summary, e.g. \"PR #66 merged\"."},
         "source": {"$ref": "#/$defs/sourceId"},
         "url": {"$ref": "#/$defs/url"}
+      }
+    },
+    "document": {
+      "type": "object", "additionalProperties": false, "required": ["id", "title", "kind", "lastEditor", "modifiedAt", "source", "url"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "title": {"$ref": "#/$defs/text", "description": "The document's name."},
+        "kind": {"enum": ["document", "spreadsheet", "presentation", "pdf", "other"], "description": "What kind of file it is; the web app picks the label and icon."},
+        "lastEditor": {"oneOf": [{"$ref": "#/$defs/person"}, {"type": "null"}], "description": "Display name of whoever changed it last, or null when the source does not say."},
+        "modifiedAt": {"$ref": "#/$defs/timestamp", "description": "When it was last changed."},
+        "source": {"$ref": "#/$defs/sourceId"},
+        "url": {"$ref": "#/$defs/url", "description": "Opens the document in its source (e.g. Google Drive)."}
       }
     }
   }

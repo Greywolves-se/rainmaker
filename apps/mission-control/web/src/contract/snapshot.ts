@@ -51,6 +51,14 @@ export const linkCategory = z.enum([
   'other',
 ]);
 
+export const documentKind = z.enum([
+  'document',
+  'spreadsheet',
+  'presentation',
+  'pdf',
+  'other',
+]);
+
 const milestone = z.object({id, title: text, date});
 
 const source = z.object({
@@ -156,6 +164,16 @@ const change = z.object({
 
 const event = z.object({id, occurredAt: timestamp, title: text, ...fromSource});
 
+// Named documentItem, not document, so it never hides the browser's global document.
+const documentItem = z.object({
+  id,
+  title: text,
+  kind: documentKind,
+  lastEditor: person.nullable(),
+  modifiedAt: timestamp,
+  ...fromSource,
+});
+
 /**
  * The whole snapshot. Fields the web app does not know yet are dropped instead of rejected, so a
  * newer collector never breaks an older dashboard.
@@ -176,6 +194,8 @@ export const snapshotSchema = z.object({
   links: z.array(link),
   changes: z.array(change),
   events: z.array(event),
+  // Lenient on purpose: a snapshot written before #113 has no documents list; read it as empty.
+  documents: z.array(documentItem).default([]),
 });
 
 export type Snapshot = z.infer<typeof snapshotSchema>;
@@ -190,6 +210,7 @@ export type Question = Snapshot['questions'][number];
 export type Link = Snapshot['links'][number];
 export type Change = Snapshot['changes'][number];
 export type Event = Snapshot['events'][number];
+export type DocumentEntry = Snapshot['documents'][number];
 
 /**
  * Checks untrusted JSON (e.g. a fetched snapshot.json) against the contract.

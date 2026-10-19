@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -57,10 +58,15 @@ public class CollectorPipeline {
     SnapshotBuilder snapshot = new SnapshotBuilder();
     List<Source> results = new ArrayList<>();
     for (SourceCollector source : sources) {
+      if (!properties.isEnabled(source.id())) {
+        results.add(result(source, Source.Status.DISABLED, "Disabled in configuration"));
+        continue;
+      }
+      Optional<String> notSetUp = source.notSetUpFor(project);
       results.add(
-          properties.isEnabled(source.id())
-              ? collect(source, project, snapshot)
-              : result(source, Source.Status.DISABLED, "Disabled in configuration"));
+          notSetUp.isPresent()
+              ? result(source, Source.Status.DISABLED, notSetUp.get())
+              : collect(source, project, snapshot));
     }
     return snapshot.build(clock.instant(), fallbackProject(project), results);
   }
