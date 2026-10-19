@@ -49,23 +49,34 @@ Windows, run `cdk` from WSL; plain `cmd.exe` cannot run `../mvnw`.
 
 Never print or commit secret values. Reference secrets by name or ARN (see CLAUDE.md).
 
-## Importing the existing role (#82, needs admin access to staging)
+## Staging account status (#82)
 
-The stack already matches the provider and role in AWS (compared with `aws iam get-role` and
-`get-role-policy` on 15 Oct 2026). Both have `DeletionPolicy: Retain`, which `cdk import`
-requires and which keeps them if the stack is ever deleted.
+The staging account is **bootstrapped**, and `GithubDeployAccess-staging` **manages** the GitHub
+OIDC provider and the `github-actions-rainmaker` role. Done by Maruf on 19 Oct 2026 in AWS
+CloudShell; the outputs are in #82. The change logs record each step with a rollback plan: the
+bootstrap and the import, which the whole repository relies on, in
+[`../apps/mission-control/data/rainmaker/changelog.yaml`](../apps/mission-control/data/rainmaker/changelog.yaml)
+(C-1, C-2); the collector's secrets policy in
+[`../apps/mission-control/data/mission-control/changelog.yaml`](../apps/mission-control/data/mission-control/changelog.yaml)
+(C-1).
 
-1. `cdk bootstrap aws://659947636280/eu-north-1` (once; the account is not bootstrapped yet).
-   Record who ran it and the output in the PR.
-2. `cdk import GithubDeployAccess-staging`. Identifiers: the provider ARN
-   `arn:aws:iam::659947636280:oidc-provider/token.actions.githubusercontent.com` and the role
-   name `github-actions-rainmaker`. The inline policies come in with the role.
-3. `cdk diff GithubDeployAccess-staging` must show no changes. CloudFormation does not compare
-   the template with the real resources during an import, so also run drift detection
-   (`aws cloudformation detect-stack-drift`) and check that nothing has drifted.
-4. After the next merge to `develop`, `docker.yml` must still push to ECR and deploy staging.
+1. `cdk bootstrap aws://659947636280/eu-north-1` created the `CDKToolkit` stack.
+2. `cdk import` adopted the provider and the role **unchanged**, using the code that matched AWS
+   at the time (commit `822a112`, two inline policies). Importing with newer code would have made
+   CloudFormation believe that policies existed which did not.
+3. `cdk diff` showed no resource changes, and drift detection showed both resources `IN_SYNC`.
+4. `cdk deploy` from `develop` (`a88422e`, after #124) then added `read-mission-control-secrets`,
+   which allows only `mission-control/openai-api-key`; no Google secret was ever deployed.
 
-Never run `cdk deploy` on this stack before steps 1–3 are clean.
+**From now on** a change to this stack is an ordinary change: a PR with the code, then someone
+with access runs `cdk diff GithubDeployAccess-staging` (output in the PR) and `cdk deploy`.
+Both resources keep `DeletionPolicy: Retain`, so deleting the stack never deletes them, nor
+their inline policies.
+
+**Node.js:** run the CDK CLI with Node.js 22 or newer. AWS CloudShell came with Node.js 20, which
+is end of life since April 2026; it worked with a warning on 19 Oct, but may stop working when
+CDK drops support. Install Node.js 22 in the CloudShell session first (for example with `nvm`, if
+available; check `node --version` afterwards).
 
 ## Collector credentials (#112)
 
