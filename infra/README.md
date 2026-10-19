@@ -70,7 +70,7 @@ nobody puts a value in the repository, an issue, a PR, a log or a chat.
 | Secret name | Contents | Environment variable in the collector step |
 |---|---|---|
 | `mission-control/google-drive-service-account` | JSON key of a read-only Google service account (scope `drive.metadata.readonly`, Viewer on the shared project folders) | `MC_GOOGLE_SERVICE_ACCOUNT_JSON` |
-| `mission-control/openai-api-key` | API key of the team's OpenAI organisation, which has a monthly spending limit | `MC_OPENAI_API_KEY` |
+| `mission-control/openai-api-key` | API key of the team's OpenAI organisation, which has a monthly spending limit | `OPENAI_API_KEY` |
 
 - **Access:** the `read-mission-control-secrets` policy lets the deploy role read exactly these two
   secrets (`secretsmanager:GetSecretValue`), nothing else. `docker.yml` reads them inside the

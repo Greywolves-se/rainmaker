@@ -151,7 +151,7 @@ jobs:
             fi
           }
           read_secret mission-control/google-drive-service-account MC_GOOGLE_SERVICE_ACCOUNT_JSON
-          read_secret mission-control/openai-api-key MC_OPENAI_API_KEY
+          read_secret mission-control/openai-api-key OPENAI_API_KEY
 
           ./mvnw -B -ntp -q -f apps/mission-control/pom.xml -pl collector -am package -DskipTests
           java -jar apps/mission-control/collector/target/collector-*.jar

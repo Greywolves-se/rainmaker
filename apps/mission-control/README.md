@@ -30,7 +30,7 @@ The collector is a command-line app (Spring Boot, no web server): it runs once a
 java -jar apps/mission-control/collector/target/collector-0.1.0-SNAPSHOT.jar
 ```
 
-**Google Drive and OpenAI keys (#112):** the Drive and OpenAI sources (#113, #115) read `MC_GOOGLE_SERVICE_ACCOUNT_JSON` and `MC_OPENAI_API_KEY`. In staging they come from AWS Secrets Manager (see `infra/README.md`, "Collector secrets"). Locally, use your own keys in your shell or in `.env` (git-ignored), never the staging ones.
+**Google Drive and OpenAI keys (#112):** the Drive and OpenAI sources (#113, #115) read `MC_GOOGLE_SERVICE_ACCOUNT_JSON` and `OPENAI_API_KEY`. In staging they come from AWS Secrets Manager (see `infra/README.md`, "Collector secrets"). Locally, use your own keys in your shell or in `.env` (git-ignored), never the staging ones.
 
 **Projects (#99):** the collector writes one snapshot per project: **Rainmaker** (the product) and **Mission Control** (this app). For each project, a run asks every enabled source for that project's data, in id order, and writes `apps/mission-control/out/<project>/snapshot.json` and `start-here.md` (git-ignored; never commit them). `out/projects.json` lists the projects that have a snapshot (id, and the name from that snapshot), so the web app needs no hard-coded list; its contract is `contract/projects.schema.json`. A project removed from the settings drops out of `projects.json`, but its `out/<id>/` folder stays until you delete it (harmless; `out/` is git-ignored and rebuilt in CI). Each file is replaced in one step, so a reader never sees half a snapshot.
 - **A source that fails** is listed with `status: error` and a short message, and adds nothing; the other sources are not affected.
