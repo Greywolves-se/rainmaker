@@ -42,3 +42,5 @@ The contract tests on both sides fail when they disagree.
 `src/contract/projects.ts` does the same for `projects.json` (`parseProjectList()`), tested by `projects.contract.test.ts`. It accepts and rejects the same files as the JSON Schema, with two deliberate differences:
 - **Unknown fields** are dropped instead of rejected, as for the snapshot. Writers are strict (the schema, the Java records), readers are lenient, so adding a field never breaks a deployed dashboard.
 - **Duplicate ids** are rejected, which JSON Schema cannot express.
+
+`snapshot.ts` reads a missing `documents` list (a snapshot written before #113) as empty, so a new web app never fails on an older snapshot. The schema and the collector still require it.

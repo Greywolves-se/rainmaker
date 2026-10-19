@@ -1,17 +1,20 @@
 package se.rainmaker.missioncontrol.collector.drive;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.net.URI;
 import java.nio.file.Path;
 import java.security.KeyPairGenerator;
@@ -106,7 +109,16 @@ class GoogleDriveSourceTest {
                 "application/pdf",
                 "2026-10-01T10:00:00Z",
                 "Alex Berg",
-                false)));
+                false),
+            created(
+                file(
+                    "new1",
+                    "Meeting notes",
+                    "application/vnd.google-apps.document",
+                    "2026-10-18T09:00:00Z",
+                    "Kim Ek",
+                    true),
+                "2026-10-18T08:00:00Z")));
 
     Snapshot snapshot = run(Map.of("rainmaker", FOLDER), RAINMAKER, key);
 
@@ -132,17 +144,48 @@ class GoogleDriveSourceTest {
                 "Signed contract",
                 Document.Kind.PDF,
                 "Alex Berg",
-                "https://drive.google.com/file/d/pdf1/view"));
+                "https://drive.google.com/file/d/pdf1/view"),
+            tuple(
+                "gd-new1",
+                "Meeting notes",
+                Document.Kind.DOCUMENT,
+                "Kim Ek",
+                "https://docs.google.com/d/new1"));
     assertThat(snapshot.events())
         .extracting(Event::id, Event::title)
-        .containsExactly(tuple("gd-doc1-modified", "Document updated: Pilot agreement"));
+        .containsExactly(
+            tuple("gd-doc1-modified", "Document updated: Pilot agreement"),
+            tuple("gd-new1-added", "Document added: Meeting notes"));
     google.verify(
         getRequestedFor(urlPathEqualTo("/drive/v3/files"))
             .withHeader("Authorization", equalTo("Bearer " + TOKEN))
             .withQueryParam("q", equalTo(query(FOLDER)))
             .withQueryParam("orderBy", equalTo("modifiedTime desc"))
+            .withQueryParam("pageSize", equalTo("50"))
             .withQueryParam("supportsAllDrives", equalTo("true"))
             .withQueryParam("includeItemsFromAllDrives", equalTo("true")));
+  }
+
+  /** Every field the source maps must be requested; Drive leaves out any field not asked for. */
+  @ParameterizedTest
+  @CsvSource({
+    "id",
+    "name",
+    "mimeType",
+    "createdTime",
+    "modifiedTime",
+    "webViewLink",
+    "lastModifyingUser(displayName)"
+  })
+  void requestsEveryFieldTheSourceMaps(String field) {
+    stubToken();
+    stubFiles(FOLDER, List.of());
+
+    run(Map.of("rainmaker", FOLDER), RAINMAKER, key);
+
+    google.verify(
+        getRequestedFor(urlPathEqualTo("/drive/v3/files"))
+            .withQueryParam("fields", containing(field)));
   }
 
   @ParameterizedTest(name = "{0} -> {1}")
@@ -187,12 +230,127 @@ class GoogleDriveSourceTest {
   }
 
   @Test
-  void projectWithoutFolderGetsNothingAndMakesNoCalls() {
+  void projectWithoutFolderShowsDriveAsDisabledAndMakesNoCalls() {
     Snapshot snapshot = run(Map.of("rainmaker", FOLDER), MISSION_CONTROL, "");
 
-    assertThat(snapshot.sources().getFirst().status()).isEqualTo(Source.Status.OK);
+    assertThat(snapshot.sources().getFirst())
+        .extracting(Source::status, Source::message)
+        .containsExactly(Source.Status.DISABLED, "No Google Drive folder for this project");
     assertThat(snapshot.documents()).isEmpty();
     assertThat(google.getAllServeEvents()).isEmpty();
+  }
+
+  @Test
+  void fileWithoutNameIsLeftOutAndTheRestIsKept(CapturedOutput output) {
+    stubToken();
+    stubFiles(
+        FOLDER,
+        List.of(
+            file("blank", " ", "application/pdf", "2026-10-18T10:00:00Z", null, true),
+            file(
+                "doc1", "Pilot agreement", "application/pdf", "2026-10-18T10:00:00Z", null, true)));
+
+    Snapshot snapshot = run(Map.of("rainmaker", FOLDER), RAINMAKER, key);
+
+    assertThat(snapshot.sources().getFirst().status()).isEqualTo(Source.Status.OK);
+    assertThat(snapshot.documents()).extracting(Document::id).containsExactly("gd-doc1");
+    assertThat(output.getOut()).contains("Google Drive files without a name were left out");
+  }
+
+  @Test
+  void rejectedTokenIsRenewedOnceAndTheRequestRepeated() {
+    stubToken();
+    google.stubFor(
+        get(urlPathEqualTo("/drive/v3/files"))
+            .inScenario("token")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(aResponse().withStatus(401))
+            .willSetStateTo("renewed"));
+    google.stubFor(
+        get(urlPathEqualTo("/drive/v3/files"))
+            .inScenario("token")
+            .whenScenarioStateIs("renewed")
+            .willReturn(
+                okJson(
+                    JSON.writeValueAsString(
+                        Map.of(
+                            "files",
+                            List.of(
+                                file(
+                                    "doc1",
+                                    "Pilot agreement",
+                                    "application/pdf",
+                                    "2026-10-18T10:00:00Z",
+                                    null,
+                                    true)))))));
+
+    Snapshot snapshot = run(Map.of("rainmaker", FOLDER), RAINMAKER, key);
+
+    assertThat(snapshot.documents()).extracting(Document::id).containsExactly("gd-doc1");
+    google.verify(2, postRequestedFor(urlPathEqualTo("/token")));
+  }
+
+  @Test
+  void tokenRejectedAgainAfterRenewingGivesError() {
+    stubToken();
+    google.stubFor(get(urlPathEqualTo("/drive/v3/files")).willReturn(aResponse().withStatus(401)));
+
+    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, key).sources().getFirst();
+
+    assertThat(result.message())
+        .isEqualTo("Google Drive rejected the access token (HTTP 401), also after renewing it");
+    google.verify(2, getRequestedFor(urlPathEqualTo("/drive/v3/files")));
+  }
+
+  @ParameterizedTest(name = "HTTP {0} {1}")
+  @CsvSource({
+    "403, rateLimitExceeded, rate limited (HTTP 403)",
+    "403, userRateLimitExceeded, rate limited (HTTP 403)",
+    "429, '', HTTP 429"
+  })
+  void rateLimitsAreRetriedThenReported(int status, String reason, String last) {
+    stubToken();
+    google.stubFor(
+        get(urlPathEqualTo("/drive/v3/files"))
+            .willReturn(
+                aResponse()
+                    .withStatus(status)
+                    .withBody("{\"error\": {\"errors\": [{\"reason\": \"" + reason + "\"}]}}")));
+
+    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, key).sources().getFirst();
+
+    assertThat(result.message())
+        .isEqualTo("Google Drive did not answer after 2 attempts (last: " + last + ")");
+    google.verify(2, getRequestedFor(urlPathEqualTo("/drive/v3/files")));
+  }
+
+  @Test
+  void unknownFolderGivesHint() {
+    stubToken();
+    google.stubFor(get(urlPathEqualTo("/drive/v3/files")).willReturn(aResponse().withStatus(404)));
+
+    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, key).sources().getFirst();
+
+    assertThat(result.message())
+        .contains("HTTP 404")
+        .contains("check the folder id and that it is shared with the service account");
+  }
+
+  @Test
+  void slowAnswersAreRetriedThenReported() {
+    stubToken();
+    google.stubFor(
+        get(urlPathEqualTo("/drive/v3/files"))
+            .willReturn(okJson("{\"files\": []}").withFixedDelay(2000)));
+
+    Source result =
+        run(Map.of("rainmaker", FOLDER), RAINMAKER, key, Duration.ofMillis(300))
+            .sources()
+            .getFirst();
+
+    assertThat(result.message())
+        .isEqualTo("Google Drive did not answer after 2 attempts (last: no answer in time)");
+    google.verify(2, getRequestedFor(urlPathEqualTo("/drive/v3/files")));
   }
 
   @Test
@@ -255,13 +413,22 @@ class GoogleDriveSourceTest {
 
   private static Snapshot run(
       Map<String, String> folders, ProjectSettings project, String credentials) {
+    return run(folders, project, credentials, Duration.ofSeconds(5));
+  }
+
+  /** A short {@code readTimeout} only in the timeout test: a cold first request can be slow. */
+  private static Snapshot run(
+      Map<String, String> folders,
+      ProjectSettings project,
+      String credentials,
+      Duration readTimeout) {
     GoogleDriveProperties properties =
         new GoogleDriveProperties(
             URI.create(google.baseUrl() + "/drive/v3"),
             credentials,
             folders,
             Duration.ofSeconds(1),
-            Duration.ofSeconds(5),
+            readTimeout,
             2,
             Duration.ofMillis(1));
     Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
@@ -274,14 +441,20 @@ class GoogleDriveSourceTest {
   }
 
   /**
-   * The Drive search the client must send for {@code folder}: its files, no trash, no subfolders.
+   * The Drive search the client must send for {@code folder}: its files, no trash, no subfolders
+   * and no shortcuts. Written out here, so a change to the client's query fails the tests.
    */
   private static String query(String folder) {
     return "'"
         + folder
-        + "' in parents and trashed = false and mimeType != '"
-        + GoogleDriveClient.FOLDER_TYPE
-        + "'";
+        + "' in parents and trashed = false"
+        + " and mimeType != 'application/vnd.google-apps.folder'"
+        + " and mimeType != 'application/vnd.google-apps.shortcut'";
+  }
+
+  private static Map<String, Object> created(Map<String, Object> file, String createdTime) {
+    file.put("createdTime", createdTime);
+    return file;
   }
 
   private static void stubToken() {

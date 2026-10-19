@@ -194,7 +194,8 @@ export const snapshotSchema = z.object({
   links: z.array(link),
   changes: z.array(change),
   events: z.array(event),
-  documents: z.array(documentItem),
+  // Lenient on purpose: a snapshot written before #113 has no documents list; read it as empty.
+  documents: z.array(documentItem).default([]),
 });
 
 export type Snapshot = z.infer<typeof snapshotSchema>;

@@ -89,6 +89,19 @@ class CollectorPipelineTest {
   }
 
   @Test
+  void sourceNotSetUpForProjectIsDisabledWithItsReasonAndNotCalled() {
+    FakeSource drive = FakeSource.withId("google-drive").withWorkItem("9").notSetUp("No folder");
+
+    Snapshot snapshot = pipeline(Map.of(), drive).run(PROJECT);
+
+    assertThat(drive.calls()).isZero();
+    assertThat(snapshot.sources().getFirst())
+        .extracting(Source::status, Source::message)
+        .containsExactly(Source.Status.DISABLED, "No folder");
+    assertThat(snapshot.workItems()).isEmpty();
+  }
+
+  @Test
   void sourcesAreAlwaysInIdOrder() {
     Snapshot snapshot =
         pipeline(Map.of(), FakeSource.withId("slack"), FakeSource.withId("data-files"))

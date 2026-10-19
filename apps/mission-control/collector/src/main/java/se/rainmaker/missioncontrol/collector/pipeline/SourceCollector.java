@@ -1,5 +1,7 @@
 package se.rainmaker.missioncontrol.collector.pipeline;
 
+import java.util.Optional;
+
 /**
  * A data source (GitHub, data files, ...). Implement this as a Spring bean and the pipeline picks
  * it up; nothing else has to change. Sources are read-only: they never write to the system they
@@ -16,6 +18,16 @@ public interface SourceCollector {
 
   /** Display name, e.g. {@code GitHub}. */
   String name();
+
+  /**
+   * Why this source has nothing to collect for {@code project}, e.g. "No Google Drive folder for
+   * this project"; empty when it is set up. The pipeline then lists the source as {@code disabled}
+   * with this reason and does not call {@link #collect}, so the dashboard never shows a source as
+   * synced for a project it does not cover.
+   */
+  default Optional<String> notSetUpFor(ProjectSettings project) {
+    return Optional.empty();
+  }
 
   /**
    * Adds this source's items for {@code project} to {@code snapshot}. Called once per project and

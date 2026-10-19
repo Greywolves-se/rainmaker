@@ -68,10 +68,10 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 - **Waiting time:** how long a PR has waited for review is shown by the dashboard from `createdAt` and `review` (#21).
 
 **Google Drive (#113, source `google-drive`):** the newest 50 files directly in each project's Drive folder become `documents`: title, kind (document, spreadsheet, presentation, PDF or other), last editor, modified time and link. **Metadata only:** the source never reads a document's content.
-- **Events:** files changed in the last 7 days also appear as events.
-- **Folders:** each project's folder is set in `mission-control.collector.google-drive.folders.<project id>` (Rainmaker's "Project files" folder is prepared but commented out until the key exists, #112). Subfolders and trashed files are left out, and shared drives work too.
+- **Events:** files added or changed in the last 7 days also appear as events ("Document added" or "Document updated").
+- **Folders:** each project's folder is set in `mission-control.collector.google-drive.folders.<project id>` (Rainmaker's "Project files" folder is prepared but commented out until the key exists, #112). Subfolders, shortcuts, trashed files and files without a name are left out. A project without a folder shows Google Drive as `disabled` ("No Google Drive folder for this project"), never as synced.
 - **Login:** a Google **service account** with the read-only scope `drive.metadata.readonly`. Share each folder with it as **Viewer**. Its JSON key is read from `MC_GOOGLE_DRIVE_CREDENTIALS` (the whole file as text, AWS Secrets Manager in CI, #112) and is never logged. Without a key, a project with a folder shows the source as `error`.
-- **Errors:** timeouts, rate limits and server errors are retried with back-off. A 403 usually means the folder isn't shared with the service account.
+- **Errors:** timeouts, rate limits (HTTP 429, or 403 with a rate-limit reason) and server errors are retried with back-off. A rejected token (401) is renewed once. Any other 403 usually means the folder isn't shared with the service account.
 
 **START HERE report (#25):** every run also writes `out/<project>/start-here.md` next to each snapshot. It's a Markdown briefing for a new team member or an AI assistant:
 - the hand-written intro from `data/<project>/start-here-intro.md` (product goal, architecture in short, how we work);
@@ -79,7 +79,7 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 
 Every list is sorted and capped, so the report stays about two pages. The same snapshot always gives the same file. Change the intro or the data files, never the report.
 
-**Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method is called once per project and adds that project's items to the `SnapshotBuilder` it is given. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
+**Adding a source:** implement `SourceCollector` as a Spring bean (see the Javadoc). Its `collect` method is called once per project and adds that project's items to the `SnapshotBuilder` it is given. A source that only covers some projects overrides `notSetUpFor`, so it is listed as `disabled` with a reason for the others instead of as synced. If it cannot deliver, it throws `SourceException` with a message that is safe to show. The GitHub (#12) and data-file (#15) sources are the first real ones.
 
 ## CI
 `.github/workflows/mission-control-ci.yml` runs on every pull request into `develop` and `main` (so its checks can be required before merging, #109), and on pushes to them that change `apps/mission-control/**`. Jobs a change does not need are skipped, which counts as passing. The web job (lint, typecheck, tests, build on Node 22) only runs when `web/` or `contract/` changed. The collector job (format, Checkstyle, tests) runs when `collector/`, `contract/`, `data/` or the Maven setup changed.

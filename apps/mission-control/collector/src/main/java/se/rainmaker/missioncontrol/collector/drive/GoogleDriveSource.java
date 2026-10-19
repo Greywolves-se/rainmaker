@@ -3,7 +3,10 @@ package se.rainmaker.missioncontrol.collector.drive;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import se.rainmaker.missioncontrol.collector.pipeline.ProjectSettings;
 import se.rainmaker.missioncontrol.collector.pipeline.SnapshotBuilder;
@@ -14,8 +17,9 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * The latest documents in each project's Google Drive folder (#113): metadata only (title, kind,
- * last editor, modified time, link), never their content. Documents changed in the last 7 days also
- * become events. A project without a folder in the settings gets no documents.
+ * last editor, modified time, link), never their content. Documents added or changed in the last 7
+ * days also become events. A project without a folder in the settings is listed as disabled. Files
+ * without a name are left out (and logged), since the contract needs a title.
  *
  * <p>Only files directly in the folder are read, not those in subfolders, and only the newest
  * {@value GoogleDriveClient#MAX_FILES}.
@@ -27,6 +31,8 @@ public class GoogleDriveSource implements SourceCollector {
 
   /** Documents changed within this time also appear in the recent-events feed. */
   static final Duration RECENT = Duration.ofDays(7);
+
+  private static final Logger log = LoggerFactory.getLogger(GoogleDriveSource.class);
 
   private static final Set<String> DOCUMENT_TYPES =
       Set.of(
@@ -68,26 +74,58 @@ public class GoogleDriveSource implements SourceCollector {
     return "Google Drive";
   }
 
+  /** A project without a folder in the settings is not covered, so Drive shows as disabled. */
+  @Override
+  public Optional<String> notSetUpFor(ProjectSettings project) {
+    return properties.folders().containsKey(project.id())
+        ? Optional.empty()
+        : Optional.of("No Google Drive folder for this project");
+  }
+
   @Override
   public void collect(ProjectSettings project, SnapshotBuilder snapshot) {
-    String folder = properties.folders().get(project.id());
-    if (folder == null) {
-      return;
-    }
     Instant recent = clock.instant().minus(RECENT);
-    for (JsonNode file : client.latestFiles(folder)) {
+    int unnamed = 0;
+    for (JsonNode file : client.latestFiles(properties.folders().get(project.id()))) {
+      if (text(file, "name") == null) {
+        // The contract needs a title; one unnamed file must not fail the whole source.
+        unnamed++;
+        continue;
+      }
       Document document = document(file);
       snapshot.addDocument(document);
       if (document.modifiedAt().isAfter(recent)) {
-        snapshot.addEvent(
-            new Event(
-                document.id() + "-modified",
-                document.modifiedAt(),
-                "Document updated: " + document.title(),
-                ID,
-                document.url()));
+        snapshot.addEvent(event(document, createdAt(file), recent));
       }
     }
+    if (unnamed > 0) {
+      log.atWarn()
+          .addKeyValue("project", project.id())
+          .addKeyValue("files", unnamed)
+          .log("Google Drive files without a name were left out");
+    }
+  }
+
+  /** "Document added" when it was created in the recent window, else "Document updated". */
+  private static Event event(Document document, Instant createdAt, Instant recent) {
+    boolean added = createdAt != null && createdAt.isAfter(recent);
+    return new Event(
+        document.id() + (added ? "-added" : "-modified"),
+        document.modifiedAt(),
+        (added ? "Document added: " : "Document updated: ") + document.title(),
+        ID,
+        document.url());
+  }
+
+  private static Instant createdAt(JsonNode file) {
+    String created = text(file, "createdTime");
+    return created == null ? null : Instant.parse(created);
+  }
+
+  /** A text field, or null when it is missing, null or blank. */
+  private static String text(JsonNode node, String field) {
+    JsonNode value = node.get(field);
+    return value == null || value.isNull() || value.asString().isBlank() ? null : value.asString();
   }
 
   private static Document document(JsonNode file) {
@@ -120,10 +158,6 @@ public class GoogleDriveSource implements SourceCollector {
   }
 
   private static String lastEditor(JsonNode user) {
-    if (user == null || user.isNull()) {
-      return null;
-    }
-    JsonNode name = user.get("displayName");
-    return name == null || name.isNull() || name.asString().isBlank() ? null : name.asString();
+    return user == null || user.isNull() ? null : text(user, "displayName");
   }
 }

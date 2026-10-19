@@ -59,6 +59,13 @@ describe('snapshot contract', () => {
     expect(parseSnapshot(snapshot)).not.toHaveProperty('costSek');
   });
 
+  it('reads a snapshot from before #113, without documents, as having none', () => {
+    const older: Partial<typeof sample> = clone();
+    delete older.documents;
+    expect(matchesJsonSchema(older)).toBe(false);
+    expect(parseSnapshot(older).documents).toEqual([]);
+  });
+
   it.each([
     {definition: 'source', field: 'status', zodEnum: sourceStatus},
     {definition: 'workItem', field: 'status', zodEnum: workItemStatus},

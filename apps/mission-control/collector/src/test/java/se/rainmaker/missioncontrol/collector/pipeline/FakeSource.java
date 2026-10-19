@@ -3,6 +3,7 @@ package se.rainmaker.missioncontrol.collector.pipeline;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import se.rainmaker.missioncontrol.collector.snapshot.WorkItem;
 
 /** A source for tests: adds the work items it is given, then optionally fails. */
@@ -11,6 +12,7 @@ public final class FakeSource implements SourceCollector {
   private final String id;
   private final List<WorkItem> workItems = new ArrayList<>();
   private RuntimeException failure;
+  private String notSetUp;
   private int calls;
 
   private FakeSource(String id) {
@@ -40,6 +42,12 @@ public final class FakeSource implements SourceCollector {
     return this;
   }
 
+  /** Says it is not set up for any project, with this reason. */
+  public FakeSource notSetUp(String reason) {
+    this.notSetUp = reason;
+    return this;
+  }
+
   /** How often {@link #collect} was called. */
   public int calls() {
     return calls;
@@ -53,6 +61,11 @@ public final class FakeSource implements SourceCollector {
   @Override
   public String name() {
     return "Fake " + id;
+  }
+
+  @Override
+  public Optional<String> notSetUpFor(ProjectSettings project) {
+    return Optional.ofNullable(notSetUp);
   }
 
   private WorkItem workItem(String workItemId, String url) {
