@@ -227,7 +227,14 @@ class NavigatorStepTest {
     Snapshot result = step(true, KEY).addTo(sample());
 
     String summary = result.navigator().pages().overview().en().summary();
-    assertThat(summary).endsWith("x…").doesNotContain("\uD83D");
+    assertThat(summary).endsWith("x…");
+    // No half of an emoji is left: a lone half shows up as a code point in the surrogate range.
+    assertThat(
+            summary
+                .codePoints()
+                .noneMatch(
+                    point -> point >= Character.MIN_SURROGATE && point <= Character.MAX_SURROGATE))
+        .isTrue();
     assertThat(summary.length()).isLessThanOrEqualTo(600);
     assertThat(new SnapshotValidator().problems(result)).isEmpty();
   }
