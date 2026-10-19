@@ -17,6 +17,9 @@ COPY apps/mission-control/pom.xml apps/mission-control/
 # also uses the anonymizer (#115).
 COPY apps/mission-control/anonymizer/ apps/mission-control/anonymizer/
 COPY apps/mission-control/collector/ apps/mission-control/collector/
+# Every module listed in apps/mission-control/pom.xml must exist for Maven to read the build, even
+# though only the collector is built here. Its pom.xml is enough (#117).
+COPY apps/mission-control/navigator-api/pom.xml apps/mission-control/navigator-api/
 # The snapshot schema is packed into the jar (see collector/pom.xml).
 COPY apps/mission-control/contract/snapshot.schema.json apps/mission-control/contract/
 # Tests run in CI (#9); the image build only packages the jar.

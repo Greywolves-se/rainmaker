@@ -9,6 +9,7 @@ folder is the single source of truth for its shape.
 | `fixtures/snapshot.sample.json` | Fictional sample. Both the collector and the web app test against it |
 | `projects.schema.json` | `projects.json`: the projects that have a snapshot (#99). The web app builds its project list from it |
 | `fixtures/projects.sample.json` | Sample `projects.json`, tested on both sides |
+| `navigator-ask.schema.json` | The live "Ask Navigator" API (#117, ADR 0003): request, answer and error. The Lambda tests its replies against it; the web app reads it when it connects the box |
 
 The collector writes `out/projects.json` and one folder per project, `out/<id>/snapshot.json`. The same rules apply to both files. `projects.json` lists only projects whose `snapshot.json` exists, named as in that snapshot, so every listed project can be loaded. Ids are unique: JSON Schema cannot say so, so the collector checks it in its settings and the web app when it reads the file.
 
