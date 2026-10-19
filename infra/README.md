@@ -130,5 +130,6 @@ organisation rule that blocks service-account keys.
 - **Revoke:** remove the `workloadIdentityUser` binding or disable the provider. Unsharing the
   folder removes access to its files.
 - **Locally:** `gcloud auth application-default login --impersonate-service-account=mission-control-drive-reader@mission-control-512109.iam.gserviceaccount.com`. Without
-  the flag your own Google access is used instead of the read-only account. Needs the role
-  "Service Account Token Creator" on the service account; documented in #120.
+  the flag the collector refuses the login (#120), since a plain user login cannot be limited to
+  the read-only scope. Needs the role "Service Account Token Creator" on the service account;
+  documented in #120.

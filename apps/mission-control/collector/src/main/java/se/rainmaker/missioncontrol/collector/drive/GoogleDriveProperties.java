@@ -11,8 +11,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Google Drive settings ({@code mission-control.collector.google-drive.*}, #113).
  *
  * @param apiUrl Drive REST API address, e.g. {@code https://www.googleapis.com/drive/v3}
- * @param credentials the service account's JSON key (the whole file as text); may be empty, then a
- *     project with a folder gets an error
  * @param folders the Drive folder id per project id; a project not listed has no Drive documents
  * @param connectTimeout how long to wait for a connection
  * @param readTimeout how long to wait for an answer
@@ -22,7 +20,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("mission-control.collector.google-drive")
 public record GoogleDriveProperties(
     URI apiUrl,
-    String credentials,
     Map<String, String> folders,
     Duration connectTimeout,
     Duration readTimeout,
@@ -52,30 +49,5 @@ public record GoogleDriveProperties(
     if (maxAttempts < 1) {
       throw new IllegalArgumentException("max-attempts must be at least 1");
     }
-  }
-
-  /** Whether a service-account key is configured. */
-  public boolean hasCredentials() {
-    return credentials != null && !credentials.isBlank();
-  }
-
-  /** Like the generated one, but the key is never shown, so the settings are safe to log. */
-  @Override
-  public String toString() {
-    return "GoogleDriveProperties[apiUrl="
-        + apiUrl
-        + ", credentials="
-        + (hasCredentials() ? "***" : "(none)")
-        + ", folders="
-        + folders
-        + ", connectTimeout="
-        + connectTimeout
-        + ", readTimeout="
-        + readTimeout
-        + ", maxAttempts="
-        + maxAttempts
-        + ", backoff="
-        + backoff
-        + "]";
   }
 }
