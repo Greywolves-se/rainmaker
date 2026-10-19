@@ -6,6 +6,8 @@
 #   touches the web app runs only the web job. A job skipped this way counts as passing.
 # - The collector job also runs when the root Maven build (pom.xml, mvnw, .mvn/) changes,
 #   because those files decide how the collector is built and checked.
+# - The infra job (#125) builds and tests the CDK app in infra/ when infra/ or the root Maven
+#   build changes. It has no AWS access: `cdk diff` stays a manual step.
 
 name: Mission Control CI
 
@@ -16,6 +18,7 @@ on:
     branches: [develop, main]
     paths:
       - "apps/mission-control/**"
+      - "infra/**"
       - ".github/workflows/mission-control-ci.yml"
       - "pom.xml"
       - "mvnw"
@@ -35,6 +38,7 @@ jobs:
     outputs:
       web: ${{ steps.diff.outputs.web }}
       collector: ${{ steps.diff.outputs.collector }}
+      infra: ${{ steps.diff.outputs.infra }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,8 +52,11 @@ jobs:
         run: |
           # A brand-new branch has no previous commit; then run every job.
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            echo "web=true" >> "$GITHUB_OUTPUT"
-            echo "collector=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "web=true"
+              echo "collector=true"
+              echo "infra=true"
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
           changed=$(git diff --name-only "$BASE" "$GITHUB_SHA")
@@ -64,6 +71,11 @@ jobs:
             echo "collector=true" >> "$GITHUB_OUTPUT"
           else
             echo "collector=false" >> "$GITHUB_OUTPUT"
+          fi
+          if echo "$changed" | grep -qE '^(infra/|pom\.xml$|mvnw$|\.mvn/|\.github/workflows/mission-control-ci\.yml$)'; then
+            echo "infra=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "infra=false" >> "$GITHUB_OUTPUT"
           fi
 
   web:
@@ -108,3 +120,27 @@ jobs:
       # verify runs Spotless (format), Checkstyle, the unit tests and JaCoCo (#39).
       - name: Build and test
         run: ./mvnw -B -ntp -f apps/mission-control/pom.xml verify
+
+  infra:
+    name: Infra (CDK synth and tests)
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      # The CDK Java library runs on Node.js internally (infra/README.md: 22 or newer).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Spotless, Checkstyle and the CDK assertion tests, which synthesize every stack in memory.
+      # No AWS credentials: `cdk diff` stays a manual step (CLAUDE.md, "Infrastructure").
+      - name: Build and test
+        run: ./mvnw -B -ntp -pl infra -am verify
