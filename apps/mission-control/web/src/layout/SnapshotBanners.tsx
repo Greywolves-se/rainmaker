@@ -2,7 +2,7 @@ import {useTranslation} from 'react-i18next';
 import type {LoadedSnapshot} from '../data/snapshotClient';
 
 /** Older snapshots get a warning: the collector should run at least once a day. */
-const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
+export const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 
 /** Tells the reader when the data cannot be trusted: demo data, old data or failed sources. */
 export function SnapshotBanners({

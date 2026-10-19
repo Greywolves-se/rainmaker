@@ -7,8 +7,6 @@ import type {DocumentEntry, Release, Risk} from '../contract/snapshot';
 /** Short code shown in a source tile (GH, GD …). Open-ended, like the contract's sources. */
 export type SourceCode = string;
 
-export type Health = 'green' | 'yellow';
-
 /** Status codes shown as pills. Labels live in the translation files under `status`. */
 export type StatusCode =
   | 'onTrack'
@@ -199,11 +197,32 @@ export interface Snapshot {
       status: StatusCode;
     }[];
   };
-  navigator: {
-    summaryTime: string | null;
-    summary: string | null;
-    projects: {id: string; title: string; health: Health; text: string}[];
-    nextSteps: string[];
-    questions: {id: string; question: string; answer: string}[];
-  };
+  navigator: NavigatorAi;
 }
+
+/** Pages that have AI text (#115); START HERE has none. */
+export type AiPage = 'overview' | 'development' | 'sources';
+
+/** The AI text for one page in one language. Written by a model: always shown as plain text. */
+export interface AiInsight {
+  summary: string;
+  deviations: string[];
+  suggestions: string[];
+}
+
+/**
+ * The Navigator's AI part (#116, contract README): `off` when the AI step is switched off or the
+ * snapshot predates #115 (the part is hidden); `on` otherwise. With `on`, `text` is null when the
+ * step failed, and a page is null when only its text failed; `reason` is the step's message.
+ */
+export type NavigatorAi =
+  | {status: 'off'}
+  | {
+      status: 'on';
+      reason: string | null;
+      text: {
+        model: string;
+        generatedAt: string;
+        pages: Record<AiPage, {sv: AiInsight; en: AiInsight} | null>;
+      } | null;
+    };

@@ -94,12 +94,14 @@ function ProjectContent({project}: {project: ProjectEntry}) {
         </p>
       </div>
       <div className="columns">
-        <main className="main-column">
+        {/* The Navigator's "Based on the data on this page" link points here. */}
+        <main className="main-column" id="main-content">
           <Outlet />
         </main>
         <Navigator
           navigator={loaded.page.navigator}
           projectName={project.name}
+          page={page.key}
         />
       </div>
     </>

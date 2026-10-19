@@ -60,20 +60,6 @@ describe('App', () => {
     );
   });
 
-  it('shows the answer to the question picked in Navigator', async () => {
-    renderApp();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Any blockers?'}));
-
-    expect(
-      screen.getByText(/AWS health is missing an IAM role \(Erik\)/)
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Any blockers?'})).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
-  });
-
   it('switches language and remembers the choice', async () => {
     renderApp();
 

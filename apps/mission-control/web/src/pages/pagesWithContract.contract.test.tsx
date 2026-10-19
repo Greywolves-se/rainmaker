@@ -22,7 +22,7 @@ describe('pages with contract data', () => {
     const menu = screen.getByRole('navigation', {name: 'Main menu'});
 
     expect(screen.getByText('Load the snapshot in the web app')).toBeVisible();
-    expect(screen.getAllByText('No data yet').length).toBeGreaterThan(0);
+    expect(screen.getByText('No pilots yet')).toBeVisible();
     expect(screen.queryByText(/Retail customer/)).not.toBeInTheDocument();
 
     await userEvent.click(
