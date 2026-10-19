@@ -43,7 +43,8 @@ class SnapshotValidatorTest {
             sample.questions(),
             sample.links(),
             sample.changes(),
-            sample.events());
+            sample.events(),
+            sample.documents());
 
     assertThat(validator.problems(snapshot)).containsExactly("/risks/0/title (minLength)");
   }

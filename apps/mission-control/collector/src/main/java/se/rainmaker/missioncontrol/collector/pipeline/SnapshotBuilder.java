@@ -7,6 +7,7 @@ import java.util.Objects;
 import se.rainmaker.missioncontrol.collector.snapshot.Build;
 import se.rainmaker.missioncontrol.collector.snapshot.Change;
 import se.rainmaker.missioncontrol.collector.snapshot.Decision;
+import se.rainmaker.missioncontrol.collector.snapshot.Document;
 import se.rainmaker.missioncontrol.collector.snapshot.Event;
 import se.rainmaker.missioncontrol.collector.snapshot.Link;
 import se.rainmaker.missioncontrol.collector.snapshot.Project;
@@ -39,6 +40,7 @@ public final class SnapshotBuilder {
   private final ItemList<Link> links = new ItemList<>("links", Link::id);
   private final ItemList<Change> changes = new ItemList<>("changes", Change::id);
   private final ItemList<Event> events = new ItemList<>("events", Event::id);
+  private final ItemList<Document> documents = new ItemList<>("documents", Document::id);
 
   /** Sets the project and its milestones (only one source may do this). */
   public SnapshotBuilder project(Project project) {
@@ -112,6 +114,12 @@ public final class SnapshotBuilder {
     return this;
   }
 
+  /** Adds a document (metadata only). */
+  public SnapshotBuilder addDocument(Document item) {
+    documents.add(item);
+    return this;
+  }
+
   /** Problems that stop {@code contribution} from being added; empty when it fits. */
   List<String> conflictsWith(SnapshotBuilder contribution) {
     List<String> problems = new ArrayList<>();
@@ -147,6 +155,7 @@ public final class SnapshotBuilder {
     links.addAll(contribution.links);
     changes.addAll(contribution.changes);
     events.addAll(contribution.events);
+    documents.addAll(contribution.documents);
   }
 
   Snapshot build(Instant generatedAt, Project fallbackProject, List<Source> sources) {
@@ -165,7 +174,8 @@ public final class SnapshotBuilder {
         questions.items(),
         links.items(),
         changes.items(),
-        events.items());
+        events.items(),
+        documents.items());
   }
 
   private List<ItemList<?>> lists() {
@@ -179,6 +189,7 @@ public final class SnapshotBuilder {
         questions,
         links,
         changes,
-        events);
+        events,
+        documents);
   }
 }

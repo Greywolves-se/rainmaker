@@ -9,6 +9,7 @@ import sample from '../../../contract/fixtures/snapshot.sample.json';
 import {
   buildStatus,
   decisionStatus,
+  documentKind,
   linkCategory,
   parseSnapshot,
   pullRequestChecks,
@@ -70,6 +71,7 @@ describe('snapshot contract', () => {
     {definition: 'risk', field: 'level', zodEnum: riskLevel},
     {definition: 'question', field: 'status', zodEnum: questionStatus},
     {definition: 'link', field: 'category', zodEnum: linkCategory},
+    {definition: 'document', field: 'kind', zodEnum: documentKind},
   ])(
     '$definition.$field has exactly the schema values',
     ({definition, field, zodEnum}) => {

@@ -30,7 +30,8 @@ class SnapshotEnumTest {
         Arguments.of(Decision.Status.class, "decision", "status"),
         Arguments.of(Risk.Level.class, "risk", "level"),
         Arguments.of(Question.Status.class, "question", "status"),
-        Arguments.of(Link.Category.class, "link", "category"));
+        Arguments.of(Link.Category.class, "link", "category"),
+        Arguments.of(Document.Kind.class, "document", "kind"));
   }
 
   @ParameterizedTest(name = "{1}.{2}")
