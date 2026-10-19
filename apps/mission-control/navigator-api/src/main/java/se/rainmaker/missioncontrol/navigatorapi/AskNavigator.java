@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import se.rainmaker.missioncontrol.anonymizer.Anonymizer;
 import se.rainmaker.missioncontrol.navigatorapi.QuestionLimits.Result;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
@@ -83,20 +84,22 @@ public final class AskNavigator {
   }
 
   private HttpReply answer(AskRequest request) {
-    Optional<String> pageData = pages.pageData(request.project(), request.page());
+    Optional<PageData> pageData = pages.pageData(request.project(), request.page());
     if (pageData.isEmpty()) {
       return error(503, "unavailable", List.of());
     }
-    // Before merge (#115): anonymise the page data and the question with the shared anonymizer
-    // module (names from the snapshot) and restore the names in the answer. Until then only fake
-    // data is used: this code is not merged before ADR 0002 and 0003 are approved.
+    // ADR 0002 and 0003: no person name leaves for OpenAI. The names come from the snapshot, never
+    // from the request; the page data and the question are both hidden, and the answer restored.
+    Anonymizer anonymizer = Anonymizer.forNames(pageData.get().names());
     try {
       String text =
           answers.complete(
               NavigatorPrompt.system(request.language()),
-              NavigatorPrompt.user(pageData.get(), request.question()));
+              NavigatorPrompt.user(
+                  anonymizer.anonymize(pageData.get().text()),
+                  anonymizer.anonymize(request.question())));
       ObjectNode body = JSON.createObjectNode();
-      body.put("answer", text);
+      body.put("answer", anonymizer.restore(text));
       body.put("model", model);
       body.put("generatedAt", clock.instant().toString());
       return new HttpReply(200, JSON.writeValueAsString(body));

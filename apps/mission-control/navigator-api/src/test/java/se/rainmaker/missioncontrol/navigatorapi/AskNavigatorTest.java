@@ -37,7 +37,8 @@ class AskNavigatorTest {
 
   private AnswerSource answers = (system, user) -> record(system, user, "Two items are blocked.");
   private String switchValue = "true";
-  private Optional<String> pageData = Optional.of("Work items: 2 blocked.");
+  private Optional<PageData> pageData =
+      Optional.of(new PageData("Work items: 2 blocked.", List.of()));
   private final InMemoryQuestionCounter counter = new InMemoryQuestionCounter();
 
   private String record(String system, String user, String answer) {

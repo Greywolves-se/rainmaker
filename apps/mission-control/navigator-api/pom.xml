@@ -15,6 +15,12 @@
   <description>Answers live "Ask Navigator" questions for the dashboard (#117, ADR 0003). Plain Java, no Spring; runs as an AWS Lambda.</description>
 
   <dependencies>
+    <!-- Hides names before text goes to OpenAI (ADR 0002, 0003); our own module from #115. -->
+    <dependency>
+      <groupId>se.rainmaker</groupId>
+      <artifactId>anonymizer</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!-- JSON for the OpenAI API (Jackson 3, the same as the collector). -->
     <dependency>
       <groupId>tools.jackson.core</groupId>
