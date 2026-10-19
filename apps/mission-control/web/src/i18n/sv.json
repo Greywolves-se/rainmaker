@@ -144,6 +144,7 @@
     "noEvents": "Inga händelser än",
     "latestDocuments": "Senaste dokument",
     "noDocuments": "Inga dokument än",
+    "documentsOff": "Inte påslaget för det här projektet: {{sources}}.",
     "documentMeta": "{{kind}} · {{editor}} · {{ago}}",
     "documentMetaNoEditor": "{{kind}} · {{ago}}",
     "eventMeta": "{{source}} · {{ago}}",

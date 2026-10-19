@@ -67,6 +67,16 @@ export interface DocumentItem {
   url: string | null;
 }
 
+/**
+ * The latest documents card: `ok` with the newest documents from sources that work, `off` when
+ * every document source is switched off (their names), `unavailable` when none works (missing,
+ * or failed: the red source banner then says why).
+ */
+export type LatestDocuments =
+  | {status: 'ok'; items: DocumentItem[]}
+  | {status: 'off'; sources: string[]}
+  | {status: 'unavailable'};
+
 /** A decision from decisions.yaml; url is the line in the file on GitHub. */
 export interface DecisionItem {
   id: string;
@@ -138,8 +148,7 @@ export interface Snapshot {
     } | null;
     /** Newest first. */
     events: SourceEvent[];
-    /** The latest documents, newest first; null when the Drive source is missing or failed. */
-    documents: DocumentItem[] | null;
+    documents: LatestDocuments;
   };
   development: {
     sprint: {

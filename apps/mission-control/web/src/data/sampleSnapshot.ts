@@ -230,32 +230,35 @@ export const SAMPLE_SNAPSHOT: Snapshot = {
         url: null,
       },
     ],
-    documents: [
-      {
-        id: 'doc-1',
-        title: 'Architecture v2.1',
-        kind: 'document',
-        lastEditor: 'Simon',
-        modifiedAt: '2026-10-14T07:24:00Z',
-        url: null,
-      },
-      {
-        id: 'doc-2',
-        title: 'Pilot plan Q1',
-        kind: 'presentation',
-        lastEditor: 'Peter',
-        modifiedAt: '2026-10-14T05:24:00Z',
-        url: null,
-      },
-      {
-        id: 'doc-3',
-        title: 'Customer meeting material',
-        kind: 'pdf',
-        lastEditor: null,
-        modifiedAt: '2026-10-13T15:00:00Z',
-        url: null,
-      },
-    ],
+    documents: {
+      status: 'ok',
+      items: [
+        {
+          id: 'doc-1',
+          title: 'Architecture v2.1',
+          kind: 'document',
+          lastEditor: 'Simon',
+          modifiedAt: '2026-10-14T07:24:00Z',
+          url: null,
+        },
+        {
+          id: 'doc-2',
+          title: 'Pilot plan Q1',
+          kind: 'presentation',
+          lastEditor: 'Peter',
+          modifiedAt: '2026-10-14T05:24:00Z',
+          url: null,
+        },
+        {
+          id: 'doc-3',
+          title: 'Customer meeting material',
+          kind: 'pdf',
+          lastEditor: null,
+          modifiedAt: '2026-10-13T15:00:00Z',
+          url: null,
+        },
+      ],
+    },
   },
   development: {
     sprint: {

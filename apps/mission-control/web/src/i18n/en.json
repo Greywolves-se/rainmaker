@@ -144,6 +144,7 @@
     "noEvents": "No events yet",
     "latestDocuments": "Latest documents",
     "noDocuments": "No documents yet",
+    "documentsOff": "Not switched on for this project: {{sources}}.",
     "documentMeta": "{{kind}} · {{editor}} · {{ago}}",
     "documentMetaNoEditor": "{{kind}} · {{ago}}",
     "eventMeta": "{{source}} · {{ago}}",

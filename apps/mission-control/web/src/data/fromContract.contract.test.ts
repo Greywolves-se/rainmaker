@@ -130,31 +130,96 @@ describe('fromContract', () => {
     ]);
   });
 
-  it('maps the latest documents newest first, or null without a working Drive source', () => {
-    expect(page.overview.documents).toEqual([
-      {
-        id: 'gd-1a2b3c',
-        title: 'Pilot agreement draft',
-        kind: 'document',
-        lastEditor: 'Kim Ek',
-        modifiedAt: '2026-11-01T14:20:00Z',
-        url: 'https://docs.google.com/document/d/1a2b3c/edit',
-      },
-      {
-        id: 'gd-4d5e6f',
-        title: 'Sprint 3 test report',
-        kind: 'spreadsheet',
-        lastEditor: null,
-        modifiedAt: '2026-10-30T08:05:00Z',
-        url: 'https://docs.google.com/spreadsheets/d/4d5e6f/edit',
-      },
-    ]);
+  it('maps the latest documents newest first from a working source', () => {
+    expect(page.overview.documents).toEqual({
+      status: 'ok',
+      items: [
+        {
+          id: 'gd-1a2b3c',
+          title: 'Pilot agreement draft',
+          kind: 'document',
+          lastEditor: 'Kim Ek',
+          modifiedAt: '2026-11-01T14:20:00Z',
+          url: 'https://docs.google.com/document/d/1a2b3c/edit',
+        },
+        {
+          id: 'gd-4d5e6f',
+          title: 'Sprint 3 test report',
+          kind: 'spreadsheet',
+          lastEditor: null,
+          modifiedAt: '2026-10-30T08:05:00Z',
+          url: 'https://docs.google.com/spreadsheets/d/4d5e6f/edit',
+        },
+      ],
+    });
+  });
 
-    const sources = sample.sources.map(source =>
-      source.id === 'google-drive' ? {...source, status: 'error'} : source
+  describe('documents from more than one source', () => {
+    const otherStore = {
+      id: 'other-store',
+      name: 'Other store',
+      status: 'ok',
+      fetchedAt: null,
+      message: null,
+    };
+    const fromOther = {
+      ...sample.documents[0],
+      id: 'os-1',
+      title: 'From the other store',
+      source: 'other-store',
+    };
+    const withStatus = (driveStatus: string, otherStatus: string) =>
+      fromContract(
+        parseSnapshot({
+          ...sample,
+          sources: [
+            ...sample.sources.map(source =>
+              source.id === 'google-drive'
+                ? {...source, status: driveStatus}
+                : source
+            ),
+            {...otherStore, status: otherStatus},
+          ],
+          documents: [...sample.documents, fromOther],
+        })
+      ).overview.documents;
+    const titles = (documents: ReturnType<typeof withStatus>) =>
+      documents?.status === 'ok' ? documents.items.map(d => d.title) : [];
+
+    it('keeps only documents whose own source works', () => {
+      expect(titles(withStatus('ok', 'error'))).toEqual([
+        'Pilot agreement draft',
+        'Sprint 3 test report',
+      ]);
+      expect(titles(withStatus('error', 'ok'))).toEqual([
+        'From the other store',
+      ]);
+    });
+
+    it('is unavailable when no document source works', () => {
+      expect(withStatus('error', 'error')).toEqual({status: 'unavailable'});
+      expect(withStatus('error', 'disabled')).toEqual({
+        status: 'unavailable',
+      });
+    });
+
+    it('is off, with the names, when every document source is disabled', () => {
+      expect(withStatus('disabled', 'disabled')).toEqual({
+        status: 'off',
+        sources: ['Google Drive', 'Other store'],
+      });
+    });
+  });
+
+  it('is unavailable for a snapshot without a document source', () => {
+    const old = fromContract(
+      parseSnapshot({
+        ...sample,
+        sources: sample.sources.filter(s => s.id !== 'google-drive'),
+        documents: [],
+      })
     );
-    const failed = fromContract(parseSnapshot({...sample, sources}));
-    expect(failed.overview.documents).toBeNull();
+    expect(old.overview.documents).toEqual({status: 'unavailable'});
   });
 
   it('sorts events by time, not by text', () => {

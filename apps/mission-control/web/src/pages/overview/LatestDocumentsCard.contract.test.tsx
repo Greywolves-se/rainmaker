@@ -97,6 +97,20 @@ describe('Latest documents', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('says Drive is not switched on when it is disabled, without a red banner', () => {
+    const disabled = {...drive, status: 'disabled', message: null};
+
+    renderApp({loaded: loaded({sources: [...otherSources, disabled]})});
+
+    expect(card('Latest documents')).toHaveTextContent(
+      'Not switched on for this project: Google Drive'
+    );
+    expect(card('Latest documents')).not.toHaveTextContent('No data yet');
+    expect(
+      screen.queryAllByRole('alert').map(alert => alert.textContent)
+    ).not.toContainEqual(expect.stringContaining('Google Drive'));
+  });
+
   it('shows "No data yet" for a snapshot without a Drive source', () => {
     renderApp({loaded: loaded({sources: otherSources, documents: []})});
 

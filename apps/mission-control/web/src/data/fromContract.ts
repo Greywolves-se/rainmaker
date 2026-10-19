@@ -6,7 +6,7 @@ import type {
 } from '../contract/snapshot';
 import type {
   DecisionItem,
-  DocumentItem,
+  LatestDocuments,
   LinkedItem,
   Snapshot as PageSnapshot,
   SourceCode,
@@ -206,16 +206,34 @@ function newestFirst(a: string, b: string): number {
 /** How many documents the Overview lists (#114 asks for 5–10). */
 const MAX_DOCUMENTS = 8;
 
+/** Sources that provide documents even when they have none yet (#113). */
+const KNOWN_DOCUMENT_SOURCES = ['google-drive'];
+
 /**
- * The most recently changed documents, newest first. Null when the Drive source is missing (a
- * snapshot from before #113) or failed: then the page says "No data yet", not "No documents".
+ * The most recently changed documents, newest first, from the document sources that work. A
+ * document whose own source failed is left out, so one failing store never hides another.
  */
-function latestDocuments(snapshot: ContractSnapshot): DocumentItem[] | null {
-  const drive = snapshot.sources.find(source => source.id === 'google-drive');
-  if (drive?.status !== 'ok') {
-    return null;
+function latestDocuments(snapshot: ContractSnapshot): LatestDocuments {
+  const documentSourceIds = new Set([
+    ...KNOWN_DOCUMENT_SOURCES,
+    ...snapshot.documents.map(entry => entry.source),
+  ]);
+  const documentSources = snapshot.sources.filter(source =>
+    documentSourceIds.has(source.id)
+  );
+  const working = new Set(
+    documentSources.filter(s => s.status === 'ok').map(s => s.id)
+  );
+  if (working.size === 0) {
+    const allOff =
+      documentSources.length > 0 &&
+      documentSources.every(source => source.status === 'disabled');
+    return allOff
+      ? {status: 'off', sources: documentSources.map(source => source.name)}
+      : {status: 'unavailable'};
   }
-  return [...snapshot.documents]
+  const items = snapshot.documents
+    .filter(entry => working.has(entry.source))
     .sort((a, b) => newestFirst(a.modifiedAt, b.modifiedAt))
     .slice(0, MAX_DOCUMENTS)
     .map(entry => ({
@@ -226,6 +244,7 @@ function latestDocuments(snapshot: ContractSnapshot): DocumentItem[] | null {
       modifiedAt: entry.modifiedAt,
       url: entry.url,
     }));
+  return {status: 'ok', items};
 }
 
 /** The most recently published release, in any environment. */
