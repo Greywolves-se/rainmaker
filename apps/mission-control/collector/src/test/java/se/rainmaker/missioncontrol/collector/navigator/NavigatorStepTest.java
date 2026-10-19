@@ -218,6 +218,20 @@ class NavigatorStepTest {
     assertThat(new SnapshotValidator().problems(result)).isEmpty();
   }
 
+  /** Cutting must never split an emoji (two UTF-16 units) and leave half of it behind. */
+  @Test
+  void cuttingNeverSplitsAnEmoji() {
+    String text = "x".repeat(598) + "😀" + "y".repeat(10);
+    stubAnswer(answer(text, List.of(), "Kort."));
+
+    Snapshot result = step(true, KEY).addTo(sample());
+
+    String summary = result.navigator().pages().overview().en().summary();
+    assertThat(summary).endsWith("x…").doesNotContain("\uD83D");
+    assertThat(summary.length()).isLessThanOrEqualTo(600);
+    assertThat(new SnapshotValidator().problems(result)).isEmpty();
+  }
+
   private static NavigatorStep step(boolean enabled, String key) {
     NavigatorProperties properties =
         new NavigatorProperties(

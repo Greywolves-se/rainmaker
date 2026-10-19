@@ -144,7 +144,16 @@ public class NavigatorStep {
   /** Names put back, then cut to {@code max} characters, so the text always fits the contract. */
   private static String restored(String text, Anonymizer anonymizer, int max) {
     String withNames = anonymizer.restore(text.strip());
-    return withNames.length() <= max ? withNames : withNames.substring(0, max - 1) + "…";
+    if (withNames.length() <= max) {
+      return withNames;
+    }
+    // Counted in UTF-16 units, which is never fewer than the code points JSON Schema and the web
+    // app count, so the result fits both. Never cut between the two halves of an emoji.
+    int end = max - 1;
+    if (Character.isHighSurrogate(withNames.charAt(end - 1))) {
+      end--;
+    }
+    return withNames.substring(0, end) + "…";
   }
 
   /** The JSON the model must answer with: the same insight in Swedish and English. */
