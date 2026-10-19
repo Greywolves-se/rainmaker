@@ -62,6 +62,13 @@ public class NavigatorStep {
   private final NavigatorProperties properties;
   private final Clock clock;
 
+  /**
+   * Set after a failure every call would hit. The collector is one run per process, so this stops
+   * the rest of the run (all pages and projects); at worst one page waits for its retries, not
+   * every page. A hand-written circuit breaker, without a new dependency.
+   */
+  private volatile String runStoppedBecause;
+
   /** Calls OpenAI with the given client and settings; {@code clock} dates the text. */
   public NavigatorStep(OpenAiClient client, NavigatorProperties properties, Clock clock) {
     this.client = client;
@@ -83,15 +90,25 @@ public class NavigatorStep {
     List<String> failed = new ArrayList<>();
     String firstProblem = null;
     for (Page page : Page.values()) {
+      if (runStoppedBecause != null) {
+        // A failure every call would hit (bad key, no quota, OpenAI not answering): don't try.
+        failed.add(page.id());
+        firstProblem = firstProblem == null ? runStoppedBecause : firstProblem;
+        continue;
+      }
       try {
         pages.put(page, insight(snapshot, page, anonymizer));
       } catch (NavigatorException e) {
         log.atWarn()
             .addKeyValue("page", page.id())
             .addKeyValue("problem", e.getMessage())
+            .addKeyValue("stopsRun", e.stopsRun())
             .log("no AI text for page");
         failed.add(page.id());
         firstProblem = firstProblem == null ? e.getMessage() : firstProblem;
+        if (e.stopsRun()) {
+          runStoppedBecause = e.getMessage();
+        }
       }
     }
     Instant now = clock.instant();

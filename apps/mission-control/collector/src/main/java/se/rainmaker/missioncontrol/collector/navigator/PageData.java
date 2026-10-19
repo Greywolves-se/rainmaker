@@ -5,6 +5,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,11 +76,25 @@ final class PageData {
   }
 
   private static void addOwner(Set<String> people, String owner) {
-    people.add(owner);
-    Arrays.stream(NAME_LIST.split(owner))
+    people.addAll(ownerNames(owner));
+  }
+
+  /**
+   * The names in an owner field: the whole field, plus each name in a list. Only parts that start
+   * with a capital letter count, and the group label before a parenthesis does not, so "Mission
+   * Control developers (Emil, Gabriel, Mai)" gives Emil, Gabriel and Mai, and "Kalle och teamet"
+   * gives Kalle, never "teamet" or "Mission Control developers".
+   */
+  static Set<String> ownerNames(String owner) {
+    Set<String> names = new LinkedHashSet<>();
+    names.add(owner);
+    int bracket = owner.indexOf('(');
+    String list = bracket < 0 ? owner : owner.substring(bracket + 1);
+    Arrays.stream(NAME_LIST.split(list))
         .map(String::strip)
-        .filter(part -> part.length() > 1)
-        .forEach(people::add);
+        .filter(part -> part.length() > 1 && Character.isUpperCase(part.charAt(0)))
+        .forEach(names::add);
+    return names;
   }
 
   private static Map<String, Object> overview(Snapshot snapshot) {

@@ -136,16 +136,30 @@ class NavigatorStepTest {
         post(urlPathEqualTo("/v1/responses"))
             .withRequestBody(containing("Page: development"))
             .atPriority(1)
-            .willReturn(aResponse().withStatus(500)));
+            .willReturn(okJson(response("not the agreed json"))));
 
     Snapshot result = step(true, KEY).addTo(sample());
 
     assertThat(result.navigator().pages().development()).isNull();
     assertThat(result.navigator().pages().overview()).isNotNull();
+    assertThat(result.navigator().pages().sources()).isNotNull();
     assertThat(result.sources().getLast())
         .extracting(Source::status, Source::message)
         .containsExactly(Source.Status.OK, "No AI text for: development");
     assertThat(new SnapshotValidator().problems(result)).isEmpty();
+  }
+
+  /** A failing server is retried, then the remaining pages are given the same message. */
+  @Test
+  void failingServerStopsTheRestOfTheRun() {
+    openAi.stubFor(post(urlPathEqualTo("/v1/responses")).willReturn(aResponse().withStatus(500)));
+
+    Snapshot result = step(true, KEY).addTo(sample());
+
+    assertThat(result.navigator()).isNull();
+    assertThat(result.sources().getLast().message())
+        .isEqualTo("OpenAI did not answer after 2 attempts (last: HTTP 500)");
+    openAi.verify(2, postRequestedFor(urlPathEqualTo("/v1/responses")));
   }
 
   @Test
@@ -162,19 +176,73 @@ class NavigatorStepTest {
         .containsExactly(
             Source.Status.ERROR, "OpenAI rejected the API key (HTTP 401); check OPENAI_API_KEY");
     assertThat(output.getAll()).doesNotContain(KEY);
-    // A rejected key is not retried.
-    openAi.verify(3, postRequestedFor(urlPathEqualTo("/v1/responses")));
+    // A rejected key is not retried, and the other pages are not tried: it would fail them too.
+    openAi.verify(1, postRequestedFor(urlPathEqualTo("/v1/responses")));
   }
 
   @Test
-  void busyOrSlowServiceIsRetriedThenReported() {
-    openAi.stubFor(post(urlPathEqualTo("/v1/responses")).willReturn(aResponse().withStatus(429)));
+  void busyServiceIsRetriedThenTheRunStops() {
+    openAi.stubFor(
+        post(urlPathEqualTo("/v1/responses"))
+            .willReturn(
+                aResponse()
+                    .withStatus(429)
+                    .withBody("{\"error\": {\"code\": \"rate_limit_exceeded\"}}")));
 
     Snapshot result = step(true, KEY).addTo(sample());
 
     assertThat(result.sources().getLast().message())
-        .isEqualTo("OpenAI did not answer after 2 attempts (last: HTTP 429)");
-    openAi.verify(6, postRequestedFor(urlPathEqualTo("/v1/responses")));
+        .isEqualTo("OpenAI did not answer after 2 attempts (last: rate limit, HTTP 429)");
+    // The first page uses both attempts; the others are not tried in a run that already failed.
+    openAi.verify(2, postRequestedFor(urlPathEqualTo("/v1/responses")));
+  }
+
+  /** A new account without billing answers 429 with insufficient_quota: not worth retrying. */
+  @Test
+  void usedUpQuotaIsReportedAtOnceWithoutRetry() {
+    openAi.stubFor(
+        post(urlPathEqualTo("/v1/responses"))
+            .willReturn(
+                aResponse()
+                    .withStatus(429)
+                    .withBody(
+                        "{\"error\": {\"code\": \"insufficient_quota\","
+                            + " \"message\": \"secret\"}}")));
+
+    Snapshot result = step(true, KEY).addTo(sample());
+
+    assertThat(result.sources().getLast())
+        .extracting(Source::status, Source::message)
+        .containsExactly(Source.Status.ERROR, "OpenAI quota used up; check billing");
+    openAi.verify(1, postRequestedFor(urlPathEqualTo("/v1/responses")));
+  }
+
+  /** One step serves every project in a run: after a run-wide failure the next project skips. */
+  @Test
+  void failureForWholeRunAlsoSkipsTheNextProject() {
+    openAi.stubFor(post(urlPathEqualTo("/v1/responses")).willReturn(aResponse().withStatus(401)));
+    NavigatorStep step = step(true, KEY);
+
+    step.addTo(sample());
+    Snapshot second = step.addTo(sample());
+
+    assertThat(second.sources().getLast().message())
+        .isEqualTo("OpenAI rejected the API key (HTTP 401); check OPENAI_API_KEY");
+    openAi.verify(1, postRequestedFor(urlPathEqualTo("/v1/responses")));
+  }
+
+  /** Jackson 3 throws an unchecked exception on a broken body; only the AI text may be lost. */
+  @Test
+  void bodyThatIsNotJsonOnSuccessLeavesTheSnapshotIntact() {
+    openAi.stubFor(post(urlPathEqualTo("/v1/responses")).willReturn(okJson("{not json")));
+
+    Snapshot result = step(true, KEY).addTo(sample());
+
+    assertThat(result.navigator()).isNull();
+    assertThat(result.sources().getLast())
+        .extracting(Source::status, Source::message)
+        .containsExactly(Source.Status.ERROR, "OpenAI answered with a body that is not JSON");
+    assertThat(result.workItems()).isEqualTo(sample().workItems());
   }
 
   @Test

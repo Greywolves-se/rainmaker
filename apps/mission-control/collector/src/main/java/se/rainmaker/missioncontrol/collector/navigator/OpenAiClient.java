@@ -79,7 +79,8 @@ public class OpenAiClient {
     try {
       answer = retry.executeSupplier(() -> post(uri, body));
     } catch (RetryableOpenAiException e) {
-      throw new NavigatorException(
+      // Retries ran out: the next calls would wait just as long, so the run stops trying.
+      throw NavigatorException.forWholeRun(
           "OpenAI did not answer after "
               + properties.maxAttempts()
               + " attempts (last: "
@@ -107,17 +108,41 @@ public class OpenAiClient {
       RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse response) throws IOException {
     int status = response.getStatusCode().value();
     if (status == 200) {
-      return JSON.readTree(response.getBody());
+      try {
+        return JSON.readTree(response.getBody());
+      } catch (JacksonException e) {
+        // Jackson 3's exception is unchecked: without this it would fail the whole project.
+        throw new NavigatorException("OpenAI answered with a body that is not JSON");
+      }
     }
-    // OpenAI's error body is not read: it can quote the request.
     if (status == 401) {
-      throw new NavigatorException("OpenAI rejected the API key (HTTP 401); check OPENAI_API_KEY");
+      throw NavigatorException.forWholeRun(
+          "OpenAI rejected the API key (HTTP 401); check OPENAI_API_KEY");
     }
-    if (status == 429 || status >= 500) {
-      log.atWarn().addKeyValue("status", status).log("OpenAI busy or failing");
+    if (status == 429) {
+      // Only error.code is read, never the message: it can quote the request.
+      if ("insufficient_quota".equals(errorCode(response))) {
+        throw NavigatorException.forWholeRun("OpenAI quota used up; check billing");
+      }
+      log.atWarn().addKeyValue("status", status).log("OpenAI rate limit");
+      throw new RetryableOpenAiException("rate limit, HTTP 429");
+    }
+    if (status >= 500) {
+      log.atWarn().addKeyValue("status", status).log("OpenAI failing");
       throw new RetryableOpenAiException("HTTP " + status);
     }
     throw new NavigatorException("OpenAI answered with HTTP " + status);
+  }
+
+  /** OpenAI's {@code error.code}, e.g. {@code insufficient_quota}; empty when there is none. */
+  private static String errorCode(
+      RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse response) {
+    try {
+      return JSON.readTree(response.getBody()).path("error").path("code").asString("");
+    } catch (IOException | JacksonException e) {
+      // No readable code: treated as an ordinary rate limit.
+      return "";
+    }
   }
 
   /** The {@code output_text} of the answer's message; a refusal or early stop is an error. */
