@@ -13,6 +13,9 @@ WORKDIR /src
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 COPY apps/mission-control/pom.xml apps/mission-control/
+# Every module listed in apps/mission-control/pom.xml must exist, or Maven stops; the collector
+# also uses the anonymizer (#115).
+COPY apps/mission-control/anonymizer/ apps/mission-control/anonymizer/
 COPY apps/mission-control/collector/ apps/mission-control/collector/
 # The snapshot schema is packed into the jar (see collector/pom.xml).
 COPY apps/mission-control/contract/snapshot.schema.json apps/mission-control/contract/

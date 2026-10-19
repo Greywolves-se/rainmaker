@@ -67,7 +67,7 @@ jobs:
           else
             echo "web=false" >> "$GITHUB_OUTPUT"
           fi
-          if echo "$changed" | grep -qE '^(apps/mission-control/(collector|contract|data)/|apps/mission-control/pom\.xml$|pom\.xml$|mvnw$|\.mvn/|\.github/workflows/mission-control-ci\.yml$)'; then
+          if echo "$changed" | grep -qE '^(apps/mission-control/(anonymizer|collector|contract|data)/|apps/mission-control/pom\.xml$|pom\.xml$|mvnw$|\.mvn/|\.github/workflows/mission-control-ci\.yml$)'; then
             echo "collector=true" >> "$GITHUB_OUTPUT"
           else
             echo "collector=false" >> "$GITHUB_OUTPUT"
