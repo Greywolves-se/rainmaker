@@ -15,7 +15,10 @@ import static org.assertj.core.groups.Tuple.tuple;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.auth.oauth2.UserCredentials;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -368,7 +371,7 @@ class GoogleDriveSourceTest {
     assertThat(result.message())
         .isEqualTo(
             "No Google login: run google-github-actions/auth in CI, or gcloud auth"
-                + " application-default login locally");
+                + " application-default login --impersonate-service-account=<e-mail> locally");
     // The library's own message names local files; it is never shown or logged.
     assertThat(result.message()).doesNotContain("private-path");
     assertThat(output.getAll()).doesNotContain("private-path");
@@ -376,16 +379,74 @@ class GoogleDriveSourceTest {
   }
 
   @Test
-  void rejectedKeyGivesSafeError(CapturedOutput output) {
+  void malformedLoginFileGivesSafeError(CapturedOutput output) {
+    GoogleLogin malformed =
+        () -> {
+          throw new IllegalArgumentException("Bad file /home/someone/private-path/adc.json");
+        };
+
+    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, malformed).sources().getFirst();
+
+    assertThat(result.status()).isEqualTo(Source.Status.ERROR);
+    assertThat(result.message()).startsWith("No Google login");
+    assertThat(output.getAll()).doesNotContain("private-path");
+  }
+
+  /**
+   * A plain gcloud user login ignores the read-only scope and would act with the user's own Drive
+   * access, so it is refused before any call to Google.
+   */
+  @Test
+  void plainUserLoginIsRefusedBeforeAnyCall(CapturedOutput output) {
+    GoogleLogin userLogin =
+        () ->
+            UserCredentials.newBuilder()
+                .setClientId("client-id")
+                .setClientSecret("client-secret")
+                .setRefreshToken("personal-refresh-token")
+                .build();
+
+    Source result = run(Map.of("rainmaker", FOLDER), RAINMAKER, userLogin).sources().getFirst();
+
+    assertThat(result.status()).isEqualTo(Source.Status.ERROR);
+    assertThat(result.message())
+        .isEqualTo(
+            "This Google login cannot be limited to read-only Drive metadata: log in with gcloud"
+                + " auth application-default login --impersonate-service-account=<e-mail>");
+    assertThat(google.getAllServeEvents()).isEmpty();
+    assertThat(output.getAll()).doesNotContain("personal-refresh-token");
+  }
+
+  @Test
+  void impersonatedLoginCanBeLimitedToReadOnly() throws IOException {
+    GoogleCredentials impersonated =
+        ImpersonatedCredentials.newBuilder()
+            .setSourceCredentials(serviceAccount().credentials())
+            .setTargetPrincipal("mission-control-drive-reader@test-project.iam.gserviceaccount.com")
+            .setScopes(List.of())
+            .build();
+
+    assertThat(GoogleDriveClient.canBeLimited(impersonated)).isTrue();
+    assertThat(GoogleDriveClient.canBeLimited(serviceAccount().credentials())).isTrue();
+  }
+
+  @Test
+  void rejectedLoginGivesSafeError(CapturedOutput output) {
     google.stubFor(
         post(urlPathEqualTo("/token"))
-            .willReturn(aResponse().withStatus(400).withBody("{\"error\": \"invalid_grant\"}")));
+            .willReturn(
+                aResponse()
+                    .withStatus(400)
+                    .withBody(
+                        "{\"error\": \"invalid_grant\", \"detail\": \"answer-from-google\"}")));
 
     Source result =
         run(Map.of("rainmaker", FOLDER), RAINMAKER, serviceAccount()).sources().getFirst();
 
     assertThat(result.message()).contains("did not give an access token");
-    assertThat(output.getAll()).doesNotContain("BEGIN PRIVATE KEY");
+    // Google's answer can describe the login; only the exception type is logged.
+    assertThat(result.message()).doesNotContain("answer-from-google");
+    assertThat(output.getAll()).doesNotContain("answer-from-google");
   }
 
   @Test

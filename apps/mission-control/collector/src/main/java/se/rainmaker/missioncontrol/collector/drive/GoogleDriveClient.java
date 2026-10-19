@@ -1,6 +1,9 @@
 package se.rainmaker.missioncontrol.collector.drive;
 
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
@@ -25,9 +28,10 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Read-only client for the Google Drive REST API (#113). It logs in with Google's standard login
  * ({@link GoogleLogin}, #120; no key is stored), limited to {@code drive.metadata.readonly}, so it
- * can never read content or write. It retries server errors and timeouts with back-off and turns
- * every other failure into a {@link SourceException} with a message that is safe to show. The
- * access token is never logged and is only sent to {@code apiUrl}.
+ * can never read content or write. A login type where that limit would not apply (a plain gcloud
+ * user login) is refused. It retries server errors and timeouts with back-off and turns every other
+ * failure into a {@link SourceException} with a message that is safe to show. The access token is
+ * never logged and is only sent to {@code apiUrl}.
  */
 @Component
 public class GoogleDriveClient {
@@ -164,16 +168,41 @@ public class GoogleDriveClient {
     }
   }
 
-  /** The login, limited to read-only metadata, so the token can never read content or write. */
+  /**
+   * The login, limited to read-only metadata, so the token can never read content or write. Only
+   * login types where that limit really applies are accepted (see {@link #canBeLimited}).
+   */
   private GoogleCredentials scopedLogin() {
+    GoogleCredentials credentials;
     try {
-      return login.credentials().createScoped(List.of(SCOPE));
-    } catch (IOException e) {
-      // The library's message names files and variables it looked at; it is not shown.
+      credentials = login.credentials();
+    } catch (IOException | RuntimeException e) {
+      // RuntimeException too: a malformed login file can fail with an IllegalArgumentException.
+      // The library's message names files and variables it looked at; it is never shown.
       throw new SourceException(
           "No Google login: run google-github-actions/auth in CI, or gcloud auth"
-              + " application-default login locally");
+              + " application-default login --impersonate-service-account=<e-mail> locally");
     }
+    if (!canBeLimited(credentials)) {
+      log.atWarn()
+          .addKeyValue("loginType", credentials.getClass().getSimpleName())
+          .log("Google login cannot be limited to read-only metadata; not used");
+      throw new SourceException(
+          "This Google login cannot be limited to read-only Drive metadata: log in with gcloud"
+              + " auth application-default login --impersonate-service-account=<e-mail>");
+    }
+    return credentials.createScoped(List.of(SCOPE));
+  }
+
+  /**
+   * Whether {@code createScoped} really limits the token: true for Workload Identity Federation
+   * (CI), an impersonated service account (local gcloud) and a service account. A plain user login
+   * ignores the scope and would act with the user's own Drive access, so it is refused.
+   */
+  static boolean canBeLimited(GoogleCredentials credentials) {
+    return credentials instanceof ExternalAccountCredentials
+        || credentials instanceof ImpersonatedCredentials
+        || credentials instanceof ServiceAccountCredentials;
   }
 
   private JsonNode fetchWithRetry(URI uri, String token) {
