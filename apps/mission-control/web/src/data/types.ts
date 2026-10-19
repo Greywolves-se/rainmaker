@@ -2,7 +2,7 @@
  * Shape of the data the pages render. The contract snapshot is mapped to it in fromContract.ts;
  * null means the contract has no data for that part yet and the page shows an empty state.
  */
-import type {Release, Risk} from '../contract/snapshot';
+import type {DocumentEntry, Release, Risk} from '../contract/snapshot';
 
 /** Short code shown in a source tile (GH, GD …). Open-ended, like the contract's sources. */
 export type SourceCode = string;
@@ -56,6 +56,26 @@ export interface TitledItem {
   title: string;
   meta: string;
 }
+
+/** A document from a document store such as Google Drive (#113): metadata only. */
+export interface DocumentItem {
+  id: string;
+  title: string;
+  kind: DocumentEntry['kind'];
+  lastEditor: string | null;
+  modifiedAt: string;
+  url: string | null;
+}
+
+/**
+ * The latest documents card: `ok` with the newest documents from sources that work, `off` when
+ * every document source is switched off (their names), `unavailable` when none works (missing,
+ * or failed: the red source banner then says why).
+ */
+export type LatestDocuments =
+  | {status: 'ok'; items: DocumentItem[]}
+  | {status: 'off'; sources: string[]}
+  | {status: 'unavailable'};
 
 /** A decision from decisions.yaml; url is the line in the file on GitHub. */
 export interface DecisionItem {
@@ -128,6 +148,7 @@ export interface Snapshot {
     } | null;
     /** Newest first. */
     events: SourceEvent[];
+    documents: LatestDocuments;
   };
   development: {
     sprint: {
