@@ -1,15 +1,15 @@
 package se.rainmaker.missioncontrol.collector.drive;
 
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -26,11 +26,12 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Read-only client for the Google Drive REST API (#113). It logs in as the service account with
- * Google's auth library (scope {@code drive.metadata.readonly}, so it can never read content or
- * write), retries server errors and timeouts with back-off, and turns every other failure into a
- * {@link SourceException} with a message that is safe to show. Neither the key nor the access token
- * is ever logged, and the token is only sent to {@code apiUrl}.
+ * Read-only client for the Google Drive REST API (#113). It logs in with Google's standard login
+ * ({@link GoogleLogin}, #120; no key is stored), limited to {@code drive.metadata.readonly}, so it
+ * can never read content or write. A login type where that limit would not apply (a plain gcloud
+ * user login) is refused. It retries server errors and timeouts with back-off and turns every other
+ * failure into a {@link SourceException} with a message that is safe to show. The access token is
+ * never logged and is only sent to {@code apiUrl}.
  */
 @Component
 public class GoogleDriveClient {
@@ -56,13 +57,18 @@ public class GoogleDriveClient {
   private static final JsonMapper JSON = JsonMapper.builder().build();
 
   private final GoogleDriveProperties properties;
+  private final GoogleLogin login;
   private final RestClient http;
   private final Retry retry;
   private GoogleCredentials credentials;
 
-  /** Builds the HTTP client with the timeouts and retry policy from the settings. */
-  public GoogleDriveClient(GoogleDriveProperties properties) {
+  /**
+   * Builds the HTTP client with the timeouts and retry policy from the settings; {@code login} is
+   * Google's standard login in production (#120).
+   */
+  public GoogleDriveClient(GoogleDriveProperties properties, GoogleLogin login) {
     this.properties = properties;
+    this.login = login;
     JdkClientHttpRequestFactory requestFactory =
         new JdkClientHttpRequestFactory(
             HttpClient.newBuilder().connectTimeout(properties.connectTimeout()).build());
@@ -86,7 +92,7 @@ public class GoogleDriveClient {
    * The newest files directly in {@code folderId}, newest first: not trashed, no subfolders and no
    * shortcuts, at most {@link #MAX_FILES}. Shared drives work too.
    *
-   * @throws SourceException when there is no key or Drive cannot deliver
+   * @throws SourceException when there is no Google login or Drive cannot deliver
    */
   public List<JsonNode> latestFiles(String folderId) {
     if (!GoogleDriveProperties.FOLDER_ID.matcher(folderId).matches()) {
@@ -141,13 +147,10 @@ public class GoogleDriveClient {
    * {@code renew} is set. Synchronized, so projects collected in parallel never race on the cache.
    */
   private synchronized String accessToken(boolean renew) {
-    if (!properties.hasCredentials()) {
-      throw new SourceException("No Google Drive key: set MC_GOOGLE_DRIVE_CREDENTIALS");
+    if (credentials == null) {
+      credentials = scopedLogin();
     }
     try {
-      if (credentials == null) {
-        credentials = serviceAccount();
-      }
       if (renew) {
         credentials.refresh();
       } else {
@@ -155,26 +158,51 @@ public class GoogleDriveClient {
       }
       return credentials.getAccessToken().getTokenValue();
     } catch (IOException e) {
-      // The library's message can quote Google's answer; only the type is logged, never the key.
+      // The library's message can quote Google's answer; only the type is logged, never a token.
       log.atWarn()
           .addKeyValue("error", e.getClass().getSimpleName())
           .log("Google token request failed");
       throw new SourceException(
-          "Google did not give an access token; check that the service-account key is valid");
+          "Google did not give an access token; check the Google login and that the service"
+              + " account may be used");
     }
   }
 
-  private GoogleCredentials serviceAccount() {
+  /**
+   * The login, limited to read-only metadata, so the token can never read content or write. Only
+   * login types where that limit really applies are accepted (see {@link #canBeLimited}).
+   */
+  private GoogleCredentials scopedLogin() {
+    GoogleCredentials credentials;
     try {
-      return ServiceAccountCredentials.fromStream(
-              new ByteArrayInputStream(properties.credentials().getBytes(StandardCharsets.UTF_8)))
-          .createScoped(List.of(SCOPE));
+      credentials = login.credentials();
     } catch (IOException | RuntimeException e) {
-      // RuntimeException too: a JSON key of another type fails with a ClassCastException or
-      // IllegalArgumentException. The message is never shown, since it could quote the key.
+      // RuntimeException too: a malformed login file can fail with an IllegalArgumentException.
+      // The library's message names files and variables it looked at; it is never shown.
       throw new SourceException(
-          "MC_GOOGLE_DRIVE_CREDENTIALS is not a valid Google service-account key");
+          "No Google login: run google-github-actions/auth in CI, or gcloud auth"
+              + " application-default login --impersonate-service-account=<e-mail> locally");
     }
+    if (!canBeLimited(credentials)) {
+      log.atWarn()
+          .addKeyValue("loginType", credentials.getClass().getSimpleName())
+          .log("Google login cannot be limited to read-only metadata; not used");
+      throw new SourceException(
+          "This Google login cannot be limited to read-only Drive metadata: log in with gcloud"
+              + " auth application-default login --impersonate-service-account=<e-mail>");
+    }
+    return credentials.createScoped(List.of(SCOPE));
+  }
+
+  /**
+   * Whether {@code createScoped} really limits the token: true for Workload Identity Federation
+   * (CI), an impersonated service account (local gcloud) and a service account. A plain user login
+   * ignores the scope and would act with the user's own Drive access, so it is refused.
+   */
+  static boolean canBeLimited(GoogleCredentials credentials) {
+    return credentials instanceof ExternalAccountCredentials
+        || credentials instanceof ImpersonatedCredentials
+        || credentials instanceof ServiceAccountCredentials;
   }
 
   private JsonNode fetchWithRetry(URI uri, String token) {
