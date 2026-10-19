@@ -14,3 +14,6 @@ apps/mission-control/out
 !**/.env.example
 **/*.pem
 **/*.log
+
+# Short-lived Google credentials written by google-github-actions/auth in CI (#112).
+gha-creds-*.json

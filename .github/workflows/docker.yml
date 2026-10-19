@@ -124,12 +124,23 @@ jobs:
         if: env.BAKE_SNAPSHOT == 'true'
         run: ./mvnw -B -ntp -q -f apps/mission-control/pom.xml -pl collector -am package -DskipTests
 
-      # After the build: "Collect the snapshot" reads its secrets from Secrets Manager (#112).
+      # After the build: "Collect the snapshot" reads the OpenAI key from Secrets Manager (#112).
       - uses: aws-actions/configure-aws-credentials@v4
         if: steps.source.outputs.present == 'true' && env.PUSH == 'true'
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+
+      # Google Drive (#112, #113): GitHub Actions signs in to Google with Workload Identity
+      # Federation, so no Google key exists anywhere. The action writes short-lived credentials to
+      # a gha-creds-*.json file (git- and docker-ignored) and sets GOOGLE_APPLICATION_CREDENTIALS,
+      # which the collector uses (Application Default Credentials). Skipped until the staging
+      # environment has both variables; the Drive source then reports an error in the snapshot.
+      - uses: google-github-actions/auth@v2
+        if: env.BAKE_SNAPSHOT == 'true' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && vars.GCP_SERVICE_ACCOUNT != ''
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
       # Writes apps/mission-control/out/projects.json and out/<project>/ (#99), which the web app
       # reads (#100). If the run fails, the job fails and staging keeps the image it already runs
@@ -139,8 +150,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Google Drive and OpenAI secrets (#112). They reach the collector process only: they are
-          # not exported, and the AWS credentials are removed before it starts.
+          # The OpenAI key (#112) reaches the collector process only: it is not exported, and the
+          # AWS credentials are removed before the collector starts.
           # read_secret prints the value. A secret that does not exist yet gives a notice; any
           # other error gives a warning with the AWS error code (never the value). Either way the
           # collector runs without it, and that source reports an error in the snapshot.
@@ -161,28 +172,17 @@ jobs:
             fi
             return 0
           }
-          gdrive=$(read_secret mission-control/google-drive-service-account)
           openai=$(read_secret mission-control/openai-api-key)
-
-          # Mask before anything can print them. The service account key becomes one line of JSON,
-          # and its private key is masked line by line too, in case anything prints it decoded.
-          if [ -n "$gdrive" ]; then
-            if gdrive=$(jq -c . <<< "$gdrive" 2> /dev/null); then
-              echo "::add-mask::$gdrive"
-              jq -r '.private_key // empty' <<< "$gdrive" | while IFS= read -r line; do
-                if [ -n "$line" ]; then echo "::add-mask::$line"; fi
-              done
-            else
-              gdrive=""
-              echo "::warning title=Secret could not be read::mission-control/google-drive-service-account is not valid JSON; the collector runs without it."
-            fi
-          fi
+          # Mask it before anything can print it.
           if [ -n "$openai" ]; then echo "::add-mask::$openai"; fi
+          if [ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]; then
+            echo "::notice title=Google Drive not set up yet::No Workload Identity Federation variables in the staging environment; the collector runs without Drive."
+          fi
 
-          # The collector needs no AWS access. Only the secrets that exist are passed to it.
+          # The collector needs no AWS access. Only a key that exists is passed to it; Google
+          # signs in through GOOGLE_APPLICATION_CREDENTIALS from the step above.
           unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
           secrets=()
-          if [ -n "$gdrive" ]; then secrets+=("MC_GOOGLE_SERVICE_ACCOUNT_JSON=$gdrive"); fi
           if [ -n "$openai" ]; then secrets+=("OPENAI_API_KEY=$openai"); fi
           env "${secrets[@]}" java -jar apps/mission-control/collector/target/collector-*.jar
           # Every project in projects.json needs its snapshot, or staging shows an error for it.

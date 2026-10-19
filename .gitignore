@@ -27,3 +27,6 @@ apps/mission-control/out/
 .DS_Store
 Thumbs.db
 *.log
+
+# Short-lived Google credentials written by google-github-actions/auth (#112); never commit.
+gha-creds-*.json

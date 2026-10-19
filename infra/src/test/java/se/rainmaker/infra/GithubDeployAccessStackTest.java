@@ -164,11 +164,7 @@ class GithubDeployAccessStackTest {
                                     "Action",
                                     "secretsmanager:GetSecretValue",
                                     "Resource",
-                                    List.of(
-                                        SECRET_ARN
-                                            + "mission-control/google-drive-service-account-??????",
-                                        SECRET_ARN
-                                            + "mission-control/openai-api-key-??????")))))))));
+                                    SECRET_ARN + "mission-control/openai-api-key-??????"))))))));
   }
 
   @Test
