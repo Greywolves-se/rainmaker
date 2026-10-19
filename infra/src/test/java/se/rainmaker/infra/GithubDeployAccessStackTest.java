@@ -23,6 +23,9 @@ class GithubDeployAccessStackTest {
           "repo:Greywolves-se/rainmaker:environment:staging",
           "repo:Greywolves-se@341957527/rainmaker@1416917981:environment:staging");
 
+  /** Secrets Manager adds six random characters to a secret's ARN, hence "-??????" below. */
+  private static final String SECRET_ARN = "arn:aws:secretsmanager:eu-north-1:659947636280:secret:";
+
   private static final String ECR_REPOSITORY_ARN =
       "arn:aws:ecr:eu-north-1:659947636280:repository/";
 
@@ -143,7 +146,29 @@ class GithubDeployAccessStackTest {
                                     List.of("ecs:UpdateService", "ecs:DescribeServices"),
                                     "Resource",
                                     "arn:aws:ecs:eu-north-1:659947636280:service/default/"
-                                        + "mission-control-web"))))))));
+                                        + "mission-control-web")))),
+                    Map.of(
+                        "PolicyName",
+                        "read-mission-control-secrets",
+                        "PolicyDocument",
+                        Map.of(
+                            "Version",
+                            "2012-10-17",
+                            "Statement",
+                            List.of(
+                                Map.of(
+                                    "Sid",
+                                    "ReadMissionControlSecrets",
+                                    "Effect",
+                                    "Allow",
+                                    "Action",
+                                    "secretsmanager:GetSecretValue",
+                                    "Resource",
+                                    List.of(
+                                        SECRET_ARN
+                                            + "mission-control/google-drive-service-account-??????",
+                                        SECRET_ARN
+                                            + "mission-control/openai-api-key-??????")))))))));
   }
 
   @Test
