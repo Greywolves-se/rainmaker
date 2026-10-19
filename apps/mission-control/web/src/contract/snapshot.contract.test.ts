@@ -66,6 +66,34 @@ describe('snapshot contract', () => {
     expect(parseSnapshot(older).documents).toEqual([]);
   });
 
+  it('reads a snapshot from before #115, without navigator, as having none', () => {
+    const older: Partial<typeof sample> = clone();
+    delete older.navigator;
+    expect(matchesJsonSchema(older)).toBe(false);
+    expect(parseSnapshot(older).navigator).toBeNull();
+  });
+
+  it('reads the AI text per page in both languages, and a page without text', () => {
+    const {pages} = parseSnapshot(sample).navigator!;
+    expect(pages.overview?.sv.summary).toMatch(/^Sprinten/);
+    expect(pages.overview?.en.deviations).toHaveLength(2);
+    expect(pages.sources).toBeNull();
+  });
+
+  it('rejects AI text over the limits, like the JSON Schema', () => {
+    const tooMany = clone();
+    tooMany.navigator!.pages.overview!.en.deviations = Array(6).fill('Late');
+    const noSwedish = clone() as unknown as {
+      navigator: {pages: {overview: {sv?: unknown}}};
+    };
+    delete noSwedish.navigator.pages.overview.sv;
+
+    for (const broken of [tooMany, noSwedish]) {
+      expect(matchesJsonSchema(broken)).toBe(false);
+      expect(() => parseSnapshot(broken)).toThrow(/navigator/);
+    }
+  });
+
   it.each([
     {definition: 'source', field: 'status', zodEnum: sourceStatus},
     {definition: 'workItem', field: 'status', zodEnum: workItemStatus},

@@ -43,4 +43,6 @@ The contract tests on both sides fail when they disagree.
 - **Unknown fields** are dropped instead of rejected, as for the snapshot. Writers are strict (the schema, the Java records), readers are lenient, so adding a field never breaks a deployed dashboard.
 - **Duplicate ids** are rejected, which JSON Schema cannot express.
 
-`snapshot.ts` reads a missing `documents` list (a snapshot written before #113) as empty, so a new web app never fails on an older snapshot. The schema and the collector still require it.
+`snapshot.ts` reads a missing `documents` list (a snapshot written before #113) as empty, and a missing `navigator` (before #115) as `null`, so a new web app never fails on an older snapshot. The schema and the collector still require both.
+
+**`navigator` (#115, ADR 0002)** holds AI-written text: a summary, deviations and suggestions per page (`overview`, `development`, `sources`), each in `sv` and `en`. It is `null` when the AI step is off or failed, and a single page is `null` when only its text failed. Because a model wrote it, the web app must show it as plain text, never HTML or links, and label it as AI (#116).

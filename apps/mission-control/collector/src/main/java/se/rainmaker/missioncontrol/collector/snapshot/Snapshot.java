@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * Everything the dashboard shows, written by the collector in one run. {@code sprint} is null when
- * no sprint is running.
+ * no sprint is running; {@code navigator} is null when the AI step is off or failed (#115).
  */
 public record Snapshot(
     int schemaVersion,
@@ -23,7 +23,8 @@ public record Snapshot(
     List<Link> links,
     List<Change> changes,
     List<Event> events,
-    List<Document> documents) {
+    List<Document> documents,
+    Navigator navigator) {
 
   /** The contract version these records implement. */
   public static final int SCHEMA_VERSION = 1;

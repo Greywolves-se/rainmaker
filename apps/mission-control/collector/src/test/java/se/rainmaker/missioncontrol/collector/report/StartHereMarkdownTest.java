@@ -226,7 +226,8 @@ class StartHereMarkdownTest {
             List.of(),
             List.of(),
             List.of(),
-            List.of());
+            List.of(),
+            null);
 
     String report = StartHereMarkdown.render(empty, "");
 
@@ -269,7 +270,8 @@ class StartHereMarkdownTest {
         List.of(),
         List.of(),
         List.of(),
-        List.of());
+        List.of(),
+        null);
   }
 
   private static WorkItem workItem(
@@ -311,7 +313,8 @@ class StartHereMarkdownTest {
         s.links(),
         s.changes(),
         s.events(),
-        s.documents());
+        s.documents(),
+        s.navigator());
   }
 
   /** The sample with 100 of everything a report lists. */
@@ -394,6 +397,7 @@ class StartHereMarkdownTest {
         links,
         s.changes(),
         s.events(),
-        s.documents());
+        s.documents(),
+        s.navigator());
   }
 }

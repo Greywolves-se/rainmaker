@@ -175,7 +175,9 @@ public final class SnapshotBuilder {
         links.items(),
         changes.items(),
         events.items(),
-        documents.items());
+        documents.items(),
+        // Sources never write the AI text; the collector adds it after all sources ran (#115).
+        null);
   }
 
   private List<ItemList<?>> lists() {
