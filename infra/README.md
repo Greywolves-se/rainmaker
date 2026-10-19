@@ -27,6 +27,12 @@ The tests turn each stack into a CloudFormation template in memory and check it
 (`software.amazon.awscdk.assertions.Template`). The CDK Java library runs on Node.js
 internally, so Node.js must be installed (22 or newer).
 
+**CI (#125):** the "Infra (CDK synth and tests)" job in `.github/workflows/mission-control-ci.yml`
+runs the same command, with JDK 21 and Node.js 22, on every pull request that changes `infra/`,
+the root `pom.xml`, `mvnw`, `.mvn/` or the workflow file. Other pull requests skip it, and a
+skipped job counts as passing, so the check can be required. The job has no AWS credentials, so
+`cdk diff` stays a manual step in every infra PR.
+
 ## Synth, diff and deploy (needs the CDK CLI and AWS access)
 
 Needs the CDK CLI (`npm install -g aws-cdk`) and credentials for the staging account.
