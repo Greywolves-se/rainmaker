@@ -11,9 +11,10 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext .ts,.tsx",
-    "fix": "eslint src --ext .ts,.tsx --fix",
-    "test": "vitest run"
+    "lint": "eslint src e2e playwright.config.ts --ext .ts,.tsx",
+    "fix": "eslint src e2e playwright.config.ts --ext .ts,.tsx --fix",
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "i18next": "23.16.8",
@@ -24,6 +25,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.1.0",
