@@ -13,7 +13,9 @@ import se.rainmaker.missioncontrol.anonymizer.Anonymizer;
 import se.rainmaker.missioncontrol.collector.navigator.PageData.Page;
 import se.rainmaker.missioncontrol.collector.snapshot.Navigator;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
+import se.rainmaker.missioncontrol.collector.snapshot.SnapshotJson;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
+import se.rainmaker.missioncontrol.personnames.PersonNames;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -85,7 +87,9 @@ public class NavigatorStep {
       return snapshot.withNavigator(
           null, source(Source.Status.ERROR, null, "No OpenAI key: set OPENAI_API_KEY"));
     }
-    Anonymizer anonymizer = Anonymizer.forNames(PageData.people(snapshot));
+    // One shared name list with the Ask Navigator backend (#136), incl. first names.
+    Anonymizer anonymizer =
+        Anonymizer.forNames(PersonNames.fromSnapshot(SnapshotJson.mapper().valueToTree(snapshot)));
     Map<Page, Navigator.PageInsight> pages = new EnumMap<>(Page.class);
     List<String> failed = new ArrayList<>();
     String firstProblem = null;
