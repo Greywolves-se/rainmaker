@@ -70,6 +70,21 @@ class PersonNamesTest {
   }
 
   @Test
+  void neverAddsRoleWordsAsFirstNames() {
+    // The role owners in data/rainmaker/questions.yaml.
+    JsonNode snapshot =
+        json(
+            """
+            {"questions": [{"owner": "Senior Dev"}, {"owner": "Senior Dev / Peter"},
+                           {"owner": "Customer (Staffan)"}, {"owner": "Kund Ab"}]}
+            """);
+
+    assertThat(PersonNames.fromSnapshot(snapshot))
+        .contains("Staffan", "Peter")
+        .doesNotContain("Senior", "Customer", "Kund");
+  }
+
+  @Test
   void toleratesMissingFieldsAndNulls() {
     assertThat(PersonNames.fromSnapshot(json("{}"))).isEmpty();
     assertThat(

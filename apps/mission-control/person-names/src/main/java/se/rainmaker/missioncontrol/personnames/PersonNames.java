@@ -3,6 +3,7 @@ package se.rainmaker.missioncontrol.personnames;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -30,9 +31,16 @@ public final class PersonNames {
 
   static final int MIN_FIRST_NAME = 3;
 
-  /** First words that are not names, so a group such as "Team Rainmaker" never hides "Team". */
+  /**
+   * First words that are not names, so a group such as "Team Rainmaker" never hides "Team", and a
+   * role owner such as "Senior Dev" or "Customer (Staffan)" never hides "Senior" or "Customer".
+   * Extend it when a role word in the data files slips through.
+   */
   static final Set<String> COMMON_WORDS =
       Set.of(
+          "senior",
+          "customer",
+          "kund",
           "team",
           "teamet",
           "the",
@@ -49,11 +57,15 @@ public final class PersonNames {
           "all",
           "alla");
 
-  private static final String[] PERSON_LIST_FIELDS = {"workItems", "assignees"};
-  private static final String[][] PERSON_FIELDS = {
-    {"pullRequests", "author"}, {"documents", "lastEditor"}
-  };
-  private static final String[] OWNER_LISTS = {"decisions", "risks", "questions", "changes"};
+  /** A snapshot list and the person field on each of its items. */
+  private record PersonField(String list, String field) {}
+
+  private static final PersonField ASSIGNEES = new PersonField("workItems", "assignees");
+  private static final List<PersonField> SINGLE_PERSON_FIELDS =
+      List.of(
+          new PersonField("pullRequests", "author"), new PersonField("documents", "lastEditor"));
+  private static final List<String> OWNER_LISTS =
+      List.of("decisions", "risks", "questions", "changes");
 
   /** Splits owner fields such as "Mission Control developers (Emil, Gabriel, Mai)". */
   private static final Pattern NAME_LIST =
@@ -69,14 +81,14 @@ public final class PersonNames {
       return Collections.emptySet();
     }
     Set<String> names = new TreeSet<>();
-    for (JsonNode item : snapshot.path(PERSON_LIST_FIELDS[0])) {
-      for (JsonNode person : item.path(PERSON_LIST_FIELDS[1])) {
+    for (JsonNode item : snapshot.path(ASSIGNEES.list())) {
+      for (JsonNode person : item.path(ASSIGNEES.field())) {
         addPerson(names, person);
       }
     }
-    for (String[] field : PERSON_FIELDS) {
-      for (JsonNode item : snapshot.path(field[0])) {
-        addPerson(names, item.path(field[1]));
+    for (PersonField person : SINGLE_PERSON_FIELDS) {
+      for (JsonNode item : snapshot.path(person.list())) {
+        addPerson(names, item.path(person.field()));
       }
     }
     for (String list : OWNER_LISTS) {
