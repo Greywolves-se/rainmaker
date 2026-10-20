@@ -26,7 +26,10 @@ npm run build    # type check + production build into dist/
 npm run lint     # ESLint with the gts (Google TypeScript style) rules
 npm run fix      # auto-fix lint and formatting
 npm test         # Vitest + React Testing Library
+npm run e2e      # Playwright smoke tests against dist/: run npm run build first
 ```
+
+The first time, `npx playwright install chromium` downloads the browser the smoke tests use.
 
 Two Windows pitfalls:
 
@@ -136,6 +139,11 @@ Only two places keep state that changes while you use the page:
 - Files named `*.contract.test.ts(x)` use the shared fixture in `../contract/`: the contract
   itself, `fromContract`, the client and every page with contract data. They are excluded
   from `tsc` because the Docker build copies only `web/`; Vitest runs them.
+- `e2e/smoke.spec.ts` (Playwright, #29) opens the built app in Chromium, at desktop and phone
+  size. `e2e/sampleData.ts` answers the data requests with `../contract/fixtures/` and the
+  collector's sample START HERE report. The tests fail if a page shows an error, the menu
+  breaks or the language switch stops working. CI runs them after the build and keeps the
+  traces of failed tests as the `playwright-traces` artifact.
 
 ## Common changes
 
