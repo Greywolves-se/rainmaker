@@ -4,6 +4,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.havingExactly;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -221,6 +222,19 @@ class GithubClientTest {
 
     assertThat(client("t").getFirstPage(ISSUES, Map.of()).get("total_count").asInt()).isEqualTo(1);
     github.verify(1, getRequestedFor(urlPathEqualTo(ISSUES)));
+  }
+
+  @Test
+  void perPageInTheQueryReplacesTheDefault() {
+    github.stubFor(get(urlPathEqualTo(ISSUES)).willReturn(okJson("[]")));
+
+    client("t").getFirstPage(ISSUES, Map.of("per_page", "10", "state", "open"));
+
+    // Replaced, not added: one per_page, never both 100 and 10.
+    github.verify(
+        getRequestedFor(urlPathEqualTo(ISSUES))
+            .withQueryParam("per_page", havingExactly("10"))
+            .withQueryParam("state", equalTo("open")));
   }
 
   @Test

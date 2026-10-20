@@ -72,10 +72,16 @@ Settings live in `collector/src/main/resources/application.properties` and can b
 - **Waiting time:** how long a PR has waited for review is shown by the dashboard from `createdAt` and `review` (#21).
 
 **GitHub builds and versions (#14, source `github-builds`):**
-- **Builds:** the latest run of each of the project's workflows on `main`, `develop` and the newest `release/x.y.z` branch. The workflows are set per project in `mission-control.collector.github.workflows.<project id>` as file names (`mission-control-ci.yml,docker.yml`), because both projects live in one repository. Skipped and neutral runs are passed over. A project without workflows shows the source as `disabled` ("No GitHub workflows for this project"); today that is Rainmaker.
-- **Status:** not finished → `running`; failed, timed out, startup failure or action required → `failure`; cancelled → `cancelled`; otherwise `success`.
-- **Events:** a failed build on `develop` also appears as an event.
-- **Versions** (`releases`, one per environment, derived from Git Flow until real deployments are read): **dev** is the latest commit on `develop` (short SHA); **UAT** is the newest `release/x.y.z` branch; **production** is the latest published GitHub release (drafts and pre-releases are left out). An environment with nothing yet is left out.
+- **Builds:** the latest **completed** run of each of the project's workflows on `main`, `develop` and the newest `release/x.y.z` branch. The workflows are set per project in `mission-control.collector.github.workflows.<project id>` as file names (`mission-control-ci.yml,docker.yml`), because both projects live in one repository. A project without workflows shows the source as `disabled` ("No GitHub workflows for this project"), with no builds and no versions; today that is Rainmaker.
+  - **Running runs are never shown:** a snapshot stays as it is until the next run, so a running state would go stale. That also leaves out the collector's own run, which is part of the `docker.yml` run on `develop`. A build that is still running when the snapshot is taken shows up in the next run.
+  - **Pull request runs, and skipped and neutral runs, are passed over**, so `develop` means pushes, scheduled and manual runs of `develop` itself.
+  - **One repository:** each project's workflow files are looked up in every repository in `github.repositories`, so a second repository without those files would make the source an error.
+- **Status:** failed, timed out, startup failure or action required → `failure`; cancelled → `cancelled`; otherwise `success`.
+- **Events:** a failed build on `develop` in the last 7 days also appears as an event.
+- **Versions** (`releases`, one per environment, derived from Git Flow until real deployments are read). An environment with nothing yet is left out.
+  - **dev:** the latest commit on `develop` (short SHA).
+  - **production:** the published GitHub release with the highest `x.y.z` tag (`v` optional). Drafts, pre-releases and other tags are left out, so a hotfix on an older line never becomes production.
+  - **UAT:** the newest `release/x.y.z` branch, left out when it isn't newer than production (a finished release branch that wasn't deleted).
 
 **Google Drive (#113, source `google-drive`):** the newest 50 files directly in each project's Drive folder become `documents`: title, kind (document, spreadsheet, presentation, PDF or other), last editor, modified time and link. **Metadata only:** the source never reads a document's content.
 - **Events:** files added or changed in the last 7 days also appear as events ("Document added" or "Document updated").

@@ -42,7 +42,8 @@ class GithubBuildsSourceTest {
 
   private static final Instant NOW = Instant.parse("2026-10-20T12:00:00Z");
   private static final String REPO = "example-org/rainmaker";
-  private static final String WORKFLOW = "ci.yml";
+  private static final String CI = "ci.yml";
+  private static final String DOCKER = "docker.yml";
   private static final JsonMapper JSON = JsonMapper.builder().build();
   private static final ProjectSettings MISSION_CONTROL =
       new ProjectSettings("mission-control", "Mission Control", "mission-control", null);
@@ -66,14 +67,12 @@ class GithubBuildsSourceTest {
   }
 
   @Test
-  void latestRunPerWorkflowAndBranch() {
+  void latestCompletedRunPerWorkflowAndBranch() {
     stubReleaseBranches(List.of("release/1.9.0", "release/1.10.0", "release/next"));
     stubCommit("sha-release-1.10.0", "sha-release-1.10.0", "2026-10-18T10:00:00Z");
-    stubRuns("main", List.of(workflowRun(11, "completed", "success")));
-    stubRuns(
-        "develop",
-        List.of(workflowRun(21, "completed", "success"), workflowRun(20, "completed", "failure")));
-    stubRuns("release/1.10.0", List.of(workflowRun(31, "in_progress", null)));
+    stubRuns(CI, "main", List.of(workflowRun(11, "success")));
+    stubRuns(CI, "develop", List.of(workflowRun(21, "success"), workflowRun(20, "failure")));
+    stubRuns(CI, "release/1.10.0", List.of(workflowRun(31, "success")));
 
     Snapshot snapshot = run(MISSION_CONTROL);
 
@@ -83,44 +82,77 @@ class GithubBuildsSourceTest {
         .containsExactly(
             tuple("gh-rainmaker-run-11", "main", Build.Status.SUCCESS, finished(11)),
             tuple("gh-rainmaker-run-21", "develop", Build.Status.SUCCESS, finished(21)),
-            tuple("gh-rainmaker-run-31", "release/1.10.0", Build.Status.RUNNING, null));
+            tuple("gh-rainmaker-run-31", "release/1.10.0", Build.Status.SUCCESS, finished(31)));
     Build first = snapshot.builds().getFirst();
     assertThat(first.workflow()).isEqualTo("Mission Control CI");
     assertThat(first.startedAt()).isEqualTo(Instant.parse("2026-10-20T08:00:00Z"));
     assertThat(first.url()).isEqualTo("https://github.com/" + REPO + "/actions/runs/11");
-    // Only the latest run is needed: ask for a short page, not GitHub's 100.
+    // Only completed runs, and a short page: the latest one is all that is needed.
     github.verify(
-        getRequestedFor(urlPathEqualTo(runsPath(WORKFLOW)))
+        getRequestedFor(urlPathEqualTo(runsPath(CI)))
             .withQueryParam("branch", equalTo("main"))
+            .withQueryParam("status", equalTo("completed"))
             .withQueryParam("per_page", equalTo("10")));
   }
 
-  @ParameterizedTest(name = "{0}:{1} -> {2}")
+  @Test
+  void runningRunSuchAsTheCollectorsOwnIsNeverShown() {
+    // On develop the collector runs inside the Docker workflow, so the newest Docker run is its
+    // own, still running. The snapshot is frozen, so it shows the latest completed run instead.
+    stubRuns(
+        DOCKER,
+        "develop",
+        List.of(
+            named(workflowRun(42, "in_progress", null), "Docker"),
+            named(workflowRun(41, "failure"), "Docker")));
+
+    Snapshot snapshot = run(MISSION_CONTROL);
+
+    assertThat(snapshot.builds())
+        .extracting(Build::id, Build::status)
+        .containsExactly(tuple("gh-rainmaker-run-41", Build.Status.FAILURE));
+    assertThat(snapshot.events())
+        .extracting(Event::title)
+        .containsExactly("Build failed on develop: Docker");
+  }
+
+  @Test
+  void everyWorkflowOfTheProjectGetsItsBuild() {
+    stubRuns(CI, "develop", List.of(workflowRun(21, "success")));
+    stubRuns(DOCKER, "develop", List.of(named(workflowRun(22, "success"), "Docker")));
+
+    assertThat(run(MISSION_CONTROL).builds())
+        .extracting(Build::workflow, Build::branch)
+        .containsExactly(tuple("Mission Control CI", "develop"), tuple("Docker", "develop"));
+  }
+
+  @ParameterizedTest(name = "{0} -> {1}")
   @CsvSource({
-    "completed, success, SUCCESS",
-    "completed, failure, FAILURE",
-    "completed, timed_out, FAILURE",
-    "completed, startup_failure, FAILURE",
-    "completed, action_required, FAILURE",
-    "completed, cancelled, CANCELLED",
-    "queued, , RUNNING",
-    "in_progress, , RUNNING",
-    "waiting, , RUNNING"
+    "success, SUCCESS",
+    "failure, FAILURE",
+    "timed_out, FAILURE",
+    "startup_failure, FAILURE",
+    "action_required, FAILURE",
+    "cancelled, CANCELLED"
   })
-  void runStatus(String status, String conclusion, Build.Status expected) {
-    stubRuns("main", List.of(workflowRun(11, status, conclusion)));
+  void runStatus(String conclusion, Build.Status expected) {
+    stubRuns(CI, "main", List.of(workflowRun(11, conclusion)));
 
     assertThat(run(MISSION_CONTROL).builds()).extracting(Build::status).containsExactly(expected);
   }
 
   @Test
-  void skippedRunsArePassedOver() {
+  void skippedAndPullRequestRunsArePassedOver() {
+    Map<String, Object> pullRequestRun = workflowRun(14, "failure");
+    pullRequestRun.put("event", "pull_request");
     stubRuns(
+        CI,
         "main",
         List.of(
-            workflowRun(13, "completed", "skipped"),
-            workflowRun(12, "completed", "neutral"),
-            workflowRun(11, "completed", "success")));
+            pullRequestRun,
+            workflowRun(13, "skipped"),
+            workflowRun(12, "neutral"),
+            workflowRun(11, "success")));
 
     assertThat(run(MISSION_CONTROL).builds())
         .extracting(Build::id)
@@ -148,8 +180,8 @@ class GithubBuildsSourceTest {
 
   @Test
   void failedBuildOnDevelopCreatesEvent() {
-    stubRuns("main", List.of(workflowRun(11, "completed", "failure")));
-    stubRuns("develop", List.of(workflowRun(21, "completed", "failure")));
+    stubRuns(CI, "main", List.of(workflowRun(11, "failure")));
+    stubRuns(CI, "develop", List.of(workflowRun(21, "failure")));
 
     Snapshot snapshot = run(MISSION_CONTROL);
 
@@ -165,26 +197,72 @@ class GithubBuildsSourceTest {
   }
 
   @Test
+  void failedBuildOlderThanOneWeekIsShownButIsNoEvent() {
+    Map<String, Object> old = workflowRun(21, "failure");
+    old.put("updated_at", NOW.minus(Duration.ofDays(8)).toString());
+    stubRuns(CI, "develop", List.of(old));
+
+    Snapshot snapshot = run(MISSION_CONTROL);
+
+    assertThat(snapshot.builds()).extracting(Build::status).containsExactly(Build.Status.FAILURE);
+    assertThat(snapshot.events()).isEmpty();
+  }
+
+  @Test
   void versionPerEnvironment() {
-    stubReleaseBranches(List.of("release/1.2.0", "release/1.10.0"));
-    stubCommit("sha-release-1.10.0", "sha-release-1.10.0", "2026-10-18T10:00:00Z");
+    stubReleaseBranches(List.of("release/1.2.0", "release/1.11.0"));
+    stubCommit("sha-release-1.11.0", "sha-release-1.11.0", "2026-10-18T10:00:00Z");
     stubReleases(
         List.of(
             release("v1.11.0-rc1", false, true),
             release("v1.10.0", false, false),
             release("v1.9.0", false, false)));
 
-    assertThat(run(MISSION_CONTROL).releases())
+    List<Release> releases = run(MISSION_CONTROL).releases();
+
+    assertThat(releases)
         .extracting(Release::id, Release::version, Release::environment)
         .containsExactly(
             tuple("gh-rainmaker-dev", "abcdef1", Release.Environment.DEV),
-            tuple("gh-rainmaker-uat", "1.10.0", Release.Environment.UAT),
+            tuple("gh-rainmaker-uat", "1.11.0", Release.Environment.UAT),
             tuple("gh-rainmaker-prod", "v1.10.0", Release.Environment.PROD));
+    // UAT is dated and linked by the release branch's head commit.
+    assertThat(releases.get(1).publishedAt()).isEqualTo(Instant.parse("2026-10-18T10:00:00Z"));
+    assertThat(releases.get(1).url())
+        .isEqualTo("https://github.com/" + REPO + "/commit/sha-release-1.11.0");
   }
 
   @Test
-  void draftsAndPreReleasesAreNotProduction() {
-    stubReleases(List.of(release("v2.0.0", true, false), release("v2.0.0-rc1", false, true)));
+  void finishedReleaseBranchIsNotUat() {
+    // release/1.10.0 was released but not deleted: it is production, not something in UAT.
+    stubReleaseBranches(List.of("release/1.10.0"));
+    stubReleases(List.of(release("v1.10.0", false, false)));
+
+    assertThat(run(MISSION_CONTROL).releases())
+        .extracting(Release::environment)
+        .containsExactly(Release.Environment.DEV, Release.Environment.PROD);
+    github.verify(
+        0, getRequestedFor(urlPathEqualTo("/repos/" + REPO + "/commits/sha-release-1.10.0")));
+  }
+
+  @Test
+  void hotfixOnOlderLineIsNotProduction() {
+    // The newest release in the list is a hotfix of 1.9; production is still the highest version.
+    stubReleases(List.of(release("v1.9.1", false, false), release("v1.10.0", false, false)));
+
+    assertThat(run(MISSION_CONTROL).releases())
+        .filteredOn(release -> release.environment() == Release.Environment.PROD)
+        .extracting(Release::version)
+        .containsExactly("v1.10.0");
+  }
+
+  @Test
+  void draftsPreReleasesAndOtherTagsAreNotProduction() {
+    stubReleases(
+        List.of(
+            release("v2.0.0", true, false),
+            release("v2.0.0-rc1", false, true),
+            release("nightly", false, false)));
 
     assertThat(run(MISSION_CONTROL).releases())
         .extracting(Release::environment)
@@ -194,13 +272,13 @@ class GithubBuildsSourceTest {
   @Test
   void missingWorkflowIsAnErrorThatNamesIt() {
     github.stubFor(
-        get(urlPathEqualTo(runsPath(WORKFLOW)))
+        get(urlPathEqualTo(runsPath(CI)))
             .willReturn(aResponse().withStatus(404).withBody("{\"message\": \"Not Found\"}")));
 
     Source result = run(MISSION_CONTROL).sources().getFirst();
 
     assertThat(result.status()).isEqualTo(Source.Status.ERROR);
-    assertThat(result.message()).contains(WORKFLOW, "HTTP 404");
+    assertThat(result.message()).contains(CI, "HTTP 404");
   }
 
   @Test
@@ -225,9 +303,9 @@ class GithubBuildsSourceTest {
             Duration.ofMillis(1),
             Duration.ofSeconds(60),
             5,
-            Map.of("mission-control", List.of(WORKFLOW)));
+            Map.of("mission-control", List.of(CI, DOCKER)));
     GithubBuildsSource source =
-        new GithubBuildsSource(new GithubClient(properties, clock), properties);
+        new GithubBuildsSource(new GithubClient(properties, clock), properties, clock);
     CollectorProperties collector =
         new CollectorProperties(List.of(project), Path.of("unused"), Map.of());
     return new CollectorPipeline(List.of(source), collector, new SnapshotValidator(), clock)
@@ -238,9 +316,9 @@ class GithubBuildsSourceTest {
     return "/repos/" + REPO + "/actions/workflows/" + workflow + "/runs";
   }
 
-  private static void stubRuns(String branch, List<Map<String, Object>> runs) {
+  private static void stubRuns(String workflow, String branch, List<Map<String, Object>> runs) {
     github.stubFor(
-        get(urlPathEqualTo(runsPath(WORKFLOW)))
+        get(urlPathEqualTo(runsPath(workflow)))
             .withQueryParam("branch", equalTo(branch))
             .willReturn(okJson(runsAnswer(runs))));
   }
@@ -295,17 +373,27 @@ class GithubBuildsSourceTest {
     return release;
   }
 
-  /** A workflow run; it finished {@code id} minutes after 08:00 unless it is still going. */
+  /** A completed push run of Mission Control CI; it finished {@code id} minutes after 08:00. */
+  private static Map<String, Object> workflowRun(int id, String conclusion) {
+    return workflowRun(id, "completed", conclusion);
+  }
+
   private static Map<String, Object> workflowRun(int id, String status, String conclusion) {
     Map<String, Object> run = new LinkedHashMap<>();
     run.put("id", id);
     run.put("name", "Mission Control CI");
+    run.put("event", "push");
     run.put("head_branch", "ignored: the branch asked for is used");
     run.put("status", status);
     run.put("conclusion", conclusion);
     run.put("run_started_at", "2026-10-20T08:00:00Z");
     run.put("updated_at", finished(id).toString());
     run.put("html_url", "https://github.com/" + REPO + "/actions/runs/" + id);
+    return run;
+  }
+
+  private static Map<String, Object> named(Map<String, Object> run, String workflowName) {
+    run.put("name", workflowName);
     return run;
   }
 
