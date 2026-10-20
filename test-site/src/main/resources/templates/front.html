@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!--/*
+  Front page. Data from PageController#frontPage:
+    frontPage         lead story, breaking article (may be null), most read - from front-page.json
+    secondaryStories  the two stories next to the lead
+    moreStories       the rest, for "Fler nyheter"
+    latest            newest articles, for "Senaste nytt"
+    panoramaAd, skyscraperAd
+*/-->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::content})}">
+<body>
+<th:block th:fragment="content">
+  <h1 class="visually-hidden" th:text="#{front.title}"></h1>
+
+  <a th:if="${frontPage.breaking() != null}" class="breaking" th:href="${frontPage.breaking().path()}">
+    <span class="breaking__label" th:text="#{front.breaking}">Just nu</span>
+    <span class="breaking__headline" th:text="${frontPage.breaking().headline()}"></span>
+  </a>
+
+  <th:block th:replace="~{fragments :: adSlot(${panoramaAd})}"></th:block>
+
+  <div class="front">
+    <div class="front__main">
+      <section class="front__top" aria-labelledby="top-stories-heading">
+        <h2 id="top-stories-heading" class="visually-hidden" th:text="#{front.topStories}"></h2>
+        <th:block th:replace="~{fragments :: card(${frontPage.lead()}, 'lead')}"></th:block>
+        <div class="front__secondary">
+          <th:block th:each="story : ${secondaryStories}">
+            <th:block th:replace="~{fragments :: card(${story}, 'standard')}"></th:block>
+          </th:block>
+        </div>
+      </section>
+
+      <section th:if="${!moreStories.isEmpty()}" class="more-news" aria-labelledby="more-news-heading">
+        <h2 id="more-news-heading" class="block-heading" th:text="#{front.moreNews}"></h2>
+        <div class="card-grid">
+          <th:block th:each="story : ${moreStories}">
+            <th:block th:replace="~{fragments :: card(${story}, 'standard')}"></th:block>
+          </th:block>
+        </div>
+      </section>
+    </div>
+
+    <div class="front__sidebar">
+      <section class="sidebar-box" aria-labelledby="latest-heading">
+        <h2 id="latest-heading" class="block-heading" th:text="#{front.latest}"></h2>
+        <ol class="latest__list">
+          <th:block th:each="story : ${latest}">
+            <th:block th:replace="~{fragments :: compactCard(${story})}"></th:block>
+          </th:block>
+        </ol>
+      </section>
+
+      <section class="sidebar-box" aria-labelledby="most-read-heading">
+        <h2 id="most-read-heading" class="block-heading" th:text="#{front.mostRead}"></h2>
+        <ol class="most-read">
+          <li th:each="story : ${frontPage.mostRead()}" class="most-read__item">
+            <a class="most-read__link" th:href="${story.path()}" th:text="${story.headline()}"></a>
+          </li>
+        </ol>
+      </section>
+
+      <th:block th:replace="~{fragments :: adSlot(${skyscraperAd})}"></th:block>
+    </div>
+  </div>
+</th:block>
+</body>
+</html>

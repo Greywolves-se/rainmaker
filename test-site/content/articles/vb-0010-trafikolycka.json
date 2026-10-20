@@ -1,0 +1,29 @@
+{
+  "id": "vb-0010",
+  "slug": "tva-doda-i-trafikolycka-utanfor-vintra",
+  "section": "nyheter",
+  "expectedZone": "red",
+  "premium": false,
+  "kicker": "OLYCKA",
+  "headline": "Två döda i trafikolycka utanför Vintra",
+  "lead": "Två personer omkom på lördagskvällen när två personbilar kolliderade på Älvdalsvägen norr om Vintra. En tredje person fördes till sjukhus med allvarliga skador.",
+  "author": { "name": "Elin Bergqvist", "role": "Nyhetsreporter" },
+  "publishedAt": "2026-10-11T19:30:00+02:00",
+  "updatedAt": "2026-10-11T23:05:00+02:00",
+  "body": [
+    { "type": "paragraph", "text": "Larmet om olyckan kom strax efter klockan 18 på lördagen. Två personbilar hade krockat frontalt på en raksträcka på Älvdalsvägen, ungefär två mil norr om Vintra." },
+    { "type": "paragraph", "text": "Räddningstjänst, ambulans och polis skickades till platsen. Två personer, som färdades i samma bil, förklarades avlidna på olycksplatsen. Föraren av den andra bilen fördes med ambulans till sjukhuset i Vintra." },
+    { "type": "quote", "text": "Det är en mycket tragisk olycka. Våra tankar går till de anhöriga.", "source": "Stefan Rask, räddningsledare" },
+    { "type": "subheading", "text": "Vägen avstängd i flera timmar" },
+    { "type": "paragraph", "text": "Älvdalsvägen var avstängd i båda riktningarna under kvällen medan polisen gjorde en teknisk undersökning. Trafiken leddes om via mindre vägar. Vägen öppnades igen strax före klockan 23." },
+    { "type": "paragraph", "text": "Det är ännu oklart hur olyckan gick till. Enligt polisen var det mörkt och regnigt vid tillfället, men vägbanan var inte hal." },
+    { "type": "subheading", "text": "Utreds som vållande till annans död" },
+    { "type": "paragraph", "text": "Polisen har inlett en förundersökning om vållande till annans död, vilket är rutin vid dödsolyckor i trafiken. De omkomnas anhöriga har underrättats." },
+    { "type": "paragraph", "text": "Sträckan har tidigare pekats ut som olycksdrabbad av boende i området, som under flera år har efterfrågat mitträcke och sänkt hastighet. Kommunens trafikansvariga säger att frågan kommer att tas upp igen." },
+    { "type": "factbox", "title": "Stöd efter olyckan", "items": [
+      "Kyrkan i Vintra håller öppet för samtal på söndag mellan 12 och 16.",
+      "Den som behöver prata med någon kan också vända sig till sin vårdcentral."
+    ] },
+    { "type": "paragraph", "text": "Artikeln har uppdaterats med uppgifter om att vägen har öppnats igen." }
+  ]
+}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!--/*
+  All articles in one section. Data from PageController#section:
+    section, sectionName, sectionArticles, panoramaAd
+*/-->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::content})}">
+<body>
+<th:block th:fragment="content">
+  <th:block th:replace="~{fragments :: adSlot(${panoramaAd})}"></th:block>
+
+  <header th:class="|section-header section-header--${section.id()}|">
+    <h1 class="section-header__title" th:text="${sectionName}"></h1>
+    <p class="section-header__count"
+       th:text="${sectionArticles.size() == 1} ? #{sectionPage.articleCount.one} : #{sectionPage.articleCount.other(${sectionArticles.size()})}"></p>
+  </header>
+
+  <p th:if="${sectionArticles.isEmpty()}" class="empty-state" th:text="#{sectionPage.empty}"></p>
+  <div th:unless="${sectionArticles.isEmpty()}" class="card-grid">
+    <th:block th:each="story : ${sectionArticles}">
+      <th:block th:replace="~{fragments :: card(${story}, 'standard')}"></th:block>
+    </th:block>
+  </div>
+</th:block>
+</body>
+</html>

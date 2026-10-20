@@ -1,0 +1,34 @@
+{
+  "id": "vb-0011",
+  "slug": "fjallvandring-i-oktober-guide",
+  "section": "resor",
+  "expectedZone": "green",
+  "premium": false,
+  "kicker": "GUIDE",
+  "headline": "Fjällvandring i oktober – så lyckas du med höstturen",
+  "lead": "Färre människor, klarare luft och chans till norrsken. Hösten är fjällens bäst bevarade hemlighet – men vädret kräver mer planering än på sommaren. Här är fjällguidens råd.",
+  "author": { "name": "Amira Haddad", "role": "Resereporter" },
+  "publishedAt": "2026-10-10T15:00:00+02:00",
+  "updatedAt": null,
+  "body": [
+    { "type": "paragraph", "text": "När sommargästerna har åkt hem och de flesta fjällstugorna har stängt blir det tyst på fjället. Björkarna har tappat sina gula löv, de första snöfläckarna ligger på topparna och på klara nätter kan himlen spraka grönt av norrsken." },
+    { "type": "paragraph", "text": "För fjällguiden Mattias Brandt, som driver Vintra Fjällturer, är oktober årets bästa månad." },
+    { "type": "quote", "text": "Man får fjället nästan för sig själv. Men man måste respektera att det är en annan årstid. Det kan vara tio plusgrader på dagen och snöstorm på natten.", "source": "Mattias Brandt, fjällguide" },
+    { "type": "subheading", "text": "Klä dig i lager" },
+    { "type": "paragraph", "text": "Det viktigaste rådet är att klä sig i flera lager. Underställ i ull, ett mellanlager som värmer och ett yttre skal som stoppar vind och regn. Ta alltid med extra vantar, mössa och en varm jacka i ryggsäcken – även om det är soligt när du startar." },
+    { "type": "paragraph", "text": "Skorna bör vara vattentäta och ha bra grepp. På hösten är stigarna ofta blöta och stenarna hala." },
+    { "type": "subheading", "text": "Planera för mörkret" },
+    { "type": "paragraph", "text": "I oktober är dagarna betydligt kortare än på sommaren. Räkna med åtta till tio timmars dagsljus och planera etapperna efter det. En pannlampa med extra batterier är ett måste." },
+    { "type": "paragraph", "text": "Många av de enklare stugorna längs lederna är fortfarande öppna, men de är inte bemannade. Kontrollera i förväg vilka som går att använda och hur man betalar." },
+    { "type": "factbox", "title": "Packlista för höstfjället", "items": [
+      "Underställ i ull och ett varmt mellanlager",
+      "Vind- och vattentät jacka och byxor",
+      "Mössa, vantar och extra strumpor",
+      "Pannlampa och extra batterier",
+      "Karta och kompass – lita inte enbart på mobilen",
+      "Vindskydd eller tält som klarar hård vind",
+      "Kök, bränsle och mat för minst en extra dag"
+    ] },
+    { "type": "paragraph", "text": "Mattias Brandt rekommenderar den som är ovan att börja med en dagstur från en fjällstation, eller att följa med på en guidad tur. – Fjället förlåter inte slarv. Men med rätt förberedelser är det en upplevelse man aldrig glömmer, säger han." }
+  ]
+}

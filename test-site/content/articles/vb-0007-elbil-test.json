@@ -1,0 +1,34 @@
+{
+  "id": "vb-0007",
+  "slug": "test-familjeelbilen-nordvik-e5",
+  "section": "motor",
+  "expectedZone": "green",
+  "premium": true,
+  "kicker": "BILTEST",
+  "headline": "Vi har testat: Familjeelbilen klarar kylan bättre än väntat",
+  "lead": "Räckvidd i minusgrader är den stora frågan för många som funderar på elbil. Vintrabladet har kört nya Nordvik E5 i tre veckor – från blöta oktobermorgnar till frostiga fjällvägar.",
+  "author": { "name": "Oskar Wahlin", "role": "Motorreporter" },
+  "publishedAt": "2026-10-09T12:00:00+02:00",
+  "updatedAt": null,
+  "body": [
+    { "type": "paragraph", "text": "Nordvik E5 är en rymlig familjebil i mellanklassen och tillverkarens första elbil som är byggd för nordiska förhållanden från grunden. Det lovar mycket: värmepump som standard, uppvärmd ratt och en räckvidd på upp till 540 kilometer enligt tillverkaren." },
+    { "type": "paragraph", "text": "Men hur stämmer det när termometern visar minusgrader?" },
+    { "type": "subheading", "text": "Räckvidden i verkligheten" },
+    { "type": "paragraph", "text": "Under testperioden körde vi totalt 2 100 kilometer. I temperaturer kring tio plusgrader landade den verkliga räckvidden på runt 470 kilometer vid blandad körning. Det är klart godkänt." },
+    { "type": "paragraph", "text": "På en tur mot fjällen, med fyra grader kallt och motorvägsfart, sjönk räckvidden till cirka 380 kilometer. Det är ett tapp på ungefär 30 procent jämfört med tillverkarens siffra – men bättre än många konkurrenter vi har testat under liknande förhållanden." },
+    { "type": "quote", "text": "Värmepumpen gör stor skillnad i kyla. Utan den hade tappet sannolikt varit betydligt större.", "source": "Malin Öberg, energiexpert på Vintra Elbilsförening" },
+    { "type": "subheading", "text": "Plats för hela familjen" },
+    { "type": "paragraph", "text": "Inuti är E5 överraskande rymlig. Två vuxna får gott om plats i baksätet och bagageutrymmet rymmer både barnvagn och veckohandling. Skärmen i mitten är snabb, men det är synd att även klimatanläggningen måste styras via den – riktiga knappar hade varit enklare med vantar på." },
+    { "type": "paragraph", "text": "Laddningen fungerar smidigt. På en snabbladdare gick det från 10 till 80 procent på 28 minuter, vilket räcker för en fika på vägen." },
+    { "type": "factbox", "title": "Nordvik E5 Long Range", "items": [
+      "Pris: från 529 900 kronor",
+      "Räckvidd enligt tillverkaren: 540 km",
+      "Vår uppmätta räckvidd: 380–470 km",
+      "Snabbladdning 10–80 %: 28 minuter",
+      "Bagageutrymme: 520 liter",
+      "Plus: räckvidd i kyla, utrymme, komfort",
+      "Minus: allt styrs via skärmen, dyra tillval"
+    ] },
+    { "type": "paragraph", "text": "Sammanfattningsvis är Nordvik E5 ett av de bästa alternativen för den som vill ha en praktisk elbil för svenska vintrar. Betyg: fyra av fem." }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "vb-0012",
+  "slug": "vintraloppet-firar-25-ar",
+  "section": "sport",
+  "expectedZone": "green",
+  "premium": false,
+  "kicker": "LÖPNING",
+  "headline": "4 000 löpare till start när Vintraloppet firar 25 år",
+  "lead": "Från 150 deltagare till över 4 000. När Vintraloppet går av stapeln på söndag är det rekord igen – och för första gången får även de yngsta springa sin egen bana genom stadsparken.",
+  "author": { "name": "Johan Ekberg", "role": "Sportreporter" },
+  "publishedAt": "2026-10-11T08:00:00+02:00",
+  "updatedAt": null,
+  "body": [
+    { "type": "paragraph", "text": "När Vintraloppet arrangerades för första gången 2001 sprang 150 personer tio kilometer längs älven. Startnumren skrevs för hand och målgången var ett snöre mellan två träd." },
+    { "type": "paragraph", "text": "I år är loppet ett av de största motionsloppen i regionen. 4 080 löpare har anmält sig till de olika klasserna, vilket är nytt rekord." },
+    { "type": "quote", "text": "Vi trodde aldrig att det skulle bli så här stort. Men folk i Vintra älskar att springa, och de älskar sin stad. Det är en folkfest mer än en tävling.", "source": "Britt-Marie Hägg, en av grundarna och fortfarande tävlingsledare" },
+    { "type": "subheading", "text": "Ny bana för barnen" },
+    { "type": "paragraph", "text": "Till jubileet har arrangörerna lagt till ett barnlopp på 1,5 kilometer genom stadsparken. Över 600 barn mellan fyra och tolv år är anmälda. Alla som går i mål får en medalj." },
+    { "type": "paragraph", "text": "Huvudloppet på tio kilometer startar klockan 11 vid Stortorget och går längs älven, över den gamla järnvägsbron och tillbaka genom centrum. Banan är platt och snabb, vilket lockar många som vill sätta personbästa." },
+    { "type": "subheading", "text": "Favoriten jagar banrekordet" },
+    { "type": "paragraph", "text": "Bland favoriterna finns förra årets vinnare Sanna Rydh från Vintra FK, som i år siktar på banrekordet på 32.41." },
+    { "type": "quote", "text": "Jag har tränat hela sommaren för det här. Om vädret håller och benen är med, så ska det gå. Men det viktigaste är ändå stämningen längs banan – den är helt unik.", "source": "Sanna Rydh, Vintra FK" },
+    { "type": "factbox", "title": "Vintraloppet 2026", "items": [
+      "Söndag 18 oktober, start klockan 11 vid Stortorget",
+      "Klasser: 10 km, 5 km motion och barnlopp 1,5 km",
+      "Efteranmälan på plats fram till klockan 10",
+      "Delar av centrum är avstängda för trafik mellan 09 och 14",
+      "Bästa platsen för publik: vid järnvägsbron och på Stortorget"
+    ] },
+    { "type": "paragraph", "text": "Arrangörerna uppmanar publiken att ta sig till loppet till fots, med cykel eller med buss, eftersom parkeringsplatserna i centrum blir få under söndagen." }
+  ]
+}

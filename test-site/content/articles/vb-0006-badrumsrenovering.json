@@ -1,0 +1,32 @@
+{
+  "id": "vb-0006",
+  "slug": "badrumsrenovering-experternas-rad",
+  "section": "bostad",
+  "expectedZone": "green",
+  "premium": true,
+  "kicker": "RENOVERING",
+  "headline": "Badrummet som håller i 40 år – experternas bästa råd innan du renoverar",
+  "lead": "Ett nytt badrum kostar ofta 150 000–250 000 kronor. Ändå görs många av de dyraste misstagen redan innan första kakelplattan sitter på plats. Här är vad du bör tänka på.",
+  "author": { "name": "Frida Holm", "role": "Bostadsreporter" },
+  "publishedAt": "2026-10-10T07:45:00+02:00",
+  "updatedAt": null,
+  "body": [
+    { "type": "paragraph", "text": "Hösten är högsäsong för badrumsrenoveringar. Hantverkarnas kalendrar fylls snabbt och många hushåll vill vara klara till jul. Men den som har bråttom riskerar att göra misstag som syns först flera år senare – i form av fuktskador." },
+    { "type": "quote", "text": "Det viktigaste i ett badrum syns inte. Det är tätskiktet under kaklet. Är det fel utfört spelar det ingen roll hur fint resten blir.", "source": "Tomas Lindgren, byggkonsult på Vintra Byggkonsult" },
+    { "type": "subheading", "text": "Välj certifierade hantverkare" },
+    { "type": "paragraph", "text": "Experterna är eniga: anlita ett företag med branschcertifikat för våtrum. Då ska arbetet utföras enligt branschens regler, och det är ofta ett krav från försäkringsbolagen om något skulle gå fel." },
+    { "type": "paragraph", "text": "Be om ett skriftligt anbud där det tydligt framgår vad som ingår, och fråga efter referenser från tidigare jobb. Ett lågt pris kan bli dyrt om rivning, bortforsling eller nya rör inte är med i kalkylen." },
+    { "type": "subheading", "text": "Planera för framtiden" },
+    { "type": "paragraph", "text": "Ett badrum renoveras sällan mer än en gång på 25–40 år. Tänk därför på hur du vill använda rummet längre fram. Golvvärme, bra ventilation och en duschplats utan tröskel är saker som många ångrar att de inte valde." },
+    { "type": "paragraph", "text": "Familjen Ekström i Vintra renoverade sitt badrum i våras och valde att flytta tvättmaskinen från källaren upp till badrummet." },
+    { "type": "quote", "text": "Det var det bästa beslutet vi tog. Men det krävde en ordentlig golvbrunn och ett eget eluttag, så det är något man måste bestämma tidigt.", "source": "Sofia Ekström" },
+    { "type": "factbox", "title": "Fem saker att kontrollera", "items": [
+      "Att hantverkaren har giltigt våtrumscertifikat.",
+      "Att tätskiktet dokumenteras med bilder innan kaklet sätts.",
+      "Att golvet har rätt fall mot golvbrunnen.",
+      "Att ROT-avdraget är korrekt beräknat i offerten.",
+      "Att du får ett intyg om utfört arbete när jobbet är klart."
+    ] },
+    { "type": "paragraph", "text": "Den som gör delar av jobbet själv kan spara pengar, men experterna avråder från att lägga tätskiktet på egen hand. Försäkringen kan då gälla sämre om en vattenskada uppstår." }
+  ]
+}

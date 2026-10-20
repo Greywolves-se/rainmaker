@@ -1,0 +1,35 @@
+{
+  "id": "vb-0005",
+  "slug": "kantarellerna-har-exploderat-sa-hittar-du-dem",
+  "section": "mat",
+  "expectedZone": "green",
+  "premium": false,
+  "kicker": "SVAMPSÄSONG",
+  "headline": "Kantarellerna har exploderat – så hittar du höstens guld",
+  "lead": "Den regniga septembern har gett ett av de bästa svampåren på länge. Vi följde med svampexperten Gunnel Ahl ut i skogen – och fick med oss hennes bästa recept hem.",
+  "author": { "name": "Lena Forsberg", "role": "Matskribent" },
+  "publishedAt": "2026-10-11T10:20:00+02:00",
+  "updatedAt": null,
+  "body": [
+    { "type": "paragraph", "text": "Det tar inte mer än tio minuter innan Gunnel Ahl stannar och pekar ned i mossan. Under en gran lyser det gult. Sedan ännu en, och ännu en." },
+    { "type": "quote", "text": "Där ser du. När man har hittat en kantarell finns det nästan alltid fler. De växer gärna i ringar runt träden.", "source": "Gunnel Ahl, svampkonsulent" },
+    { "type": "paragraph", "text": "Gunnel Ahl har plockat svamp i skogarna kring Vintra i över fyrtio år och leder varje höst kurser för nybörjare. I år har hon fått sätta in extra tillfällen." },
+    { "type": "paragraph", "text": "– Det har regnat precis lagom och det har varit varmt i marken länge. Det är perfekta förhållanden. Jag kan inte minnas när det senast var så här mycket, säger hon." },
+    { "type": "subheading", "text": "Här ska du leta" },
+    { "type": "paragraph", "text": "Kantareller trivs i mossig blandskog med gran, tall och björk. Leta i sluttningar och längs stigkanter där marken är fuktig men inte blöt. Trattkantareller, som ofta kallas höstens andra guld, dyker upp senare på hösten och klarar till och med lätt frost." },
+    { "type": "paragraph", "text": "Men Gunnel Ahl har en tydlig varning till alla nybörjare: plocka aldrig en svamp du inte är helt säker på." },
+    { "type": "quote", "text": "Det finns giftiga svampar som kan förväxlas med matsvampar. Är du minsta osäker – låt den stå kvar, eller visa den för någon som kan.", "source": "Gunnel Ahl" },
+    { "type": "subheading", "text": "Gunnels kantarelltoast" },
+    { "type": "paragraph", "text": "Hemma i köket rensar Gunnel Ahl svampen med en liten borste i stället för att skölja den. Sedan steker hon den torr i en het panna innan smöret får komma i, så att vätskan hinner koka bort och svampen får färg." },
+    { "type": "factbox", "title": "Kantarelltoast, 4 personer", "items": [
+      "4 skivor surdegsbröd",
+      "400 g kantareller",
+      "2 msk smör",
+      "1 schalottenlök, finhackad",
+      "1 dl vispgrädde",
+      "Salt, svartpeppar och färsk persilja",
+      "Stek svampen torr, tillsätt smör och lök. Häll på grädden och låt puttra två minuter. Servera på rostat bröd."
+    ] },
+    { "type": "paragraph", "text": "Svampen håller sig några dagar i kylskåpet i en papperspåse. Vill du spara den till vintern är det bäst att förvälla eller steka den och sedan frysa in den." }
+  ]
+}

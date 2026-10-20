@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!--/*
+  The frame around every page: <head>, fiction banner, header, menu, footer, cookie banner and
+  the slot for the Rainmaker script tag.
+
+  A page uses it like this:
+    <html th:replace="~{layout :: page(~{::content})}">
+  and puts its own HTML in an element with th:fragment="content".
+
+  Model values the layout reads:
+    pageTitle, description, path, activeNav  - set by the controller for each page
+    sections, site, rainmaker                - set for every page by LayoutModelAdvice
+
+  Comments like this one (/* ... */ inside an HTML comment) are only for developers;
+  Thymeleaf removes them, so they never reach the browser.
+*/-->
+<html lang="sv" xmlns:th="http://www.thymeleaf.org" th:fragment="page(content)">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${pageTitle == null} ? #{site.name} + ' – ' + #{site.tagline} : #{site.pageTitle(${pageTitle})}">Vintrabladet</title>
+  <meta name="description" th:content="${description}">
+  <!-- The content is fictional: keep it out of real search engines. -->
+  <meta name="robots" content="noindex">
+  <link rel="canonical" th:href="${site.absoluteUrl(path)}">
+  <link rel="alternate" type="application/rss+xml" th:title="#{site.name}" href="/rss.xml">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/styles.css">
+  <!-- Like on real news sites: the consent stub must run first, so it is loaded
+       synchronously. Everything else is deferred or async. -->
+  <script src="/static/js/tcf-stub.js"></script>
+  <script type="module" src="/static/js/site.js"></script>
+  <script async src="/static/js/tag-manager.js" data-container-url="/tag-manager/container.json"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" th:text="#{nav.skipToContent}">Hoppa till innehållet</a>
+
+  <div class="fiction-banner" role="note">
+    <strong class="fiction-banner__label" th:text="#{fiction.label}">Fiktivt testinnehåll</strong>
+    <span class="fiction-banner__text" th:text="#{fiction.notice}"></span>
+  </div>
+
+  <header class="site-header">
+    <div class="site-header__inner" data-site-brand>
+      <a class="logo" href="/" th:text="#{site.name}">Vintrabladet</a>
+      <p class="tagline" th:text="#{site.tagline}"></p>
+    </div>
+  </header>
+
+  <!--/* The menu sits outside <header> so it can stick to the top while scrolling.
+         The small logo inside it only shows once the big one is out of view. */-->
+  <nav class="section-nav" th:aria-label="#{nav.label}" data-section-nav>
+    <ul class="section-nav__list">
+      <li class="section-nav__brand" aria-hidden="true"><a href="/" tabindex="-1" th:text="#{site.name}"></a></li>
+      <li><a href="/" th:aria-current="${activeNav == 'home'} ? 'page'" th:text="#{nav.home}">Start</a></li>
+      <li th:each="section : ${sections}">
+        <a th:href="@{/sektion/{id}(id=${section.id()})}"
+           th:aria-current="${activeNav == section.id()} ? 'page'"
+           th:text="#{${section.messageKey()}}">Sektion</a>
+      </li>
+    </ul>
+  </nav>
+
+  <main id="main" class="page">
+    <th:block th:replace="${content}"></th:block>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__column">
+        <p class="site-footer__logo" th:text="#{site.name}"></p>
+        <p class="site-footer__fiction"><strong th:text="#{fiction.label}"></strong></p>
+        <p th:text="#{footer.copyright}"></p>
+      </div>
+      <div class="site-footer__column">
+        <h2 class="site-footer__heading" th:text="#{footer.about}"></h2>
+        <p th:text="#{site.description}"></p>
+      </div>
+      <div class="site-footer__column">
+        <h2 class="site-footer__heading" th:text="#{footer.forDevelopers}"></h2>
+        <ul class="site-footer__links">
+          <li><a href="/rss.xml" th:text="#{footer.rss}"></a></li>
+          <li><a href="/sitemap.xml" th:text="#{footer.sitemap}"></a></li>
+          <li><a href="/eval/labels.csv" th:text="#{footer.labels}"></a></li>
+          <li><button type="button" class="link-button" data-consent-open th:text="#{footer.cookieSettings}"></button></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <th:block th:replace="~{fragments :: consentBanner}"></th:block>
+
+  <!--
+    RAINMAKER WIDGET SLOT
+    A publisher integrates Rainmaker with ONE async script tag in the page
+    template (architecture UC-01). On this test site it is added here when the
+    environment variable RAINMAKER_SCRIPT_URL is set (or loaded by the tag
+    manager when RAINMAKER_INSTALL_METHOD=tag-manager). The script must never
+    block or break the page: if it fails to load, the article still works.
+  -->
+  <script th:if="${rainmaker.loadedByTemplate()}" async th:src="${rainmaker.scriptUrl()}"></script>
+</body>
+</html>

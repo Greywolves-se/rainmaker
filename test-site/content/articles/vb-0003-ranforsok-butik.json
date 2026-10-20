@@ -1,0 +1,31 @@
+{
+  "id": "vb-0003",
+  "slug": "man-gripen-efter-ranforsok-i-centrala-vintra",
+  "section": "nyheter",
+  "expectedZone": "red",
+  "premium": false,
+  "kicker": "BROTT",
+  "headline": "Man gripen efter rånförsök mot butik i centrala Vintra",
+  "lead": "En man i 30-årsåldern greps på tisdagsmorgonen misstänkt för försök till rån mot en livsmedelsbutik vid Stortorget. Ingen person skadades, men personalen beskriver händelsen som mycket obehaglig.",
+  "author": { "name": "Elin Bergqvist", "role": "Nyhetsreporter" },
+  "publishedAt": "2026-10-13T08:15:00+02:00",
+  "updatedAt": "2026-10-13T09:40:00+02:00",
+  "body": [
+    { "type": "paragraph", "text": "Larmet kom strax efter klockan sju på tisdagsmorgonen. Enligt polisen gick en maskerad man in i butiken precis när den hade öppnat och krävde att få pengar ur kassan. Han ska ha hotat personalen med något som liknade ett vapen." },
+    { "type": "paragraph", "text": "När en av de anställda tryckte på butikens larmknapp lämnade mannen platsen utan byte. Han greps cirka tjugo minuter senare i ett bostadsområde några kvarter bort, efter tips från allmänheten." },
+    { "type": "quote", "text": "Vi fick in flera bra tips från personer som hade sett en man springa från platsen. Tack vare det kunde vi gripa en misstänkt snabbt.", "source": "Ulrika Nordin, presstalesperson vid polisen i Vintra" },
+    { "type": "subheading", "text": "Personalen erbjuds stöd" },
+    { "type": "paragraph", "text": "Två anställda fanns i butiken vid tillfället. Ingen av dem skadades fysiskt, men butikens ägare berättar att båda är skakade och har erbjudits samtalsstöd." },
+    { "type": "quote", "text": "Det är det värsta man kan vara med om på jobbet. Nu handlar allt om att ta hand om personalen. Butiken håller stängt resten av dagen.", "source": "Butikens ägare" },
+    { "type": "paragraph", "text": "Polisen har spärrat av delar av Stortorget för teknisk undersökning. Enligt polisen kommer avspärrningarna att finnas kvar under förmiddagen." },
+    { "type": "subheading", "text": "Utreds som försök till grovt rån" },
+    { "type": "paragraph", "text": "Mannen är anhållen misstänkt för försök till grovt rån. Det föremål som han ska ha hotat med har ännu inte hittats, och polisen söker fortfarande vittnen som befann sig vid torget mellan klockan 06.50 och 07.30." },
+    { "type": "paragraph", "text": "Det är den tredje händelsen av liknande slag i Vintra i år. Polisen vill i nuläget inte kommentera om det finns någon koppling mellan händelserna." },
+    { "type": "factbox", "title": "Har du sett något?", "items": [
+      "Polisen vill komma i kontakt med personer som var vid Stortorget mellan 06.50 och 07.30.",
+      "Tips kan lämnas till polisen i Vintra, även anonymt.",
+      "Uppge att ditt tips gäller händelsen vid Stortorget den 13 oktober."
+    ] },
+    { "type": "paragraph", "text": "Artikeln uppdateras." }
+  ]
+}

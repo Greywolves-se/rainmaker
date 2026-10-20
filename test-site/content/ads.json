@@ -1,0 +1,58 @@
+{
+  "creatives": [
+    {
+      "id": "nordsol-mallorca",
+      "advertiser": "Nordsol Resor",
+      "headline": "Förläng sommaren på Mallorca",
+      "text": "Höstresor med flyg och hotell från 3 995 kr per person.",
+      "callToAction": "Se alla resor",
+      "theme": "sunset",
+      "sections": ["resor"]
+    },
+    {
+      "id": "fjallmagasinet-regnklader",
+      "advertiser": "Fjällmagasinet",
+      "headline": "Redo för höstfjället?",
+      "text": "20 % rabatt på regnkläder och ullunderställ hela oktober.",
+      "callToAction": "Till butiken",
+      "theme": "forest",
+      "sections": ["resor", "sport"]
+    },
+    {
+      "id": "vintra-bil-provkorning",
+      "advertiser": "Vintra Bil & Laddning",
+      "headline": "Provkör framtiden i helgen",
+      "text": "Nya elbilar på plats lördag och söndag. Kaffe och laddrådgivning ingår.",
+      "callToAction": "Boka provkörning",
+      "theme": "night",
+      "sections": ["motor"]
+    },
+    {
+      "id": "hemmafix-badrum",
+      "advertiser": "Hemmafix Bygg",
+      "headline": "Nytt badrum till fast pris",
+      "text": "Certifierade hantverkare, ROT-avdraget klart och tio års garanti.",
+      "callToAction": "Få en offert",
+      "theme": "clay",
+      "sections": ["bostad"]
+    },
+    {
+      "id": "vintra-sparbank-buffert",
+      "advertiser": "Vintra Sparbank",
+      "headline": "Börja spara från 100 kr",
+      "text": "Öppna ett buffertkonto på fem minuter. Inga avgifter.",
+      "callToAction": "Kom igång",
+      "theme": "ocean",
+      "sections": ["ekonomi"]
+    },
+    {
+      "id": "alvkallaren-lunch",
+      "advertiser": "Restaurang Älvkällaren",
+      "headline": "Höstens svampmeny är här",
+      "text": "Kantarellrisotto och hemlagade efterrätter. Boka bord vid älven.",
+      "callToAction": "Boka bord",
+      "theme": "berry",
+      "sections": ["mat", "kultur"]
+    }
+  ]
+}
