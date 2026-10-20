@@ -104,6 +104,7 @@
   <modules>
     <module>apps/mission-control</module>
     <module>infra</module>
+    <module>apps/test-site</module>
   </modules>
 
   <build>

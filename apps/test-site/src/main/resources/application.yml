@@ -6,7 +6,7 @@ server:
 
 spring:
   application:
-    name: rainmaker-test-site
+    name: test-site
   main:
     banner-mode: off
   mvc:
