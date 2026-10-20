@@ -64,7 +64,8 @@ jobs:
           changed=$(git diff --name-only "$BASE" "$GITHUB_SHA")
           echo "Changed files:"
           echo "$changed"
-          if echo "$changed" | grep -qE '^(apps/mission-control/(web|contract)/|\.github/workflows/mission-control-ci\.yml$)'; then
+          # The web tests also read the collector's sample START HERE report.
+          if echo "$changed" | grep -qE '^(apps/mission-control/(web|contract)/|apps/mission-control/collector/src/test/resources/start-here/|\.github/workflows/mission-control-ci\.yml$)'; then
             echo "web=true" >> "$GITHUB_OUTPUT"
           else
             echo "web=false" >> "$GITHUB_OUTPUT"
@@ -104,6 +105,19 @@ jobs:
       - run: npm test
       - name: Build
         run: npx vite build
+
+      # Smoke tests (#29): the built app with the contract's sample files, desktop and mobile.
+      - name: Install the Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end smoke tests
+        run: npm run e2e
+      - name: Keep the traces of failed smoke tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/mission-control/web/test-results/
+          retention-days: 7
 
   collector:
     name: Collector (format, Checkstyle, tests)
