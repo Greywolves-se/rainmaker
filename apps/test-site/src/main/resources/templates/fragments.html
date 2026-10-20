@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<!--/*
+  Reusable pieces, included with  th:replace="~{fragments :: name(arguments)}".
+
+    card(article, variant)  article teaser; variant 'lead' (big top story) or 'standard'
+    compactCard(article)    time + headline, for "Senaste nytt" and "Läs också"
+    shortTime(dateTime)     "13 okt. 09.42"
+    publishTimes(article)   "Publicerad ... kl. ..." (+ "Uppdaterad ...")
+    plusBadge               the yellow "PLUS" label
+    illustration(section)   drawn image per section (the site has no photos)
+    adSlot(slot)            empty ad slot, filled later by static/js/ads.js
+    articleBlock(block)     one article body block: paragraph, subheading, quote, factbox
+    bodyItem(item)          a block or an ad slot
+    consentBanner           the cookie banner (hidden; static/js/consent.js shows it)
+
+  Thymeleaf escapes all th:text output, so article text can never inject HTML (XSS).
+
+  Note on th:if / th:each: Thymeleaf runs th:replace BEFORE th:if and th:each on the
+  same element, so conditions and loops are put on a wrapping th:block.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<article th:fragment="card(article, variant)"
+         th:class="|card card--${variant} card--${article.section().id()}|">
+  <a class="card__link" th:href="${article.path()}">
+    <th:block th:replace="~{fragments :: illustration(${article.section()})}"></th:block>
+    <div class="card__body">
+      <span class="card__labels">
+        <th:block th:if="${article.premium()}"><th:block th:replace="~{fragments :: plusBadge}"></th:block></th:block>
+        <span class="kicker" th:text="${article.kicker()}">KICKER</span>
+      </span>
+      <h2 th:if="${variant == 'lead'}" class="card__headline" th:text="${article.headline()}"></h2>
+      <h3 th:unless="${variant == 'lead'}" class="card__headline" th:text="${article.headline()}"></h3>
+      <p th:if="${variant == 'lead'}" class="card__lead" th:text="${article.lead()}"></p>
+      <span class="card__meta"><th:block th:text="#{${article.section().messageKey()}}"></th:block> · <th:block th:replace="~{fragments :: shortTime(${article.publishedAt()})}"></th:block></span>
+    </div>
+  </a>
+</article>
+
+<li th:fragment="compactCard(article)" class="compact-card">
+  <a class="compact-card__link" th:href="${article.path()}">
+    <span class="compact-card__meta"><th:block th:replace="~{fragments :: shortTime(${article.publishedAt()})}"></th:block> · <th:block th:text="#{${article.section().messageKey()}}"></th:block></span>
+    <span class="compact-card__headline"><th:block th:if="${article.premium()}"><th:block th:replace="~{fragments :: plusBadge}"></th:block></th:block><th:block th:text="${article.headline()}"></th:block></span>
+  </a>
+</li>
+
+<time th:fragment="shortTime(dateTime)"
+      th:datetime="${@view.iso(dateTime)}"
+      th:text="#{time.dayAndTime(${@view.dayAndMonth(dateTime)}, ${@view.time(dateTime)})}"></time>
+
+<div th:fragment="publishTimes(article)" class="publish-times">
+  <time th:datetime="${@view.iso(article.publishedAt())}"
+        th:text="#{article.published(${@view.date(article.publishedAt())}, ${@view.time(article.publishedAt())})}"></time>
+  <time th:if="${article.updatedAt() != null}"
+        th:datetime="${@view.iso(article.updatedAt())}"
+        th:text="#{article.updated(${@view.date(article.updatedAt())}, ${@view.time(article.updatedAt())})}"></time>
+</div>
+
+<span th:fragment="plusBadge" class="plus-badge" th:text="#{paywall.badge}">PLUS</span>
+
+<!--/* White shapes on a coloured background; the colour comes from the CSS class
+       illustration--<section>. Decorative only, so hidden from screen readers. */-->
+<div th:fragment="illustration(section)" th:class="|illustration illustration--${section.id()}|">
+  <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"
+       th:switch="${section.id()}">
+    <!--/* Newspaper - kept neutral, as this section has crime and accidents. */-->
+    <g th:case="'nyheter'">
+      <rect x="130" y="45" width="140" height="140" rx="8" fill="none" stroke="#fff" stroke-width="6" opacity=".85"/>
+      <rect x="150" y="65" width="100" height="22" rx="3" fill="#fff" opacity=".85"/>
+      <path d="M150 107h100M150 125h100M150 143h60M150 161h80" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".6"/>
+    </g>
+    <!--/* Football with motion lines. */-->
+    <g th:case="'sport'">
+      <path d="M70 95h70M50 115h80M80 135h55" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".45"/>
+      <circle cx="225" cy="115" r="62" fill="#fff" opacity=".92"/>
+      <path d="M225 88l24 17-9 28h-30l-9-28z" fill="currentColor" opacity=".55"/>
+      <path d="M225 53v35M249 105l32-12M240 133l20 30M210 133l-20 30M201 105l-32-12" stroke="currentColor" stroke-width="4" opacity=".45"/>
+    </g>
+    <!--/* Sun over the sea. */-->
+    <g th:case="'resor'">
+      <circle cx="260" cy="80" r="38" fill="#fff" opacity=".95"/>
+      <path d="M0 150c40-14 80 14 120 0s80-14 120 0 80 14 120 0 40-14 40-14v89H0z" fill="#fff" opacity=".35"/>
+      <path d="M0 175c40-14 80 14 120 0s80-14 120 0 80 14 120 0 40-14 40-14v64H0z" fill="#fff" opacity=".55"/>
+    </g>
+    <!--/* Stage curtains and a spotlight. */-->
+    <g th:case="'kultur'">
+      <path d="M60 30h280" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".8"/>
+      <path d="M70 35c10 60 0 120 30 165H70zM330 35c-10 60 0 120-30 165h30z" fill="#fff" opacity=".7"/>
+      <path d="M200 40l-60 150h120z" fill="#fff" opacity=".25"/>
+      <ellipse cx="200" cy="192" rx="62" ry="10" fill="#fff" opacity=".6"/>
+    </g>
+    <!--/* Plate with fork and knife. */-->
+    <g th:case="'mat'">
+      <circle cx="200" cy="115" r="66" fill="#fff" opacity=".9"/>
+      <circle cx="200" cy="115" r="44" fill="none" stroke="currentColor" stroke-width="4" opacity=".35"/>
+      <path d="M100 60v40M90 60v28q0 12 10 12t10-12V60M100 100v70" stroke="#fff" stroke-width="6" stroke-linecap="round" fill="none" opacity=".9"/>
+      <path d="M300 60q16 20 0 55v55" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".9"/>
+    </g>
+    <!--/* House with a window and a door. */-->
+    <g th:case="'bostad'">
+      <path d="M200 40l95 75h-22v80H127v-80h-22z" fill="#fff" opacity=".9"/>
+      <rect x="150" y="128" width="34" height="30" rx="3" fill="currentColor" opacity=".45"/>
+      <rect x="212" y="138" width="34" height="57" rx="3" fill="currentColor" opacity=".55"/>
+    </g>
+    <!--/* Car with a charging bolt. */-->
+    <g th:case="'motor'">
+      <path d="M85 150l25-45q8-14 25-14h110q16 0 28 12l40 40q22 2 22 22v15H85z" fill="#fff" opacity=".9"/>
+      <path d="M140 105h45v35h-62zM200 105h45l30 35h-75z" fill="currentColor" opacity=".4"/>
+      <circle cx="140" cy="182" r="20" fill="currentColor" opacity=".85"/>
+      <circle cx="275" cy="182" r="20" fill="currentColor" opacity=".85"/>
+      <path d="M330 40l-22 38h18l-14 34 34-46h-19l13-26z" fill="#fff" opacity=".9"/>
+    </g>
+    <!--/* Heart with a pulse line. */-->
+    <g th:case="'halsa'">
+      <path d="M200 185s-75-45-75-95c0-25 20-42 42-42 15 0 27 8 33 20 6-12 18-20 33-20 22 0 42 17 42 42 0 50-75 95-75 95z" fill="#fff" opacity=".9"/>
+      <path d="M40 120h110l15-30 20 55 18-40 12 15h145" stroke="currentColor" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>
+    </g>
+    <!--/* Bar chart and a coin. */-->
+    <g th:case="'ekonomi'">
+      <rect x="110" y="130" width="34" height="60" rx="4" fill="#fff" opacity=".6"/>
+      <rect x="160" y="100" width="34" height="90" rx="4" fill="#fff" opacity=".75"/>
+      <rect x="210" y="70" width="34" height="120" rx="4" fill="#fff" opacity=".9"/>
+      <circle cx="295" cy="80" r="30" fill="#fff" opacity=".95"/>
+      <text x="295" y="91" text-anchor="middle" font-size="30" font-weight="700" font-family="Arial, sans-serif" fill="currentColor" opacity=".6">kr</text>
+    </g>
+  </svg>
+</div>
+
+<!--/* The ad text is NOT in the HTML: it arrives later through JavaScript, like real ads.
+       That also keeps ad text out of what Content Ingestion (S5) reads as the article. */-->
+<aside th:fragment="adSlot(slot)"
+       th:class="|ad-slot ad-slot--${slot.format().id()}|"
+       th:aria-label="#{ads.label}"
+       th:data-ad-slot="${slot.format().id()}"
+       th:data-ad-creative-id="${slot.creativeId()}"
+       th:data-ad-reserve="${slot.reserveSpace()}"
+       data-ad-state="loading">
+  <span class="ad-slot__label" th:text="#{ads.label}">Annons</span>
+  <div class="ad-slot__container" data-ad-container></div>
+</aside>
+
+<th:block th:fragment="articleBlock(block)" th:switch="${block.type()}">
+  <p th:case="'paragraph'" th:text="${block.text()}"></p>
+  <h2 th:case="'subheading'" th:text="${block.text()}"></h2>
+  <blockquote th:case="'quote'" class="quote">
+    <p th:text="${block.text()}"></p>
+    <footer class="quote__source" th:text="${block.source()}"></footer>
+  </blockquote>
+  <aside th:case="'factbox'" class="factbox">
+    <span class="factbox__label" th:text="#{article.factbox}">Fakta</span>
+    <h2 class="factbox__title" th:text="${block.title()}"></h2>
+    <ul class="factbox__list">
+      <li th:each="point : ${block.items()}" th:text="${point}"></li>
+    </ul>
+  </aside>
+</th:block>
+
+<th:block th:fragment="bodyItem(item)">
+  <th:block th:if="${item.isAd()}"><th:block th:replace="~{fragments :: adSlot(${item.ad()})}"></th:block></th:block>
+  <th:block th:unless="${item.isAd()}"><th:block th:replace="~{fragments :: articleBlock(${item.block()})}"></th:block></th:block>
+</th:block>
+
+<!--/* Rendered hidden; static/js/consent.js shows it when the reader has not chosen yet,
+       or when "Cookieinställningar" in the footer is clicked. */-->
+<section th:fragment="consentBanner" class="consent" data-consent-banner hidden
+         role="dialog" aria-modal="false" aria-labelledby="consent-title">
+  <div class="consent__inner">
+    <div class="consent__text">
+      <h2 id="consent-title" class="consent__title" th:text="#{consent.title}"></h2>
+      <p th:text="#{consent.text}"></p>
+      <p class="consent__test-note" th:text="#{consent.testNote}"></p>
+    </div>
+    <div class="consent__actions">
+      <button type="button" class="button button--secondary" data-consent-choice="necessary" th:text="#{consent.necessaryOnly}"></button>
+      <button type="button" class="button" data-consent-choice="all" th:text="#{consent.acceptAll}"></button>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

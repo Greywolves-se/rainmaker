@@ -1,0 +1,32 @@
+{
+  "id": "vb-0004",
+  "slug": "vintra-stadsteater-satsar-pa-musikal",
+  "section": "kultur",
+  "expectedZone": "green",
+  "premium": false,
+  "kicker": "SCEN",
+  "headline": "Stadsteatern tar ut svängarna – vinterns musikal den största på 20 år",
+  "lead": "Trettio skådespelare, en livemusikgrupp på tolv personer och en scen som roterar. Vintra stadsteater satsar allt på vinterns musikal ”Ljus över älven” – och biljetterna säljer redan slut.",
+  "author": { "name": "Petter Nyström", "role": "Kulturredaktör" },
+  "publishedAt": "2026-10-12T14:00:00+02:00",
+  "updatedAt": null,
+  "body": [
+    { "type": "paragraph", "text": "I repetitionssalen på Vintra stadsteater är det fullt av liv. Skådespelare i halvfärdiga kostymer övar steg, en pianist spelar samma åtta takter om och om igen och regissören Annika Westerberg ropar instruktioner från sin stol längst fram." },
+    { "type": "paragraph", "text": "”Ljus över älven” har premiär den 28 november och är teaterns största produktion sedan 2006. Föreställningen handlar om en familj som driver ett sågverk vid älven under 1920-talet, och om hur deras liv förändras när elektriciteten kommer till bygden." },
+    { "type": "quote", "text": "Det är en berättelse om Vintra, men den handlar om något universellt. Om att stå med en fot i det gamla och en i det nya. Det tror jag att många känner igen sig i i dag också.", "source": "Annika Westerberg, regissör" },
+    { "type": "subheading", "text": "Musik skriven för platsen" },
+    { "type": "paragraph", "text": "Musiken är skriven av kompositören Jonas Fält, som själv är uppvuxen i stan. Han har blandat folkmusik med storslagna musikalnummer och använder bland annat nyckelharpa och kör i flera av sångerna." },
+    { "type": "paragraph", "text": "– Jag ville att det skulle låta som älven. Lugnt och vackert ibland, men med en kraft under ytan som man inte riktigt kan kontrollera, säger Jonas Fält." },
+    { "type": "subheading", "text": "Lokala talanger i ensemblen" },
+    { "type": "paragraph", "text": "Förutom teaterns fasta ensemble medverkar elva amatörer och sex barn från kulturskolan. En av dem är 12-åriga Tilda Engström, som spelar familjens yngsta dotter." },
+    { "type": "quote", "text": "Jag har drömt om att stå på den stora scenen sedan jag var liten. Det är läskigt, men mest roligt.", "source": "Tilda Engström" },
+    { "type": "paragraph", "text": "Intresset har varit stort redan innan premiären. Enligt teaterchefen Per-Ola Lindh är över 70 procent av biljetterna sålda, och teatern har därför lagt till fem extra föreställningar i januari." },
+    { "type": "factbox", "title": "Ljus över älven", "items": [
+      "Premiär: 28 november på Stora scenen",
+      "Spelas till och med 31 januari",
+      "Speltid: cirka 2 timmar och 40 minuter inklusive paus",
+      "Rekommenderad ålder: från 9 år",
+      "Biljetter: 195–495 kronor, rabatt för studenter och ungdomar"
+    ] }
+  ]
+}

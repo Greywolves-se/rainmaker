@@ -1,0 +1,33 @@
+{
+  "id": "vb-0008",
+  "slug": "allt-fler-unga-sover-for-lite",
+  "section": "halsa",
+  "expectedZone": "yellow",
+  "premium": false,
+  "kicker": "HÄLSA",
+  "headline": "Allt fler unga sover för lite – läkaren: ”Skärmarna är bara en del av problemet”",
+  "lead": "Nästan varannan gymnasieelev i Vintra sover mindre än sju timmar per natt, visar en ny enkät. Ungdomsmottagningen ser fler unga som söker hjälp för trötthet, oro och koncentrationssvårigheter.",
+  "author": { "name": "Maria Sundin", "role": "Hälsoreporter" },
+  "publishedAt": "2026-10-12T06:10:00+02:00",
+  "updatedAt": null,
+  "body": [
+    { "type": "paragraph", "text": "Enkäten genomfördes av kommunens elevhälsa under våren och besvarades av drygt 1 800 elever på stadens tre gymnasieskolor. 46 procent uppger att de sover mindre än sju timmar en vanlig skolnatt. För fem år sedan var andelen 31 procent." },
+    { "type": "paragraph", "text": "Rekommendationen för tonåringar är åtta till tio timmars sömn per natt." },
+    { "type": "quote", "text": "Sömnbrist hos unga påverkar allt – humöret, skolresultaten, immunförsvaret och risken för psykisk ohälsa. Det här är en utveckling vi måste ta på allvar.", "source": "Hanna Bergström, läkare vid ungdomsmottagningen i Vintra" },
+    { "type": "subheading", "text": "Mer än bara mobilen" },
+    { "type": "paragraph", "text": "Det är lätt att skylla på mobilerna, och skärmtid sent på kvällen spelar roll. Men enligt Hanna Bergström är bilden mer sammansatt. Många unga beskriver stress över skolarbete, sena träningstider och oro för framtiden." },
+    { "type": "paragraph", "text": "– Många ligger och tänker i stället för att sova. Telefonen blir ett sätt att slippa tankarna, men den håller också hjärnan vaken. Det blir en ond cirkel, säger hon." },
+    { "type": "paragraph", "text": "17-åriga Ida, som vill vara anonym, känner igen sig." },
+    { "type": "quote", "text": "Jag somnar sällan före ett. Sedan är jag helt slut på första lektionen. Jag vet att jag borde lägga undan mobilen, men det är svårt när alla andra är uppe.", "source": "Ida, 17 år" },
+    { "type": "subheading", "text": "Små förändringar kan hjälpa" },
+    { "type": "paragraph", "text": "Ungdomsmottagningen har börjat erbjuda gruppträffar om sömn, där unga får lära sig enkla metoder för att varva ned. Intresset har varit större än väntat." },
+    { "type": "factbox", "title": "Råd för bättre sömn", "items": [
+      "Försök gå och lägga dig och vakna ungefär samma tid varje dag, även på helger.",
+      "Lägg undan mobilen minst en halvtimme innan du ska sova.",
+      "Undvik koffein, som energidryck och kaffe, efter klockan 15.",
+      "Rör på dig under dagen, men undvik hård träning precis innan läggdags.",
+      "Har du sovit dåligt länge eller mår dåligt – prata med elevhälsan, ungdomsmottagningen eller vårdcentralen."
+    ] },
+    { "type": "paragraph", "text": "Kommunen planerar nu att ta upp frågan i skolornas arbete med elevhälsa under läsåret. Bland annat diskuteras senare skolstart för de äldre eleverna, som har prövats på flera andra orter." }
+  ]
+}

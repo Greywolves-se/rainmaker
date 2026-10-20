@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<!--/*
+  Error pages (404 and 500), from ErrorPageAdvice: statusTitle, statusText.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: page(~{::content})}">
+<body>
+<th:block th:fragment="content">
+  <div class="status-page">
+    <h1 class="status-page__title" th:text="${statusTitle}"></h1>
+    <p th:text="${statusText}"></p>
+    <a class="button" href="/" th:text="#{notFound.link}">Till startsidan</a>
+  </div>
+</th:block>
+</body>
+</html>

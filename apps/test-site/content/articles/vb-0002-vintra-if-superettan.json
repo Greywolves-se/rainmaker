@@ -1,0 +1,33 @@
+{
+  "id": "vb-0002",
+  "slug": "vintra-if-klart-for-superettan",
+  "section": "sport",
+  "expectedZone": "green",
+  "premium": false,
+  "kicker": "FOTBOLL",
+  "headline": "Vintra IF klart för Superettan efter dramatisk avslutning",
+  "lead": "Med fyra minuter kvar låg Vintra IF under. Sedan vände 19-årige Elias Morén matchen på egen hand – och säkrade klubbens första avancemang på tolv år.",
+  "author": { "name": "Johan Ekberg", "role": "Sportreporter" },
+  "publishedAt": "2026-10-12T21:48:00+02:00",
+  "updatedAt": "2026-10-12T22:35:00+02:00",
+  "body": [
+    { "type": "paragraph", "text": "Det var knappt en människa som satt ned på Älvvallen när slutsignalen gick. 4 312 åskådare – nytt publikrekord för säsongen – sjöng och kramades medan spelarna sprang ett ärevarv med en hemmagjord banderoll: ”Äntligen”." },
+    { "type": "paragraph", "text": "Vintra IF behövde en poäng mot Bergsjö BK för att säkra andraplatsen i serien och därmed avancemang. Men gästerna tog ledningen redan i den 23:e minuten och såg länge ut att förstöra festen." },
+    { "type": "subheading", "text": "Tonåringen klev fram" },
+    { "type": "paragraph", "text": "Efter en svag första halvlek gjorde tränaren Mikael Sandberg ett dubbelbyte. In kom bland andra Elias Morén, som bara har spelat sex matcher från start i år." },
+    { "type": "paragraph", "text": "I den 86:e minuten nickade han in 1–1 efter en hörna. Tre minuter senare drev han bollen från mittlinjen, gick förbi två försvarare och placerade 2–1 i bortre hörnet." },
+    { "type": "quote", "text": "Jag vet inte riktigt vad som hände. Jag såg bara en lucka och sköt. När den gick in tänkte jag på pappa, han har gått på varenda match sedan jag var sex.", "source": "Elias Morén, Vintra IF" },
+    { "type": "subheading", "text": "”Ett bevis på att arbetet lönar sig”" },
+    { "type": "paragraph", "text": "För klubben är avancemanget kulmen på ett långsiktigt arbete med egna talanger. Åtta av spelarna i dagens trupp är fostrade i föreningen, och budgeten är en av de lägsta i serien." },
+    { "type": "quote", "text": "Vi har inte köpt oss hit. Vi har byggt det här med killar från stan. Det gör det ännu större.", "source": "Mikael Sandberg, tränare" },
+    { "type": "paragraph", "text": "Nu väntar en tuff vinter. Arenan måste uppfylla de högre kraven för Superettan, bland annat när det gäller belysning och läktarkapacitet. Kommunen har tidigare lovat att utreda en ombyggnad om laget tog steget upp." },
+    { "type": "factbox", "title": "Vintra IF", "items": [
+      "Grundad: 1921",
+      "Hemmaarena: Älvvallen (5 000 platser)",
+      "Senast i Superettan: 2014",
+      "Säsongens skyttekung: Jonatan Ali, 14 mål",
+      "Nästa säsong startar i april 2027"
+    ] },
+    { "type": "paragraph", "text": "Firandet fortsatte långt in på kvällen på torget, där flera hundra supportrar samlades. Laget hyllas officiellt vid en mottagning i stadshuset på lördag." }
+  ]
+}

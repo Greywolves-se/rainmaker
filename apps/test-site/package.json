@@ -1,0 +1,13 @@
+{
+  "name": "rainmaker-test-site-browser-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tests for the browser JavaScript of the Vintrabladet test site (consent API and tag manager). The site itself is Java - see pom.xml.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "test": "node --test \"src/test/javascript/*.test.ts\""
+  }
+}

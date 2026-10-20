@@ -1,0 +1,45 @@
+# Configuration for the Vintrabladet test site.
+# ${NAME:default} reads the environment variable NAME, or uses the default.
+
+server:
+  port: ${PORT:3000}
+
+spring:
+  application:
+    name: rainmaker-test-site
+  main:
+    banner-mode: off
+  mvc:
+    # Files in src/main/resources/static are served under /static/...
+    static-path-pattern: /static/**
+  web:
+    # The site is Swedish only; never switch language on the browser's
+    # Accept-Language header.
+    locale: sv
+    locale-resolver: fixed
+    resources:
+      cache:
+        cachecontrol:
+          # Always revalidate, so CSS/JS edits show up immediately.
+          no-cache: true
+  messages:
+    basename: messages
+    fallback-to-system-locale: false
+
+logging:
+  # One JSON object per log line (architecture 12.6). Values put in the MDC,
+  # such as trace_id and correlation_id, are included automatically.
+  structured:
+    format:
+      console: ecs
+
+site:
+  # Public address, used for absolute links in RSS and the sitemap.
+  base-url: ${BASE_URL:http://localhost:${server.port}}
+  # Folder with articles/, front-page.json and ads.json.
+  content-directory: ${CONTENT_DIRECTORY:content}
+  rainmaker:
+    # Address of rainmaker.js. Empty = the site runs without the widget.
+    script-url: ${RAINMAKER_SCRIPT_URL:}
+    # "template" (script tag in the page) or "tag-manager" (architecture P4).
+    install-method: ${RAINMAKER_INSTALL_METHOD:template}

@@ -1,0 +1,32 @@
+{
+  "id": "vb-0009",
+  "slug": "var-fjarde-saknar-buffert",
+  "section": "ekonomi",
+  "expectedZone": "yellow",
+  "premium": true,
+  "kicker": "PRIVATEKONOMI",
+  "headline": "Hushållen sparar mer än någonsin – men var fjärde saknar buffert",
+  "lead": "Sparandet ökar kraftigt i Vintra, visar en ny undersökning. Samtidigt skulle vart fjärde hushåll inte klara en oväntad utgift på 20 000 kronor. ”Klyftan växer”, säger privatekonomen.",
+  "author": { "name": "Karim Jonsson", "role": "Ekonomireporter" },
+  "publishedAt": "2026-10-10T11:30:00+02:00",
+  "updatedAt": null,
+  "body": [
+    { "type": "paragraph", "text": "Undersökningen har gjorts av Vintra Sparbank, som har frågat 2 000 hushåll i regionen om deras ekonomi. Den visar att hushållens genomsnittliga sparande har ökat med 18 procent på ett år." },
+    { "type": "paragraph", "text": "Men bakom genomsnittet döljer sig stora skillnader. 26 procent av de tillfrågade svarar att de inte skulle kunna betala en oväntad räkning på 20 000 kronor utan att låna pengar eller be någon om hjälp." },
+    { "type": "quote", "text": "De som redan hade marginaler har kunnat spara mer när priserna har stabiliserats. Men många har fortfarande inte återhämtat sig efter de senaste årens kostnadsökningar.", "source": "Linnea Ståhl, privatekonom på Vintra Sparbank" },
+    { "type": "subheading", "text": "Bufferten först" },
+    { "type": "paragraph", "text": "Enligt Linnea Ståhl är det viktigaste rådet att bygga upp en buffert innan man börjar spara långsiktigt i exempelvis fonder. En tumregel är att ha motsvarande tre månadslöner undanlagda, men även en mindre summa gör stor skillnad." },
+    { "type": "paragraph", "text": "– Börja med något litet. Även 300 kronor i månaden blir 3 600 kronor på ett år. Det kan vara skillnaden mellan att klara en trasig tvättmaskin själv eller att behöva ta ett dyrt lån, säger hon." },
+    { "type": "subheading", "text": "Se upp med dyra krediter" },
+    { "type": "paragraph", "text": "Undersökningen visar också att var tionde hushåll har använt en kredit eller ett snabblån för att betala vardagliga utgifter under det senaste året. Det oroar budget- och skuldrådgivningen i kommunen." },
+    { "type": "quote", "text": "Små lån med hög ränta kan snabbt växa. Vi ser människor som har fastnat i flera krediter samtidigt. Det finns hjälp att få, och ju tidigare man hör av sig desto bättre.", "source": "Göran Lund, budget- och skuldrådgivare i Vintra kommun" },
+    { "type": "factbox", "title": "Så kommer du igång med en buffert", "items": [
+      "Gör en enkel budget över fasta utgifter och vad som blir kvar.",
+      "Starta ett automatiskt sparande på lönedagen – även ett litet belopp.",
+      "Ha bufferten på ett separat konto som du inte använder till vardags.",
+      "Jämför räntor och avgifter innan du väljer sparkonto.",
+      "Kommunens budget- och skuldrådgivning är kostnadsfri."
+    ] },
+    { "type": "paragraph", "text": "Vintra Sparbank kommer att upprepa undersökningen i vår för att följa utvecklingen." }
+  ]
+}

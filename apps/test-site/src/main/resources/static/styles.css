@@ -1,0 +1,1200 @@
+/*
+ * Vintrabladet - stylesheet.
+ *
+ * Inspired by Swedish news sites (bold headlines, red kicker labels, a dense
+ * front page), but with its own name, logo and colours so it can never be
+ * mistaken for a real newspaper.
+ *
+ * Structure:
+ *   1. Design tokens (colours, fonts, sizes) - change the look here
+ *   2. Base styles
+ *   3. Fiction banner, header, navigation, footer
+ *   4. Cards and illustrations
+ *   5. Front page, section page, article page, status pages
+ *   6. Publisher realism: sidebar, breaking bar, ads, PLUS/paywall, consent
+ *   7. Responsive adjustments
+ */
+
+/* 1. Design tokens --------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  --color-brand: #c8102e;
+  --color-brand-dark: #9e0c24;
+  --color-ink: #121417;
+  --color-ink-soft: #4a4f57;
+  --color-ink-muted: #6b717b;
+  --color-line: #e3e5e8;
+  --color-surface: #ffffff;
+  --color-page: #f3f4f6;
+  --color-nav: #121417;
+  --color-fiction: #ffd400;
+  --color-factbox: #fff6d6;
+  --color-focus: #1a5fd0;
+
+  --font-headline: "Helvetica Neue", Arial, "Segoe UI", system-ui, sans-serif;
+  --font-body: Georgia, "Times New Roman", Cambria, serif;
+  --font-ui: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --page-width: 1200px;
+  --reading-width: 680px;
+  --gutter: 16px;
+  --radius: 6px;
+}
+
+/* 2. Base ----------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-headline);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--gutter);
+  top: -100px;
+  z-index: 10;
+  padding: 8px 14px;
+  background: var(--color-ink);
+  color: #fff;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+.page {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 24px var(--gutter) 48px;
+}
+
+.kicker {
+  display: inline-block;
+  color: var(--color-brand);
+  font-family: var(--font-headline);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.block-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.block-heading::before {
+  content: "";
+  width: 6px;
+  height: 1.1em;
+  background: var(--color-brand);
+  border-radius: 2px;
+}
+
+.button {
+  display: inline-block;
+  padding: 10px 18px;
+  background: var(--color-brand);
+  color: #fff;
+  border-radius: var(--radius);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.button:hover {
+  background: var(--color-brand-dark);
+}
+
+/* 3. Fiction banner, header, navigation, footer -------------------------- */
+.fiction-banner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  padding: 8px var(--gutter);
+  background: repeating-linear-gradient(
+      -45deg,
+      var(--color-fiction) 0 14px,
+      #f5c800 14px 28px
+    );
+  color: #000;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.fiction-banner__label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.site-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 18px var(--gutter) 14px;
+}
+
+.logo {
+  color: var(--color-brand);
+  font-family: var(--font-headline);
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+}
+
+/* Sticks to the top while scrolling (see static/js/sticky-header.js). */
+.section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--color-nav);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.18);
+}
+
+/* Small logo in the menu bar, only shown once the big logo is out of view. */
+.section-nav__brand {
+  display: none;
+}
+
+.section-nav.is-stuck .section-nav__brand {
+  display: block;
+}
+
+.section-nav__list .section-nav__brand a {
+  padding-right: 18px;
+  color: #fff;
+  font-family: var(--font-headline);
+  font-size: 1.1rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.03em;
+}
+
+.section-nav__list {
+  display: flex;
+  gap: 2px;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.section-nav__list a {
+  display: block;
+  padding: 12px 12px;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+}
+
+.section-nav__list a:hover {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.section-nav__list a[aria-current="page"] {
+  border-bottom-color: var(--color-brand);
+}
+
+.site-footer {
+  background: var(--color-nav);
+  color: #d4d7dc;
+  font-size: 0.9rem;
+}
+
+.site-footer__inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px 40px;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 36px var(--gutter) 44px;
+}
+
+.site-footer__logo {
+  margin: 0 0 8px;
+  color: #fff;
+  font-family: var(--font-headline);
+  font-size: 1.6rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.03em;
+}
+
+.site-footer__fiction {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 2px 8px;
+  background: var(--color-fiction);
+  color: #000;
+  border-radius: 3px;
+}
+
+.site-footer__heading {
+  margin-bottom: 8px;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.site-footer p {
+  margin: 0 0 8px;
+}
+
+.site-footer__links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-footer__links li + li {
+  margin-top: 6px;
+}
+
+.site-footer a {
+  color: #fff;
+}
+
+/* 4. Cards and illustrations --------------------------------------------- */
+.illustration {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+.illustration svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Each section has its own background; `color` sets the darker accent
+   used by the SVG shapes (fill="currentColor"). */
+.illustration--nyheter { background: linear-gradient(135deg, #3c4a5e, #1f2937); color: #111827; }
+.illustration--sport   { background: linear-gradient(135deg, #22a35a, #0f6b3a); color: #0b4d2a; }
+.illustration--resor   { background: linear-gradient(180deg, #ff9f5a, #e8506b 55%, #3a7bd5); color: #2457a8; }
+.illustration--kultur  { background: linear-gradient(135deg, #8e44ad, #4a1f6b); color: #3b1757; }
+.illustration--mat     { background: linear-gradient(135deg, #f39c32, #c75d12); color: #9a4307; }
+.illustration--bostad  { background: linear-gradient(135deg, #c98b5e, #8a5233); color: #5e3420; }
+.illustration--motor   { background: linear-gradient(135deg, #4b6584, #23344d); color: #17243a; }
+.illustration--halsa   { background: linear-gradient(135deg, #f27ca1, #c43c6b); color: #8f1f48; }
+.illustration--ekonomi { background: linear-gradient(135deg, #2e8b74, #155446); color: #0f3d33; }
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  overflow: hidden;
+}
+
+.card__link {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.card .illustration {
+  border-radius: 0;
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  padding: 14px 16px 16px;
+}
+
+.card__headline {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.card__link:hover .card__headline {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.card__lead {
+  margin: 0;
+  color: var(--color-ink-soft);
+  font-family: var(--font-body);
+  font-size: 1.08rem;
+  line-height: 1.5;
+}
+
+.card__meta {
+  margin-top: auto;
+  padding-top: 6px;
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+}
+
+.card--lead .card__body {
+  padding: 18px 22px 22px;
+  gap: 10px;
+}
+
+/* The top story's image is a bit flatter so the headline stays above the fold. */
+.card--lead .illustration {
+  aspect-ratio: 2 / 1;
+}
+
+.card--lead .card__headline {
+  font-size: clamp(1.9rem, 4.2vw, 3rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.card-grid {
+  display: grid;
+  /* 300px minimum gives three columns on a desktop page. */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* Compact cards: "Senaste nytt" and "Läs också" lists. */
+.latest__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compact-card + .compact-card {
+  border-top: 1px solid var(--color-line);
+}
+
+.compact-card__link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 11px 0;
+  text-decoration: none;
+}
+
+.compact-card__meta {
+  color: var(--color-brand);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.compact-card__headline {
+  font-family: var(--font-headline);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.compact-card__link:hover .compact-card__headline {
+  text-decoration: underline;
+}
+
+/* 5a. Front page ---------------------------------------------------------- */
+.front {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.front__top {
+  display: grid;
+  gap: 20px;
+}
+
+.front__secondary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* Main column (stories) next to the right rail (lists and ads). */
+.front__main {
+  min-width: 0;
+}
+
+.more-news {
+  margin-top: 36px;
+}
+
+/* Three narrower cards per row inside the main column. */
+.front__main .card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+.front__main .card-grid .card__headline {
+  font-size: 1.12rem;
+}
+
+/* 5b. Section page -------------------------------------------------------- */
+.section-header {
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 4px solid var(--color-ink);
+}
+
+.section-header__title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 900;
+}
+
+.section-header__count {
+  margin: 4px 0 0;
+  color: var(--color-ink-muted);
+}
+
+.empty-state {
+  padding: 40px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+/* 5c. Article page -------------------------------------------------------- */
+.article-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 40px;
+  align-items: start;
+}
+
+.article {
+  padding: 28px clamp(16px, 4vw, 48px) 40px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+}
+
+.article__header,
+.article__body {
+  max-width: var(--reading-width);
+  margin: 0 auto;
+}
+
+.article__section {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 2px 8px;
+  background: var(--color-ink);
+  color: #fff;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.article__headline {
+  margin: 12px 0 14px;
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  font-weight: 900;
+  letter-spacing: -0.025em;
+}
+
+.article__lead {
+  margin: 0 0 20px;
+  font-family: var(--font-body);
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+  font-size: 0.88rem;
+}
+
+.byline__avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  background: var(--color-brand);
+  color: #fff;
+  border-radius: 50%;
+  font-weight: 800;
+}
+
+.byline__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.byline__name {
+  font-weight: 700;
+}
+
+.byline__role,
+.publish-times {
+  color: var(--color-ink-muted);
+}
+
+.publish-times {
+  display: flex;
+  flex-direction: column;
+}
+
+.article__figure {
+  max-width: 900px;
+  margin: 24px auto;
+}
+
+.article__body {
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  line-height: 1.7;
+}
+
+.article__body > p {
+  margin: 0 0 1.1em;
+}
+
+.article__body > h2 {
+  margin: 1.6em 0 0.5em;
+  font-size: 1.45rem;
+  font-weight: 800;
+}
+
+.quote {
+  margin: 1.6em 0;
+  padding: 4px 0 4px 20px;
+  border-left: 5px solid var(--color-brand);
+}
+
+.quote p {
+  margin: 0 0 6px;
+  font-family: var(--font-headline);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.quote p::before {
+  content: "”";
+  color: var(--color-brand);
+}
+
+.quote p::after {
+  content: "”";
+  color: var(--color-brand);
+}
+
+.quote__source {
+  color: var(--color-ink-muted);
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+}
+
+.quote__source::before {
+  content: "– ";
+}
+
+.factbox {
+  margin: 1.8em 0;
+  padding: 20px 22px;
+  background: var(--color-factbox);
+  border-top: 5px solid var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.factbox__label {
+  color: var(--color-brand);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.factbox__title {
+  margin: 4px 0 10px;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.factbox__list {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.factbox__list li + li {
+  margin-top: 6px;
+}
+
+.related__more {
+  display: inline-block;
+  margin: 10px 0 8px;
+  color: var(--color-brand);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* 5d. Status pages (404, 500) -------------------------------------------- */
+.status-page {
+  max-width: 560px;
+  margin: 40px auto;
+  padding: 40px 28px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.status-page__title {
+  margin-bottom: 10px;
+  font-size: 2.2rem;
+  font-weight: 900;
+}
+
+/* 6. Publisher realism ---------------------------------------------------- */
+
+/* Right-hand columns on the front page and article page. */
+.front__sidebar,
+.article-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sidebar-box {
+  padding: 18px 18px 10px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+/* "JUST NU" - the red breaking-news bar. */
+.breaking {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--color-brand);
+  color: #fff;
+  border-radius: var(--radius);
+  text-decoration: none;
+}
+
+.breaking:hover .breaking__headline {
+  text-decoration: underline;
+}
+
+.breaking__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 3px 10px;
+  background: #fff;
+  color: var(--color-brand);
+  border-radius: 3px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.breaking__label::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--color-brand);
+  border-radius: 50%;
+}
+
+.breaking__headline {
+  font-family: var(--font-headline);
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+/* "Mest läst" - numbered list with big red numbers. */
+.most-read {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: most-read;
+}
+
+.most-read__item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  counter-increment: most-read;
+}
+
+.most-read__item + .most-read__item {
+  border-top: 1px solid var(--color-line);
+}
+
+.most-read__item::before {
+  content: counter(most-read);
+  min-width: 1.2em;
+  color: var(--color-brand);
+  font-family: var(--font-headline);
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.most-read__link {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.most-read__link:hover {
+  text-decoration: underline;
+}
+
+/* Labels row above headlines: PLUS badge + kicker. */
+.card__labels,
+.article__labels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.article__section {
+  margin-right: 0;
+}
+
+.plus-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  background: var(--color-ink);
+  color: var(--color-fiction);
+  border-radius: 3px;
+  font-family: var(--font-headline);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  vertical-align: 0.15em;
+}
+
+.compact-card__headline .plus-badge {
+  margin-right: 6px;
+}
+
+.byline__meta {
+  display: flex;
+  flex-direction: column;
+  margin-left: auto;
+  color: var(--color-ink-muted);
+  text-align: right;
+}
+
+.reading-time {
+  font-weight: 600;
+}
+
+.article__caption {
+  margin-top: 6px;
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+}
+
+/* Ad slots. Reserved slots keep their height while the ad loads. The
+   unreserved in-article slot takes no space until the ad arrives and then
+   pushes the text down - deliberately, to test layout shift (CLS). */
+.ad-slot {
+  margin: 0 auto 20px;
+  text-align: center;
+}
+
+.ad-slot__label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--color-ink-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ad-slot__container {
+  display: flex;
+  background: #e6e8eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ad-slot--panorama {
+  max-width: 980px;
+}
+
+.ad-slot--panorama[data-ad-reserve="true"] .ad-slot__container {
+  min-height: 200px;
+}
+
+.ad-slot--skyscraper {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.ad-slot--skyscraper[data-ad-reserve="true"] .ad-slot__container {
+  min-height: 480px;
+}
+
+.ad-slot--rectangle {
+  max-width: 340px;
+  margin: 1.6em auto;
+}
+
+.ad-slot[data-ad-reserve="false"]:not([data-ad-state="filled"]) {
+  display: none;
+}
+
+.ad-creative {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 200px;
+  padding: 24px;
+  color: #fff;
+  font-family: var(--font-ui);
+  line-height: 1.35;
+  text-align: center;
+}
+
+.ad-slot--rectangle .ad-creative {
+  min-height: 280px;
+}
+
+.ad-slot--skyscraper .ad-creative {
+  min-height: 480px;
+}
+
+.ad-creative--sunset { background: linear-gradient(160deg, #ff8a3d, #d63a6a); }
+.ad-creative--forest { background: linear-gradient(160deg, #2f7d4f, #173d2a); }
+.ad-creative--night  { background: linear-gradient(160deg, #253b63, #0c1424); }
+.ad-creative--clay   { background: linear-gradient(160deg, #c47a4d, #6e3a22); }
+.ad-creative--ocean  { background: linear-gradient(160deg, #1f8aa8, #0d4256); }
+.ad-creative--berry  { background: linear-gradient(160deg, #a2366b, #4e1736); }
+
+.ad-creative__advertiser {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+
+.ad-creative__headline {
+  font-family: var(--font-headline);
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.ad-creative__text {
+  max-width: 34ch;
+  font-size: 0.95rem;
+  opacity: 0.92;
+}
+
+.ad-creative__cta {
+  margin-top: 6px;
+  padding: 8px 16px;
+  background: #fff;
+  color: var(--color-ink);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+/* PLUS paywall: the locked text fades out under the offer box. */
+[data-paywall-state="locked"] .paywall__locked-content {
+  max-height: 9em;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+}
+
+[data-paywall-state="unlocked"] .paywall__offer {
+  display: none;
+}
+
+.paywall__offer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 28px 24px;
+  background: #fbf7e6;
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  text-align: center;
+}
+
+.paywall__title {
+  font-family: var(--font-headline);
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.paywall__text {
+  max-width: 44ch;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.paywall__test-note {
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+}
+
+/* Cookie/consent banner, fixed to the bottom of the screen. */
+.consent {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  padding: 0 var(--gutter) var(--gutter);
+}
+
+.consent[hidden] {
+  display: none;
+}
+
+.consent__inner {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 22px 24px;
+  background: var(--color-surface);
+  border-top: 5px solid var(--color-brand);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.28);
+}
+
+.consent__title {
+  margin-bottom: 6px;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.consent__text p {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+}
+
+.consent__text .consent__test-note {
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.consent__actions {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+/* Buttons (the base .button style is in section 2). */
+.button {
+  border: 2px solid var(--color-brand);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button--secondary {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-color: var(--color-ink);
+}
+
+.button--secondary:hover {
+  background: var(--color-page);
+}
+
+/* A <button> that looks like a footer link. */
+.link-button {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: #fff;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 7. Responsive ----------------------------------------------------------- */
+@media (max-width: 960px) {
+  .front,
+  .article-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* No room for a tall ad in a single column. */
+  .ad-slot--skyscraper {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding-top: 16px;
+  }
+
+  .front__secondary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card-grid,
+  .front__main .card-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  /* On phones, grid cards become rows with a small square thumbnail,
+     like news apps - more headlines fit on one screen. */
+  .card--standard .card__link {
+    flex-direction: row;
+  }
+
+  .card--standard .illustration {
+    flex: 0 0 34%;
+    aspect-ratio: 1 / 1;
+  }
+
+  .card--standard .card__body {
+    padding: 10px 12px;
+  }
+
+  .card--standard .card__headline,
+  .front__main .card-grid .card__headline {
+    font-size: 1.02rem;
+  }
+
+  .article {
+    padding-top: 20px;
+  }
+
+  .byline__meta {
+    margin-left: 0;
+    flex-basis: 100%;
+    text-align: left;
+  }
+
+  .breaking {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .consent__inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fiction-banner__text {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card {
+    transition: box-shadow 0.15s ease;
+  }
+
+  .card:hover {
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+  }
+}

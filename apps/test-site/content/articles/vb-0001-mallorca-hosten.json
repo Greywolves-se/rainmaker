@@ -1,0 +1,33 @@
+{
+  "id": "vb-0001",
+  "slug": "mallorca-hosten-okanda-parlor",
+  "section": "resor",
+  "expectedZone": "green",
+  "premium": false,
+  "kicker": "RESOR",
+  "headline": "Svenskarna väljer Mallorca i höst – här är öns okända pärlor",
+  "lead": "Bokningarna till Mallorca har nästan fördubblats sedan i fjol. Men den som tar sig bort från stränderna hittar en helt annan ö – med bergsbyar, olivlundar och vandringsleder utan trängsel.",
+  "author": { "name": "Amira Haddad", "role": "Resereporter" },
+  "publishedAt": "2026-10-13T06:30:00+02:00",
+  "updatedAt": null,
+  "body": [
+    { "type": "paragraph", "text": "När sommarens värmerekord har lagt sig blir Mallorca en annan plats. Temperaturen ligger runt 24 grader, vattnet är fortfarande varmt och priserna på hotell har sjunkit med upp till en tredjedel jämfört med juli." },
+    { "type": "paragraph", "text": "Enligt resebyrån Nordsol Resor har bokningarna från Sverige för oktober och november ökat med 86 procent jämfört med förra året. Det är framför allt par över 50 och barnfamiljer under höstlovet som har upptäckt säsongen." },
+    { "type": "quote", "text": "Folk vill förlänga sommaren, men utan sommarens trängsel. Hösten är helt enkelt den bästa tiden att se ön på riktigt.", "source": "Helena Strand, produktchef på Nordsol Resor" },
+    { "type": "subheading", "text": "Bergsbyarna som få turister hittar till" },
+    { "type": "paragraph", "text": "De flesta svenskar bor kring Palma eller i badorterna längs sydkusten. Men en timmes bilresa norrut börjar bergskedjan Serra de Tramuntana, som står på Unescos världsarvslista. Här ligger stenbyar med smala gränder, citronodlingar och små kaféer där lokalbefolkningen fortfarande dominerar." },
+    { "type": "paragraph", "text": "Vintraborna Karin och Anders Lövgren har rest till ön sex gånger, men det var först i fjol de hyrde bil och lämnade kusten." },
+    { "type": "quote", "text": "Vi trodde att vi kände Mallorca. Men uppe i bergen var det som att komma till ett annat land. Vi gick på leder hela dagarna och mötte knappt en människa.", "source": "Karin Lövgren" },
+    { "type": "subheading", "text": "Vandring, cykel och marknader" },
+    { "type": "paragraph", "text": "Hösten är högsäsong för vandring på ön. Den längsta leden sträcker sig genom hela bergskedjan och delas upp i dagsetapper med övernattning i bergshyddor. För den som hellre cyklar finns långa, välskötta vägar med milsvid utsikt över havet." },
+    { "type": "paragraph", "text": "Missa inte heller veckomarknaderna i inlandsstäderna. Där säljs ost, oliver, keramik och lokalt producerat vin – ofta till betydligt lägre priser än i turistorterna." },
+    { "type": "factbox", "title": "Så får du ut mest av en höstresa till Mallorca", "items": [
+      "Boka flyg minst sex veckor i förväg – priserna stiger kraftigt inför höstlovet.",
+      "Hyr bil några dagar för att ta dig till bergen och inlandet.",
+      "Ta med en tunn jacka: kvällarna kan bli svala i oktober.",
+      "Många strandrestauranger stänger i slutet av oktober – kolla öppettider innan.",
+      "Vandringslederna är skyltade, men ladda ned kartor i förväg eftersom täckningen är dålig i bergen."
+    ] },
+    { "type": "paragraph", "text": "Resebranschen tror att trenden håller i sig. Flera bolag planerar redan fler avgångar nästa höst, och Nordsol Resor lanserar i vår ett särskilt vandringspaket med guide." }
+  ]
+}
