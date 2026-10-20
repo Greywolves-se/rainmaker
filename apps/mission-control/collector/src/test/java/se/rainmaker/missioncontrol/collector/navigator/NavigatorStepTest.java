@@ -25,12 +25,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import se.rainmaker.missioncontrol.anonymizer.Anonymizer;
 import se.rainmaker.missioncontrol.collector.snapshot.ContractFiles;
 import se.rainmaker.missioncontrol.collector.snapshot.Navigator;
 import se.rainmaker.missioncontrol.collector.snapshot.Snapshot;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotJson;
 import se.rainmaker.missioncontrol.collector.snapshot.SnapshotValidator;
 import se.rainmaker.missioncontrol.collector.snapshot.Source;
+import se.rainmaker.missioncontrol.personnames.PersonNames;
 import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(OutputCaptureExtension.class)
@@ -71,11 +73,10 @@ class NavigatorStepTest {
 
   @Test
   void writesTextForEveryPageInBothLanguagesWithNamesRestored() {
+    String kim = labelOf("Kim Ek");
     stubAnswer(
         answer(
-            "Person B must answer Q-7.",
-            List.of("Q-7 is overdue."),
-            "Person B behöver svara på Q-7."));
+            kim + " must answer Q-7.", List.of("Q-7 is overdue."), kim + " behöver svara på Q-7."));
 
     Snapshot result = step(true, KEY).addTo(sample());
 
@@ -109,7 +110,7 @@ class NavigatorStepTest {
       assertThat(body).doesNotContain("https://");
     }
     assertThat(requests)
-        .anySatisfy(request -> assertThat(request.getBodyAsString()).contains("Person B"));
+        .anySatisfy(request -> assertThat(request.getBodyAsString()).contains(labelOf("Kim Ek")));
   }
 
   @Test
@@ -323,6 +324,13 @@ class NavigatorStepTest {
         new OpenAiClient(properties),
         properties,
         Clock.fixed(Instant.parse("2026-11-02T06:00:30Z"), ZoneOffset.UTC));
+  }
+
+  /** The label the step gives {@code name} in the sample, from the same shared name list. */
+  private static String labelOf(String name) {
+    return Anonymizer.forNames(
+            PersonNames.fromSnapshot(SnapshotJson.mapper().valueToTree(sample())))
+        .anonymize(name);
   }
 
   private static Snapshot sample() {

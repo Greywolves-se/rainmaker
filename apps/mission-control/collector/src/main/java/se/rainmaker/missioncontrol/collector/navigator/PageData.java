@@ -3,14 +3,9 @@ package se.rainmaker.missioncontrol.collector.navigator;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Pattern;
 import se.rainmaker.missioncontrol.collector.snapshot.Decision;
 import se.rainmaker.missioncontrol.collector.snapshot.Question;
 import se.rainmaker.missioncontrol.collector.snapshot.Risk;
@@ -35,10 +30,6 @@ final class PageData {
     }
   }
 
-  /** Splits owner fields such as "Mission Control developers (Emil, Gabriel, Mai)". */
-  private static final Pattern NAME_LIST =
-      Pattern.compile("\\s*(?:[,/&()]|\\band\\b|\\boch\\b)\\s*");
-
   private PageData() {}
 
   /** The text sent for {@code page}: today's date, the page id and the page's data as JSON. */
@@ -55,46 +46,6 @@ final class PageData {
         + page.id()
         + "\nData (JSON):\n"
         + SnapshotJson.mapper().writeValueAsString(data);
-  }
-
-  /**
-   * Every person in the snapshot: assignees, authors, owners and last editors. Owner fields that
-   * list several people are also split, so each name inside is hidden too.
-   */
-  static Set<String> people(Snapshot snapshot) {
-    Set<String> people = new TreeSet<>();
-    snapshot.workItems().forEach(item -> people.addAll(item.assignees()));
-    snapshot.pullRequests().forEach(pull -> people.add(pull.author()));
-    snapshot.decisions().forEach(decision -> addOwner(people, decision.owner()));
-    snapshot.risks().forEach(risk -> addOwner(people, risk.owner()));
-    snapshot.questions().forEach(question -> addOwner(people, question.owner()));
-    snapshot.changes().forEach(change -> addOwner(people, change.owner()));
-    snapshot.documents().stream()
-        .filter(document -> document.lastEditor() != null)
-        .forEach(document -> people.add(document.lastEditor()));
-    return people;
-  }
-
-  private static void addOwner(Set<String> people, String owner) {
-    people.addAll(ownerNames(owner));
-  }
-
-  /**
-   * The names in an owner field: the whole field, plus each name in a list. Only parts that start
-   * with a capital letter count, and the group label before a parenthesis does not, so "Mission
-   * Control developers (Emil, Gabriel, Mai)" gives Emil, Gabriel and Mai, and "Kalle och teamet"
-   * gives Kalle, never "teamet" or "Mission Control developers".
-   */
-  static Set<String> ownerNames(String owner) {
-    Set<String> names = new LinkedHashSet<>();
-    names.add(owner);
-    int bracket = owner.indexOf('(');
-    String list = bracket < 0 ? owner : owner.substring(bracket + 1);
-    Arrays.stream(NAME_LIST.split(list))
-        .map(String::strip)
-        .filter(part -> part.length() > 1 && Character.isUpperCase(part.charAt(0)))
-        .forEach(names::add);
-    return names;
   }
 
   private static Map<String, Object> overview(Snapshot snapshot) {

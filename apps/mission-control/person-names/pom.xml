@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>se.rainmaker</groupId>
+    <artifactId>mission-control</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>person-names</artifactId>
+  <name>Mission Control person names</name>
+  <description>The names to hide before text goes to an AI model, read from a snapshot's JSON (#136).
+    One function for the collector (#115) and the Ask Navigator backend (#117), so the two never
+    hide different names. Plain Java with Jackson only, no Spring.</description>
+
+  <properties>
+    <!-- Domain logic: the 80 % line-coverage gate applies (CLAUDE.md, "Testing"). -->
+    <jacoco.check.skip>false</jacoco.check.skip>
+  </properties>
+
+  <dependencies>
+    <!-- Reads the snapshot as JSON (Jackson 3, the same as the collector and navigator-api). -->
+    <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

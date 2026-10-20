@@ -16,6 +16,8 @@ COPY apps/mission-control/pom.xml apps/mission-control/
 # Every module listed in apps/mission-control/pom.xml must exist, or Maven stops; the collector
 # also uses the anonymizer (#115).
 COPY apps/mission-control/anonymizer/ apps/mission-control/anonymizer/
+# The names to hide before OpenAI calls, shared with navigator-api (#136).
+COPY apps/mission-control/person-names/ apps/mission-control/person-names/
 COPY apps/mission-control/collector/ apps/mission-control/collector/
 # Every module listed in apps/mission-control/pom.xml must exist for Maven to read the build, even
 # though only the collector is built here. Its pom.xml is enough (#117).
