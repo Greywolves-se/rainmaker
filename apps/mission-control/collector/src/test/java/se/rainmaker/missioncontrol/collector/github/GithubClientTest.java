@@ -247,7 +247,8 @@ class GithubClientTest {
             3,
             Duration.ofMillis(1),
             Duration.ofSeconds(60),
-            5);
+            5,
+            Map.of());
     return new GithubClient(properties, Clock.fixed(NOW, ZoneOffset.UTC));
   }
 }

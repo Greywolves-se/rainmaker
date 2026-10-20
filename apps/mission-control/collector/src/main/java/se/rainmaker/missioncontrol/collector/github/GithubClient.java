@@ -108,7 +108,8 @@ public class GithubClient {
 
   /**
    * Reads only the first page of a GitHub answer (up to 100 items), as-is: a list or an object
-   * (e.g. {@code /commits/{sha}/check-runs}). Use it for "the latest N" and for single resources.
+   * (e.g. {@code /commits/{sha}/check-runs}). Use it for "the latest N" and for single resources; a
+   * {@code per_page} in {@code query} asks for a shorter page.
    *
    * @throws SourceException when there is no token or GitHub cannot deliver
    */
@@ -122,7 +123,8 @@ public class GithubClient {
     }
     UriComponentsBuilder first =
         UriComponentsBuilder.fromUri(properties.apiUrl()).path(path).queryParam("per_page", 100);
-    query.forEach(first::queryParam);
+    // Replaced, not added: a per_page in the query wins over the default of 100.
+    query.forEach(first::replaceQueryParam);
     return first.build().toUri();
   }
 

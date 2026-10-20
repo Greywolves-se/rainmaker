@@ -3,6 +3,7 @@ package se.rainmaker.missioncontrol.collector.github;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -19,6 +20,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param backoff wait before the first retry; it doubles for each retry
  * @param rateLimitMaxWait longest rate-limit wait worth sitting out; longer limits fail at once
  * @param maxPages most pages read per list, a guard against endless pagination
+ * @param workflows the workflow files whose builds belong to each project, by project id (#14),
+ *     e.g. {@code mission-control-ci.yml}; a project not listed has no builds
  */
 @ConfigurationProperties("mission-control.collector.github")
 public record GithubProperties(
@@ -30,9 +33,13 @@ public record GithubProperties(
     int maxAttempts,
     Duration backoff,
     Duration rateLimitMaxWait,
-    int maxPages) {
+    int maxPages,
+    Map<String, List<String>> workflows) {
 
   private static final Pattern REPOSITORY = Pattern.compile("^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$");
+
+  /** A file name in {@code .github/workflows}; it ends up in a request path. */
+  private static final Pattern WORKFLOW = Pattern.compile("^[A-Za-z0-9_-][A-Za-z0-9._-]*\\.ya?ml$");
 
   /** Checks the settings at startup; repository names end up in request paths. */
   public GithubProperties {
@@ -51,6 +58,25 @@ public record GithubProperties(
     if (maxAttempts < 1 || maxPages < 1) {
       throw new IllegalArgumentException("max-attempts and max-pages must be at least 1");
     }
+    workflows = workflows == null ? Map.of() : Map.copyOf(workflows);
+    workflows.forEach(
+        (project, files) -> {
+          for (String file : files) {
+            if (!WORKFLOW.matcher(file).matches()) {
+              throw new IllegalArgumentException(
+                  "GitHub workflow '"
+                      + file
+                      + "' for project '"
+                      + project
+                      + "' must be a file name such as ci.yml");
+            }
+          }
+        });
+  }
+
+  /** The workflow files whose builds belong to {@code projectId}; empty when none are set. */
+  public List<String> workflowsFor(String projectId) {
+    return List.copyOf(workflows.getOrDefault(projectId, List.of()));
   }
 
   /** Whether a token is configured. */
@@ -79,6 +105,8 @@ public record GithubProperties(
         + rateLimitMaxWait
         + ", maxPages="
         + maxPages
+        + ", workflows="
+        + workflows
         + "]";
   }
 }

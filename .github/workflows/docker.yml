@@ -80,6 +80,7 @@ jobs:
       issues: read # the collector's GitHub source reads issues and milestones (#12, #17)
       pull-requests: read # the pull request source reads pull requests and reviews (#13)
       checks: read # ...and the check runs of each pull request's head commit (#13)
+      actions: read # the builds source reads the latest workflow runs (#14)
     strategy:
       fail-fast: false
       matrix:

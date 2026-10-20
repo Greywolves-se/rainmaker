@@ -12,8 +12,12 @@ final class GithubFields {
 
   /** {@code gh-<repository name>-<number>}, e.g. {@code gh-rainmaker-12}. */
   static String itemId(String repository, int number) {
-    String name = repository.substring(repository.indexOf('/') + 1).toLowerCase(Locale.ROOT);
-    return "gh-" + name + "-" + number;
+    return "gh-" + repositoryName(repository) + "-" + number;
+  }
+
+  /** The name part of {@code owner/name}, in lowercase, e.g. {@code rainmaker}. */
+  static String repositoryName(String repository) {
+    return repository.substring(repository.indexOf('/') + 1).toLowerCase(Locale.ROOT);
   }
 
   /** The label names of an issue or pull request; none when the field is missing. */
