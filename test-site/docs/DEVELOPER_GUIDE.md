@@ -77,7 +77,7 @@ tag manager, a strict security policy, a sticky menu and a paywall.
 | HTML | Thymeleaf templates | Server-side rendering; escapes text automatically |
 | JSON | Jackson 3 (package `tools.jackson`, comes with Spring Boot 4) | Reads the content files |
 | XML | StAX (built into the JDK) | Writes RSS and sitemap |
-| Build | Maven module `apps/test-site` of the Rainmaker repository, built with the root Maven Wrapper (`mvnw`) | No Maven install needed |
+| Build | Maven module `test-site` of the Rainmaker repository, built with the root Maven Wrapper (`mvnw`) | No Maven install needed |
 | Style | google-java-format (Spotless) + Checkstyle (Google rules) + JaCoCo report, all from the root `pom.xml` | Project standard; enforced by `verify` |
 | Container | Dockerfile + `docker-compose.yml` | Run without a local JDK |
 | Tests | JUnit 5, AssertJ, MockMvc; `node --test` for the browser JS | Project standard |
@@ -91,8 +91,8 @@ Boot 4 the starters are split per technology, each with its own test starter.
 
 ## 2. Running, testing and building
 
-The site is the module `apps/test-site` of the Rainmaker repository. Run every
-Maven command from the **repository root**; `-pl apps/test-site` limits it to
+The site is the module `test-site` of the Rainmaker repository. Run every
+Maven command from the **repository root**; `-pl test-site` limits it to
 this module. You need a **JDK 21 or newer**. Maven does not need to be
 installed, because `mvnw` downloads it the first time. Node.js 22.18+ is only
 needed for the JavaScript tests.
@@ -101,23 +101,23 @@ In PowerShell, write `.\mvnw.cmd` instead of `./mvnw`.
 
 | Command (from the repository root) | What it does | Time |
 |---|---|---|
-| `./mvnw -pl apps/test-site spring-boot:run` | Starts the site on http://localhost:3000 | ~5 s |
-| `./mvnw -pl apps/test-site test` | Runs all Java tests | ~30 s |
-| `./mvnw -pl apps/test-site test -Dtest=ViewTest` | Runs one test class | |
-| `./mvnw -pl apps/test-site test -Dtest=PagesTest#sendsSecurityHeaders` | Runs one test method | |
-| `./mvnw -pl apps/test-site verify` | Tests **plus** the formatting check, Checkstyle and the coverage report. Run this before every push. | ~45 s |
-| `./mvnw -pl apps/test-site spotless:apply` | Reformats the Java code to Google style | |
-| `npm test` (in `apps/test-site/`) | Tests for the browser JavaScript | ~1 s |
-| `docker compose up --build` (in `apps/test-site/`) | Builds the image and starts the site, no JDK needed | ~1 min first time |
+| `./mvnw -pl test-site spring-boot:run` | Starts the site on http://localhost:3000 | ~5 s |
+| `./mvnw -pl test-site test` | Runs all Java tests | ~30 s |
+| `./mvnw -pl test-site test -Dtest=ViewTest` | Runs one test class | |
+| `./mvnw -pl test-site test -Dtest=PagesTest#sendsSecurityHeaders` | Runs one test method | |
+| `./mvnw -pl test-site verify` | Tests **plus** the formatting check, Checkstyle and the coverage report. Run this before every push. | ~45 s |
+| `./mvnw -pl test-site spotless:apply` | Reformats the Java code to Google style | |
+| `npm test` (in `test-site/`) | Tests for the browser JavaScript | ~1 s |
+| `docker compose up --build` (in `test-site/`) | Builds the image and starts the site, no JDK needed | ~1 min first time |
 
 Stop the site with **Ctrl+C**.
 
 To use another port, set the environment variable first:
-`$env:PORT = '3100'` (PowerShell) or `PORT=3100 ./mvnw -pl apps/test-site spring-boot:run`
+`$env:PORT = '3100'` (PowerShell) or `PORT=3100 ./mvnw -pl test-site spring-boot:run`
 (bash). With Docker, set `TEST_SITE_PORT` instead.
 
 CI runs `verify`, the JavaScript tests and the Docker build on every pull
-request that changes `apps/test-site/` (`.github/workflows/test-site-ci.yml`).
+request that changes `test-site/` (`.github/workflows/test-site-ci.yml`).
 
 ### When you change something
 
@@ -139,13 +139,13 @@ rainmaker/
 ├── pom.xml                      Parent POM: Spring Boot 4.1, Java 21, Spotless, Checkstyle, JaCoCo
 ├── mvnw, mvnw.cmd, .mvn/        Maven Wrapper, shared by every module
 ├── .github/workflows/test-site-ci.yml   CI for this module
-└── apps/test-site/              this module, below
+└── test-site/              this module, below
 ```
 
 The module itself:
 
 ```
-apps/test-site/
+test-site/
 ├── pom.xml                      Module build: only the dependencies; the rest comes from the parent
 ├── Dockerfile                   Image: the jar + content/, runs as a non-root user
 ├── docker-compose.yml           docker compose up --build
@@ -751,7 +751,7 @@ Try the widget installation with the stub (PowerShell):
 ```powershell
 $env:RAINMAKER_SCRIPT_URL = 'http://localhost:3000/static/js/widget-stub.js'
 $env:RAINMAKER_INSTALL_METHOD = 'tag-manager'   # leave out for the template install
-.\mvnw.cmd -pl apps/test-site spring-boot:run   # from the repository root
+.\mvnw.cmd -pl test-site spring-boot:run   # from the repository root
 ```
 
 Remove them again with `Remove-Item Env:RAINMAKER_SCRIPT_URL, Env:RAINMAKER_INSTALL_METHOD`.
@@ -799,7 +799,7 @@ or `IllegalArgumentException`. The text after it names the file or setting.
 | A CSS/JS file gives 404 | The path must start with `/static/` and the file must be in `src/main/resources/static/` |
 | Layout looks broken on mobile | `styles.css` section `/* 7. Responsive` |
 | RSS/sitemap wrong | `FeedWriter`, plus `BASE_URL` for the absolute links |
-| `verify` fails with `spotless` | Run `./mvnw -pl apps/test-site spotless:apply`, then verify again |
+| `verify` fails with `spotless` | Run `./mvnw -pl test-site spotless:apply`, then verify again |
 | `verify` fails with Checkstyle | The message gives the file:line and the rule, e.g. a Javadoc summary must end with a period |
 | A test fails | Read the **AssertJ message**: it shows expected vs. actual. Then run only that test with `-Dtest=Class#method`. |
 
@@ -819,7 +819,7 @@ services will do it.
 ## 10. How to change things
 
 Always: create a branch, write or adjust the test first, change the code,
-run `./mvnw -pl apps/test-site verify`, then open a PR to `develop`.
+run `./mvnw -pl test-site verify`, then open a PR to `develop`.
 
 ### Add an article
 1. Copy an existing file in `content/articles/`, and name it
@@ -827,7 +827,7 @@ run `./mvnw -pl apps/test-site verify`, then open a PR to `develop`.
 2. Change `id`, `slug` (both unique), `section`, `expectedZone`, the texts
    and the dates.
 3. Start the site. If something is wrong, the log says what. Then run
-   `./mvnw -pl apps/test-site test`.
+   `./mvnw -pl test-site test`.
 4. Some tests check the content set as a whole:
    - `ContentFilesTest` expects **8–12** articles, all three zones, and some
      (but not all) PLUS articles.
@@ -946,7 +946,7 @@ them are checked by tests:
    it.
 8. **Deterministic output.** No `now()` and no randomness on the server.
 9. **No secrets in the repo, ever.**
-10. **Google Java Style and constructor injection.** `./mvnw -pl apps/test-site verify` must
+10. **Google Java Style and constructor injection.** `./mvnw -pl test-site verify` must
     pass.
 
 ---

@@ -6,9 +6,10 @@ without real or copyrighted content (Solution Architecture v0.5, section 7.5;
 Getting Started Guide, section 5.1).
 
 Built with the project stack: **Java 21, Spring Boot 4.1 and Maven**
-(server-rendered HTML with Thymeleaf). It is a module of the Rainmaker
-repository, `apps/test-site/`, built by the root `pom.xml` like every other
-Java module (Getting Started Guide, section 4.2).
+(server-rendered HTML with Thymeleaf). It lives in the Rainmaker repository as `test-site/`, at the top level
+rather than under `apps/`: `apps/` holds Rainmaker's own deployable apps, while
+this site plays an outside publisher, so CI filters and boundary tests aimed
+at `apps/` should not catch it.
 
 The newspaper *Vintrabladet*, the town of *Vintra* and every person, company
 and advertiser on the site are made up. Every page carries a
@@ -55,23 +56,23 @@ docker compose up --build      # stop with Ctrl+C, then: docker compose down
 **repository root**:
 
 ```powershell
-.\mvnw.cmd -pl apps/test-site spring-boot:run     # Windows (PowerShell / cmd)
-./mvnw -pl apps/test-site spring-boot:run         # macOS, Linux, Git Bash
+.\mvnw.cmd -pl test-site spring-boot:run     # Windows (PowerShell / cmd)
+./mvnw -pl test-site spring-boot:run         # macOS, Linux, Git Bash
 ```
 
 Stop with `Ctrl+C`. The first start takes a minute (downloads); after that a
 few seconds.
 
-All Maven commands run from the repository root; `-pl apps/test-site` limits
+All Maven commands run from the repository root; `-pl test-site` limits
 them to this module.
 
 | Command | What it does |
 |---|---|
-| `./mvnw -pl apps/test-site spring-boot:run` | Start the site |
-| `./mvnw -pl apps/test-site test` | Run the Java tests (~180, JUnit 5 + AssertJ + MockMvc) |
-| `./mvnw -pl apps/test-site verify` | Everything CI runs: tests + formatting check + Checkstyle + coverage report |
-| `./mvnw -pl apps/test-site spotless:apply` | Format the Java code (google-java-format) |
-| `npm test` (in `apps/test-site/`) | Tests for the browser JavaScript (needs Node.js 22.18+) |
+| `./mvnw -pl test-site spring-boot:run` | Start the site |
+| `./mvnw -pl test-site test` | Run the Java tests (~180, JUnit 5 + AssertJ + MockMvc) |
+| `./mvnw -pl test-site verify` | Everything CI runs: tests + formatting check + Checkstyle + coverage report |
+| `./mvnw -pl test-site spotless:apply` | Format the Java code (google-java-format) |
+| `npm test` (in `test-site/`) | Tests for the browser JavaScript (needs Node.js 22.18+) |
 
 CI runs the same checks on every pull request that changes this folder
 (`.github/workflows/test-site-ci.yml`).
@@ -105,11 +106,11 @@ but checks the integration: it loads, finds the headline and reads consent.
 ```powershell
 # 1. Directly in the page template (the default method)
 $env:RAINMAKER_SCRIPT_URL = 'http://localhost:3000/static/js/widget-stub.js'
-.\mvnw.cmd -pl apps/test-site spring-boot:run
+.\mvnw.cmd -pl test-site spring-boot:run
 
 # 2. Through the tag manager instead
 $env:RAINMAKER_INSTALL_METHOD = 'tag-manager'
-.\mvnw.cmd -pl apps/test-site spring-boot:run
+.\mvnw.cmd -pl test-site spring-boot:run
 ```
 
 With Docker, put the same variables in a `.env` file next to
@@ -149,12 +150,12 @@ so the matching (S7) has something to work with.
 ## How it is built
 
 > **New to the code?** Read the
-> [Developer Guide](docs/DEVELOPER_GUIDE.md) ([PDF](docs/DEVELOPER_GUIDE.pdf)):
+> [Developer Guide](docs/DEVELOPER_GUIDE.md):
 > every package and class explained, what happens on a request, where to look
 > when something breaks, and step-by-step recipes for common changes.
 
 ```
-apps/test-site/
+test-site/
 ├── pom.xml                    ← Maven module; parent is the root pom.xml
 ├── Dockerfile                 ← image: the jar + content/, runs as a non-root user
 ├── docker-compose.yml         ← docker compose up --build
@@ -192,7 +193,7 @@ apps/test-site/
 │       └── js/                ← browser scripts (consent, ads, tag manager …)
 ├── src/test/java/             ← JUnit 5 tests (unit + Spring MockMvc)
 ├── src/test/javascript/       ← Node tests for the browser scripts
-└── docs/                      ← developer guide (+ PDF) and screenshots
+└── docs/                      ← developer guide and screenshots
 ```
 
 ### What happens on a request
@@ -220,7 +221,7 @@ tested with Node in `src/test/javascript/`.
 **Articles:** copy a file in `content/articles/`, change `id` (unique, e.g.
 `vb-0013`), `slug` (unique, used in the URL) and the text. Restart the site.
 A mistake stops the start-up with a message naming the file and field. Then
-run `./mvnw -pl apps/test-site test`.
+run `./mvnw -pl test-site test`.
 
 ```jsonc
 {
@@ -267,16 +268,26 @@ Set as environment variables, in `application.yml`, or (for Docker) in a
 | `BASE_URL` | `http://localhost:<PORT>` | Public address, for absolute links in RSS and sitemap |
 | `RAINMAKER_SCRIPT_URL` | *(empty)* | Address of rainmaker.js; empty = no widget |
 | `RAINMAKER_INSTALL_METHOD` | `template` | `template` (script tag in the page) or `tag-manager` |
-| `CONTENT_DIRECTORY` | `content` | Folder with the content files, relative to `apps/test-site/` |
+| `CONTENT_DIRECTORY` | `content` | Folder with the content files, relative to `test-site/` |
 | `TEST_SITE_PORT` | `3000` | Docker only: the port on your computer |
 
 Wrong values stop the start-up with a clear message (e.g. a widget URL that is
 not https).
 
-## Code standards
+## Build and code standards
+
+**Build decision:** the site is a module of the root Maven build (`test-site`
+in the root `pom.xml`), upgraded to Spring Boot 4.1 and Jackson 3 like the rest
+of the repository. It has no build of its own.
+
+**Code-standard decision:** no exemptions. Spotless (google-java-format),
+Checkstyle and JaCoCo from the parent POM run on it in `verify`, locally and
+in CI. The browser scripts are plain JavaScript (no TypeScript build), so gts
+does not apply; their logic is covered by the Node tests.
+
 
 The repository's rules apply (root `CLAUDE.md` and `README.md`, "Code
-quality"); this module's own notes are in `apps/test-site/CLAUDE.md`.
+quality"); this module's own notes are in `test-site/CLAUDE.md`.
 
 - **Google Java Style**, enforced by the parent POM: `verify` fails if the
   code is not formatted (Spotless + google-java-format) or has Checkstyle

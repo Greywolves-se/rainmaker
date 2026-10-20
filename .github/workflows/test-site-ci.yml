@@ -1,4 +1,4 @@
-# Builds and tests the test site (apps/test-site) on pull requests and on pushes to
+# Builds and tests the test site (test-site) on pull requests and on pushes to
 # develop and main.
 # - Runs only when the test site or the root Maven build (pom.xml, mvnw, .mvn/) changes.
 #   It is not a required check, so a path filter on pull requests is safe here
@@ -13,7 +13,7 @@ on:
   pull_request:
     branches: [develop, main]
     paths:
-      - "apps/test-site/**"
+      - "test-site/**"
       - ".github/workflows/test-site-ci.yml"
       - "pom.xml"
       - "mvnw"
@@ -21,7 +21,7 @@ on:
   push:
     branches: [develop, main]
     paths:
-      - "apps/test-site/**"
+      - "test-site/**"
       - ".github/workflows/test-site-ci.yml"
       - "pom.xml"
       - "mvnw"
@@ -48,7 +48,7 @@ jobs:
           cache: maven
 
       - name: Build and test
-        run: ./mvnw -B -ntp -f apps/test-site/pom.xml verify
+        run: ./mvnw -B -ntp -f test-site/pom.xml verify
 
   browser-scripts:
     name: Test site browser scripts
@@ -62,7 +62,7 @@ jobs:
           node-version: 22
 
       - name: Test
-        working-directory: apps/test-site
+        working-directory: test-site
         run: npm test
 
   image:
@@ -71,7 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: docker compose -f apps/test-site/docker-compose.yml config --quiet
+      - run: docker compose -f test-site/docker-compose.yml config --quiet
 
       - name: Build the image
-        run: docker build -f apps/test-site/Dockerfile -t rainmaker-test-site:ci .
+        run: docker build -f test-site/Dockerfile -t rainmaker-test-site:ci .

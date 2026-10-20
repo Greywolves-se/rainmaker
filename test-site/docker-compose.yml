@@ -12,8 +12,8 @@ name: rainmaker-test-site
 services:
   test-site:
     build:
-      context: ../..
-      dockerfile: apps/test-site/Dockerfile
+      context: ..
+      dockerfile: test-site/Dockerfile
     ports:
       - "${TEST_SITE_PORT:-3000}:3000"
     environment:

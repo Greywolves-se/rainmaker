@@ -21,7 +21,7 @@ approves them, and every click is tracked for settlement.
 | Folder | What | Build | Status |
 |---|---|---|---|
 | `apps/mission-control/` | Internal status app: `collector/` (Java) + `web/` (React) | Maven aggregator + npm | **In progress** (#1–#32) |
-| `apps/test-site/` | Fictional news site (Vintrabladet) to test the widget, ingestion and AI against; not part of the product | Maven module | Done; see its `README.md` |
+| `test-site/` | Fictional news site (Vintrabladet) to test the widget, ingestion and AI against; not part of the product | Maven module | Done; see its `README.md` |
 | `services/<name>/` | One logical service each (S1–S10, table below) | Maven module | Empty – later |
 | `apps/g1`–`g4-*-app/` | Deployable Spring Boot apps that assemble services | Maven module | Not created yet |
 | `widget/` | rainmaker.js (TypeScript) | npm | Empty – later |

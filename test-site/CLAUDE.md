@@ -1,6 +1,6 @@
 # Test site (Vintrabladet) - Claude Code instructions
 
-The root `CLAUDE.md` applies here too. These rules add to it for `apps/test-site/`
+The root `CLAUDE.md` applies here too. These rules add to it for `test-site/`
 and take precedence where they are more specific.
 
 ## What this module is
@@ -31,7 +31,7 @@ See `README.md`, and `docs/DEVELOPER_GUIDE.md` for a class-by-class walkthrough.
 
 ## Build and test
 From the repository root:
-- `./mvnw -pl apps/test-site verify` - format check, Checkstyle, tests, coverage report.
-- `./mvnw -pl apps/test-site spring-boot:run` - the site on http://localhost:3000.
-- `npm test` in `apps/test-site/` - the Node tests for the consent API and tag manager.
-- `docker compose up --build` in `apps/test-site/` - the same site in a container.
+- `./mvnw -pl test-site verify` - format check, Checkstyle, tests, coverage report.
+- `./mvnw -pl test-site spring-boot:run` - the site on http://localhost:3000.
+- `npm test` in `test-site/` - the Node tests for the consent API and tag manager.
+- `docker compose up --build` in `test-site/` - the same site in a container.
