@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import type {Plugin} from 'vite';
-import {defineConfig} from 'vitest/config';
+import {configDefaults, defineConfig} from 'vitest/config';
 
 /**
  * The collector's output (apps/mission-control/out/, git-ignored, #99): projects.json and, per
@@ -63,5 +63,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // e2e/ holds the Playwright smoke tests (#29): `npm run e2e`, not Vitest.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 });

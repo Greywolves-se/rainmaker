@@ -3,6 +3,9 @@ target/
 dist/
 build/
 coverage/
+# Playwright output (apps/mission-control/web, #29)
+playwright-report/
+test-results/
 # CDK synth output (infra/)
 cdk.out/
 
