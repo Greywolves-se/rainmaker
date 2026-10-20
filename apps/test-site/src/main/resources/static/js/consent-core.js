@@ -1,6 +1,6 @@
 /**
  * The logic of the fake consent manager (CMP), without any DOM code, so it can
- * be unit tested in Node (see test/consent.test.ts).
+ * be unit tested in Node (see src/test/javascript/consent.test.ts).
  *
  * It implements the parts of the IAB TCF v2.2 `__tcfapi` interface that a
  * script like rainmaker.js uses:

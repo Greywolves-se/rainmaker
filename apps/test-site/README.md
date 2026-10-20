@@ -5,8 +5,10 @@ publisher's site, so Rainmaker can be developed, tested and demonstrated
 without real or copyrighted content (Solution Architecture v0.5, section 7.5;
 Getting Started Guide, section 5.1).
 
-Built with the project stack from the Getting Started Guide: **Java 21,
-Spring Boot 3 and Maven** (server-rendered HTML with Thymeleaf).
+Built with the project stack: **Java 21, Spring Boot 4.1 and Maven**
+(server-rendered HTML with Thymeleaf). It is a module of the Rainmaker
+repository, `apps/test-site/`, built by the root `pom.xml` like every other
+Java module (Getting Started Guide, section 4.2).
 
 The newspaper *Vintrabladet*, the town of *Vintra* and every person, company
 and advertiser on the site are made up. Every page carries a
@@ -41,25 +43,38 @@ third-party parts almost every Swedish news site has:
 
 ## Quick start
 
-You need a **JDK 21 or newer** (check with `java -version`). Maven does not
-need to be installed – the project includes the **Maven Wrapper** (`mvnw`),
-which downloads the right Maven version the first time.
+Two ways to run it. Both start the site on **http://localhost:3000**.
 
-```powershell
-.\mvnw.cmd spring-boot:run     # Windows (PowerShell / cmd)
-./mvnw spring-boot:run         # macOS, Linux, Git Bash
+**With Docker** (needs only Docker, no Java). From this folder:
+
+```
+docker compose up --build      # stop with Ctrl+C, then: docker compose down
 ```
 
-Open **http://localhost:3000**. Stop with `Ctrl+C`.
-The first start takes a minute (downloads); after that a few seconds.
+**With Java** (JDK 21 or newer; Maven is downloaded by the wrapper). From the
+**repository root**:
+
+```powershell
+.\mvnw.cmd -pl apps/test-site spring-boot:run     # Windows (PowerShell / cmd)
+./mvnw -pl apps/test-site spring-boot:run         # macOS, Linux, Git Bash
+```
+
+Stop with `Ctrl+C`. The first start takes a minute (downloads); after that a
+few seconds.
+
+All Maven commands run from the repository root; `-pl apps/test-site` limits
+them to this module.
 
 | Command | What it does |
 |---|---|
-| `./mvnw spring-boot:run` | Start the site |
-| `./mvnw test` | Run the Java tests (~180, JUnit 5 + AssertJ + MockMvc) |
-| `./mvnw verify` | Everything CI should run: tests + formatting check + Checkstyle |
-| `./mvnw spotless:apply` | Format all Java code (google-java-format) |
-| `npm test` | Tests for the browser JavaScript (needs Node.js 22.18+) |
+| `./mvnw -pl apps/test-site spring-boot:run` | Start the site |
+| `./mvnw -pl apps/test-site test` | Run the Java tests (~180, JUnit 5 + AssertJ + MockMvc) |
+| `./mvnw -pl apps/test-site verify` | Everything CI runs: tests + formatting check + Checkstyle + coverage report |
+| `./mvnw -pl apps/test-site spotless:apply` | Format the Java code (google-java-format) |
+| `npm test` (in `apps/test-site/`) | Tests for the browser JavaScript (needs Node.js 22.18+) |
+
+CI runs the same checks on every pull request that changes this folder
+(`.github/workflows/test-site-ci.yml`).
 
 The terminal shows one JSON log line per event (ECS format, with `trace_id`
 and `correlation_id`) – that is the project's logging standard, not an error.
@@ -90,12 +105,15 @@ but checks the integration: it loads, finds the headline and reads consent.
 ```powershell
 # 1. Directly in the page template (the default method)
 $env:RAINMAKER_SCRIPT_URL = 'http://localhost:3000/static/js/widget-stub.js'
-.\mvnw.cmd spring-boot:run
+.\mvnw.cmd -pl apps/test-site spring-boot:run
 
 # 2. Through the tag manager instead
 $env:RAINMAKER_INSTALL_METHOD = 'tag-manager'
-.\mvnw.cmd spring-boot:run
+.\mvnw.cmd -pl apps/test-site spring-boot:run
 ```
+
+With Docker, put the same variables in a `.env` file next to
+`docker-compose.yml` (git-ignored) and run `docker compose up --build`.
 
 Open an article and look in the browser console for `[rainmaker stub]`.
 Remove the variables afterwards with
@@ -136,14 +154,16 @@ so the matching (S7) has something to work with.
 > when something breaks, and step-by-step recipes for common changes.
 
 ```
-rainmaker-test-site/
-├── pom.xml                    ← Maven build: Spring Boot 3.5, Spotless, Checkstyle
-├── mvnw, mvnw.cmd, .mvn/      ← Maven Wrapper (no Maven install needed)
+apps/test-site/
+├── pom.xml                    ← Maven module; parent is the root pom.xml
+├── Dockerfile                 ← image: the jar + content/, runs as a non-root user
+├── docker-compose.yml         ← docker compose up --build
+├── package.json               ← only "npm test" for the browser scripts
 ├── content/                   ← EVERYTHING EDITORIAL (read at start-up)
 │   ├── articles/              ← one JSON file per article
 │   ├── front-page.json        ← lead story, "JUST NU", "Mest läst"
 │   └── ads.json               ← fictional advertisers and their ads
-├── src/main/java/nu/rainmaker/testsite/
+├── src/main/java/se/rainmaker/testsite/
 │   ├── TestSiteApplication.java     starts Spring Boot
 │   ├── config/SiteProperties        settings (site.* in application.yml)
 │   ├── content/                     article model + loading and validating content/
@@ -172,7 +192,7 @@ rainmaker-test-site/
 │       └── js/                ← browser scripts (consent, ads, tag manager …)
 ├── src/test/java/             ← JUnit 5 tests (unit + Spring MockMvc)
 ├── src/test/javascript/       ← Node tests for the browser scripts
-└── docs/screenshots/
+└── docs/                      ← developer guide (+ PDF) and screenshots
 ```
 
 ### What happens on a request
@@ -200,7 +220,7 @@ tested with Node in `src/test/javascript/`.
 **Articles:** copy a file in `content/articles/`, change `id` (unique, e.g.
 `vb-0013`), `slug` (unique, used in the URL) and the text. Restart the site.
 A mistake stops the start-up with a message naming the file and field. Then
-run `./mvnw test`.
+run `./mvnw -pl apps/test-site test`.
 
 ```jsonc
 {
@@ -238,7 +258,8 @@ Use invented names for people, companies and local places.
 
 ## Configuration
 
-Set as environment variables (or in `application.yml`):
+Set as environment variables, in `application.yml`, or (for Docker) in a
+`.env` file next to `docker-compose.yml`:
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -246,20 +267,24 @@ Set as environment variables (or in `application.yml`):
 | `BASE_URL` | `http://localhost:<PORT>` | Public address, for absolute links in RSS and sitemap |
 | `RAINMAKER_SCRIPT_URL` | *(empty)* | Address of rainmaker.js; empty = no widget |
 | `RAINMAKER_INSTALL_METHOD` | `template` | `template` (script tag in the page) or `tag-manager` |
-| `CONTENT_DIRECTORY` | `content` | Folder with the content files |
+| `CONTENT_DIRECTORY` | `content` | Folder with the content files, relative to `apps/test-site/` |
+| `TEST_SITE_PORT` | `3000` | Docker only: the port on your computer |
 
 Wrong values stop the start-up with a clear message (e.g. a widget URL that is
 not https).
 
 ## Code standards
 
-- **Google Java Style**, enforced: `./mvnw verify` fails if the code is not
-  formatted (Spotless + google-java-format) or has Checkstyle findings
-  (Google rules, all warnings count).
+The repository's rules apply (root `CLAUDE.md` and `README.md`, "Code
+quality"); this module's own notes are in `apps/test-site/CLAUDE.md`.
+
+- **Google Java Style**, enforced by the parent POM: `verify` fails if the
+  code is not formatted (Spotless + google-java-format) or has Checkstyle
+  findings (Google rules, all warnings count).
+- **Spring Boot 4 and Jackson 3**: JSON classes come from `tools.jackson`, and
+  the parser uses `isString()`/`asString()` (the Jackson 2 names are deprecated).
 - Constructor injection everywhere, no field `@Autowired`.
 - Every public class and method has a Javadoc comment.
-- `.mvn/jvm.config` opens a few JDK internals that google-java-format needs on
-  newer JDKs; it does not affect the site itself.
 
 ## Design decisions worth knowing
 
@@ -298,7 +323,7 @@ not https).
 - Real geography (Mallorca, the mountains) is used for travel destinations so
   matching has something real to work with; everything local is invented.
 - The news sitemap lists every article; a real one only lists the last two days.
-- Runs locally only – not deployed.
+- Runs locally (Java or Docker) – not deployed.
 
 ## Ideas for future work
 
@@ -307,16 +332,14 @@ not https).
 2. **Playwright end-to-end tests** (architecture 7.3): "hover headline →
    panel appears", "red article → no panel", "panel adds no layout shift",
    "panel works after *Endast nödvändiga*".
-3. **Move into the monorepo** as `apps/test-site` (Getting Started Guide 4.2)
-   and add it to the parent `pom.xml` and the CI workflow.
-4. **More articles** towards the ~200 labelled articles for the AI evaluation
+3. **More articles** towards the ~200 labelled articles for the AI evaluation
    set, including tricky yellow/red borderline cases.
-5. **A client-side-routed variant** (articles change without a page reload),
+4. **A client-side-routed variant** (articles change without a page reload),
    in case the pilot publisher's site works that way.
-6. **"Publish" while running** (admin page or file watcher) to test S5's
+5. **"Publish" while running** (admin page or file watcher) to test S5's
    "ingested within 5 minutes" requirement end to end.
-7. **English** (`messages_en.properties` + a `language` field on articles).
-8. **Run it in UAT**: Dockerfile + CDK stack, so sprint demos run on
-   `uat.rainmaker.nu`.
-9. **Match the pilot publisher's markup** once their CMS is known (C2/P3), and
+6. **English** (`messages_en.properties` + a `language` field on articles).
+7. **Run it in UAT**: the Dockerfile exists; add a CDK stack (`infra/`) so
+   sprint demos run on `uat.rainmaker.nu`.
+8. **Match the pilot publisher's markup** once their CMS is known (C2/P3), and
    align with Kalle, who owns the official test site.

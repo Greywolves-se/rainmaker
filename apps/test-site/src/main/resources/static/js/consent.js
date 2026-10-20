@@ -3,7 +3,7 @@
  * replaces the stub __tcfapi, answers queued calls, shows the banner and
  * reacts to the buttons.
  *
- * The banner itself is rendered by the server (render/consent.ts) so its text
+ * The banner itself is rendered by the server (templates/fragments.html) so its text
  * comes from the translation file; this script only shows and hides it.
  */
 import {

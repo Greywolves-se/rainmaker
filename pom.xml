@@ -103,8 +103,8 @@
   <!-- Services (services/*) and apps G1–G4 (apps/g1-*-app ...) come later. -->
   <modules>
     <module>apps/mission-control</module>
-    <module>infra</module>
     <module>apps/test-site</module>
+    <module>infra</module>
   </modules>
 
   <build>

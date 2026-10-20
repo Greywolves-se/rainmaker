@@ -1,0 +1,77 @@
+# Builds and tests the test site (apps/test-site) on pull requests and on pushes to
+# develop and main.
+# - Runs only when the test site or the root Maven build (pom.xml, mvnw, .mvn/) changes.
+#   It is not a required check, so a path filter on pull requests is safe here
+#   (compare mission-control-ci.yml, which must run on every pull request).
+# - java: Spotless, Checkstyle, the JUnit tests and JaCoCo (./mvnw verify, #39).
+# - browser-scripts: the Node tests for the consent API and the tag manager.
+# - image: proves the Dockerfile and docker-compose.yml work; nothing is pushed.
+
+name: Test site CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "apps/test-site/**"
+      - ".github/workflows/test-site-ci.yml"
+      - "pom.xml"
+      - "mvnw"
+      - ".mvn/**"
+  push:
+    branches: [develop, main]
+    paths:
+      - "apps/test-site/**"
+      - ".github/workflows/test-site-ci.yml"
+      - "pom.xml"
+      - "mvnw"
+      - ".mvn/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-site-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  java:
+    name: Test site (format, Checkstyle, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Build and test
+        run: ./mvnw -B -ntp -f apps/test-site/pom.xml verify
+
+  browser-scripts:
+    name: Test site browser scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The tests are TypeScript run directly by Node (type stripping, Node 22.18 or newer).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test
+        working-directory: apps/test-site
+        run: npm test
+
+  image:
+    name: Test site image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: docker compose -f apps/test-site/docker-compose.yml config --quiet
+
+      - name: Build the image
+        run: docker build -f apps/test-site/Dockerfile -t rainmaker-test-site:ci .

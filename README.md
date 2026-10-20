@@ -17,7 +17,8 @@ rainmaker/
 ├── docs/                architecture, decisions, START HERE        (empty for now)
 ├── services/            one Maven module per logical service S1–S10 (empty for now)
 ├── apps/                deployable apps
-│   └── mission-control/     internal status app – built first
+│   ├── mission-control/     internal status app – built first
+│   └── test-site/           fictional news site to test Rainmaker against
 ├── widget/              rainmaker.js, TypeScript, not Maven         (empty for now)
 └── portals/             React apps, not Maven                       (empty for now)
 ```

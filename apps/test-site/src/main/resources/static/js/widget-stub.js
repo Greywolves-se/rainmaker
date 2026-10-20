@@ -4,7 +4,7 @@
  *
  * Try it (PowerShell):
  *   $env:RAINMAKER_SCRIPT_URL = 'http://localhost:3000/static/js/widget-stub.js'
- *   npm start
+ *   .\mvnw.cmd -pl apps/test-site spring-boot:run     (from the repository root)
  * and add $env:RAINMAKER_INSTALL_METHOD = 'tag-manager' to load it through
  * the tag manager instead. Open the browser console to see what it found.
  *

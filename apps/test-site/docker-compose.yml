@@ -1,0 +1,23 @@
+# Runs the test site (Vintrabladet) locally. Needs only Docker.
+#
+#   docker compose up --build     # site on http://localhost:3000
+#   docker compose down
+#
+# Optional settings, as environment variables or in a .env file next to this one
+# (git-ignored): TEST_SITE_PORT, BASE_URL, RAINMAKER_SCRIPT_URL, RAINMAKER_INSTALL_METHOD.
+# See README.md, "Configuration".
+
+name: rainmaker-test-site
+
+services:
+  test-site:
+    build:
+      context: ../..
+      dockerfile: apps/test-site/Dockerfile
+    ports:
+      - "${TEST_SITE_PORT:-3000}:3000"
+    environment:
+      # Absolute links in RSS and the sitemap must use the port the browser sees.
+      BASE_URL: ${BASE_URL:-http://localhost:${TEST_SITE_PORT:-3000}}
+      RAINMAKER_SCRIPT_URL: ${RAINMAKER_SCRIPT_URL:-}
+      RAINMAKER_INSTALL_METHOD: ${RAINMAKER_INSTALL_METHOD:-template}

@@ -73,42 +73,51 @@ tag manager, a strict security policy, a sticky menu and a paywall.
 | Part | Choice | Why |
 |---|---|---|
 | Language | Java 21 | The project standard (Getting Started Guide) |
-| Framework | Spring Boot 3.5 (Spring MVC, embedded Tomcat) | Project standard |
+| Framework | Spring Boot 4.1 (Spring MVC, embedded Tomcat) | Project standard (root `CLAUDE.md`) |
 | HTML | Thymeleaf templates | Server-side rendering; escapes text automatically |
-| JSON | Jackson (comes with Spring Boot) | Reads the content files |
+| JSON | Jackson 3 (package `tools.jackson`, comes with Spring Boot 4) | Reads the content files |
 | XML | StAX (built into the JDK) | Writes RSS and sitemap |
-| Build | Maven, through the Maven Wrapper (`mvnw`) | No Maven install needed |
-| Style | google-java-format (Spotless) + Checkstyle (Google rules) | Project standard; enforced by `verify` |
+| Build | Maven module `apps/test-site` of the Rainmaker repository, built with the root Maven Wrapper (`mvnw`) | No Maven install needed |
+| Style | google-java-format (Spotless) + Checkstyle (Google rules) + JaCoCo report, all from the root `pom.xml` | Project standard; enforced by `verify` |
+| Container | Dockerfile + `docker-compose.yml` | Run without a local JDK |
 | Tests | JUnit 5, AssertJ, MockMvc; `node --test` for the browser JS | Project standard |
 
-There are **no other dependencies**: only `spring-boot-starter-web`,
-`spring-boot-starter-thymeleaf` and `spring-boot-starter-test` (see
-[`pom.xml`](../pom.xml)).
+There are **no other dependencies**: only `spring-boot-starter-webmvc`,
+`spring-boot-starter-thymeleaf`, `spring-boot-starter-jackson` and, for tests,
+`spring-boot-starter-webmvc-test` (see [`pom.xml`](../pom.xml)). In Spring
+Boot 4 the starters are split per technology, each with its own test starter.
 
 ---
 
 ## 2. Running, testing and building
 
-You need a **JDK 21 or newer**. Maven does not need to be installed, because
-`mvnw` downloads it the first time. Node.js 22.18+ is only needed for the
-JavaScript tests.
+The site is the module `apps/test-site` of the Rainmaker repository. Run every
+Maven command from the **repository root**; `-pl apps/test-site` limits it to
+this module. You need a **JDK 21 or newer**. Maven does not need to be
+installed, because `mvnw` downloads it the first time. Node.js 22.18+ is only
+needed for the JavaScript tests.
 
 In PowerShell, write `.\mvnw.cmd` instead of `./mvnw`.
 
-| Command | What it does | Time |
+| Command (from the repository root) | What it does | Time |
 |---|---|---|
-| `./mvnw spring-boot:run` | Starts the site on http://localhost:3000 | ~5 s |
-| `./mvnw test` | Runs all Java tests | ~30 s |
-| `./mvnw test -Dtest=ViewTest` | Runs one test class | |
-| `./mvnw test -Dtest=PagesTest#sendsSecurityHeaders` | Runs one test method | |
-| `./mvnw verify` | Tests **plus** the formatting check and Checkstyle. Run this before every push. | ~45 s |
-| `./mvnw spotless:apply` | Reformats all Java code to Google style | |
-| `npm test` | Tests for the browser JavaScript | ~1 s |
+| `./mvnw -pl apps/test-site spring-boot:run` | Starts the site on http://localhost:3000 | ~5 s |
+| `./mvnw -pl apps/test-site test` | Runs all Java tests | ~30 s |
+| `./mvnw -pl apps/test-site test -Dtest=ViewTest` | Runs one test class | |
+| `./mvnw -pl apps/test-site test -Dtest=PagesTest#sendsSecurityHeaders` | Runs one test method | |
+| `./mvnw -pl apps/test-site verify` | Tests **plus** the formatting check, Checkstyle and the coverage report. Run this before every push. | ~45 s |
+| `./mvnw -pl apps/test-site spotless:apply` | Reformats the Java code to Google style | |
+| `npm test` (in `apps/test-site/`) | Tests for the browser JavaScript | ~1 s |
+| `docker compose up --build` (in `apps/test-site/`) | Builds the image and starts the site, no JDK needed | ~1 min first time |
 
 Stop the site with **Ctrl+C**.
 
 To use another port, set the environment variable first:
-`$env:PORT = '3100'` (PowerShell) or `PORT=3100 ./mvnw spring-boot:run` (bash).
+`$env:PORT = '3100'` (PowerShell) or `PORT=3100 ./mvnw -pl apps/test-site spring-boot:run`
+(bash). With Docker, set `TEST_SITE_PORT` instead.
+
+CI runs `verify`, the JavaScript tests and the Docker build on every pull
+request that changes `apps/test-site/` (`.github/workflows/test-site-ci.yml`).
 
 ### When you change something
 
@@ -117,15 +126,30 @@ To use another port, set the environment variable first:
 | CSS, JS, or a template under `src/main/resources` | Restart the site. Static files are sent with `no-cache`, so a normal reload is enough after the restart. |
 | Java code | Restart the site |
 | A file in `content/` | Restart the site. Content is only read at start-up. |
+| Anything, when running in Docker | `docker compose up --build` again. The image contains the code and the content. |
 
 ---
 
 ## 3. Folder map
 
+The parts of the repository root that this module uses:
+
 ```
-rainmaker-test-site/
-├── pom.xml                      Build: dependencies, Java version, Spotless, Checkstyle
-├── mvnw, mvnw.cmd, .mvn/        Maven Wrapper; .mvn/jvm.config is needed by google-java-format
+rainmaker/
+├── pom.xml                      Parent POM: Spring Boot 4.1, Java 21, Spotless, Checkstyle, JaCoCo
+├── mvnw, mvnw.cmd, .mvn/        Maven Wrapper, shared by every module
+├── .github/workflows/test-site-ci.yml   CI for this module
+└── apps/test-site/              this module, below
+```
+
+The module itself:
+
+```
+apps/test-site/
+├── pom.xml                      Module build: only the dependencies; the rest comes from the parent
+├── Dockerfile                   Image: the jar + content/, runs as a non-root user
+├── docker-compose.yml           docker compose up --build
+├── CLAUDE.md                    Rules for this module (fiction, zones, markup)
 ├── package.json                 Only "npm test" for the browser JS tests
 ├── content/                     THE CONTENT (not code)
 │   ├── articles/vb-00NN-*.json  One file per article
@@ -133,7 +157,7 @@ rainmaker-test-site/
 │   └── ads.json                 Six fake advertisers
 ├── docs/                        This guide and the README screenshots
 └── src/
-    ├── main/java/nu/rainmaker/testsite/
+    ├── main/java/se/rainmaker/testsite/
     │   ├── TestSiteApplication.java   main(): starts Spring Boot
     │   ├── config/    Settings from application.yml / environment variables
     │   ├── content/   Reads and checks content/; the domain model (Article, ...)
@@ -256,14 +280,14 @@ into the right error page (see [4.3](#43-what-the-site-answers-when-something-go
 
 ## 5. Java code, package by package
 
-All classes are in `src/main/java/nu/rainmaker/testsite/`. "Bean" means an
+All classes are in `src/main/java/se/rainmaker/testsite/`. "Bean" means an
 object that Spring creates once and hands to the classes that ask for it in
 their constructor. That is constructor injection, which the project rules
 require.
 
 ### 5.1 `TestSiteApplication`
 
-[TestSiteApplication.java](../src/main/java/nu/rainmaker/testsite/TestSiteApplication.java)
+[TestSiteApplication.java](../src/main/java/se/rainmaker/testsite/TestSiteApplication.java)
 holds the `main` method.
 - `@SpringBootApplication` turns on component scanning: every `@Component`,
   `@Controller` and `@Configuration` under this package becomes a bean.
@@ -274,7 +298,7 @@ You will rarely touch this class.
 ### 5.2 Package `config`: settings
 
 #### `SiteProperties`
-[SiteProperties.java](../src/main/java/nu/rainmaker/testsite/config/SiteProperties.java)
+[SiteProperties.java](../src/main/java/se/rainmaker/testsite/config/SiteProperties.java)
 
 A Java `record` filled from the `site:` block in `application.yml`. Spring
 converts `base-url` to `baseUrl` and so on.
@@ -301,13 +325,13 @@ This package is "the domain". It has no Spring web code and no HTML.
 
 | Class | What it is |
 |---|---|
-| [`Article`](../src/main/java/nu/rainmaker/testsite/content/Article.java) | One article. It has `id`, `slug`, `section`, `expectedZone`, `premium`, `kicker`, `headline`, `lead`, `author`, `publishedAt`, `updatedAt` (may be null) and `body`. Helpers: `path()` returns `/artikel/<slug>`; `lastUpdate()` returns an Optional; `lastModified()` returns the update time, or the publish time if there is none. |
+| [`Article`](../src/main/java/se/rainmaker/testsite/content/Article.java) | One article. It has `id`, `slug`, `section`, `expectedZone`, `premium`, `kicker`, `headline`, `lead`, `author`, `publishedAt`, `updatedAt` (may be null) and `body`. Helpers: `path()` returns `/artikel/<slug>`; `lastUpdate()` returns an Optional; `lastModified()` returns the update time, or the publish time if there is none. |
 | `Article.Author` | `name`, `role` |
-| [`ArticleBlock`](../src/main/java/nu/rainmaker/testsite/content/ArticleBlock.java) | A **sealed interface** with exactly four kinds of body block: `Paragraph(text)`, `Subheading(text)`, `Quote(text, source)` and `Factbox(title, items)`. `type()` gives the name used in JSON and templates (`"paragraph"`, ...). `texts()` gives all words, for the reading time. |
-| [`Section`](../src/main/java/nu/rainmaker/testsite/content/Section.java) | Enum of the 9 sections **in menu order**. `id()` is used in URLs and JSON (`resor`). `messageKey()` gives the translation key (`section.resor`). The visible name is never in Java. |
-| [`BrandSafetyZone`](../src/main/java/nu/rainmaker/testsite/content/BrandSafetyZone.java) | `GREEN`, `YELLOW`, `RED`: Rainmaker's zones (architecture UC-03) |
-| [`AdCreative`](../src/main/java/nu/rainmaker/testsite/content/AdCreative.java) | One fake ad. It has `id`, `advertiser`, `headline`, `text`, `callToAction`, `theme` and `sections`. `THEMES` lists the colour themes that exist in CSS. `targets(section)` checks whether the ad is aimed at a section. |
-| [`FrontPage`](../src/main/java/nu/rainmaker/testsite/content/FrontPage.java) | The editor's choices: `lead`, `breaking` (null means no "JUST NU" bar) and `mostRead` |
+| [`ArticleBlock`](../src/main/java/se/rainmaker/testsite/content/ArticleBlock.java) | A **sealed interface** with exactly four kinds of body block: `Paragraph(text)`, `Subheading(text)`, `Quote(text, source)` and `Factbox(title, items)`. `type()` gives the name used in JSON and templates (`"paragraph"`, ...). `texts()` gives all words, for the reading time. |
+| [`Section`](../src/main/java/se/rainmaker/testsite/content/Section.java) | Enum of the 9 sections **in menu order**. `id()` is used in URLs and JSON (`resor`). `messageKey()` gives the translation key (`section.resor`). The visible name is never in Java. |
+| [`BrandSafetyZone`](../src/main/java/se/rainmaker/testsite/content/BrandSafetyZone.java) | `GREEN`, `YELLOW`, `RED`: Rainmaker's zones (architecture UC-03) |
+| [`AdCreative`](../src/main/java/se/rainmaker/testsite/content/AdCreative.java) | One fake ad. It has `id`, `advertiser`, `headline`, `text`, `callToAction`, `theme` and `sections`. `THEMES` lists the colour themes that exist in CSS. `targets(section)` checks whether the ad is aimed at a section. |
+| [`FrontPage`](../src/main/java/se/rainmaker/testsite/content/FrontPage.java) | The editor's choices: `lead`, `breaking` (null means no "JUST NU" bar) and `mostRead` |
 
 All lists inside records are copied with `List.copyOf`, so they can never be
 changed after creation. Everything here is **immutable**, which is why it is
@@ -317,17 +341,17 @@ safe to share between requests without locking.
 
 | Class | What it does |
 |---|---|
-| [`ContentConfiguration`](../src/main/java/nu/rainmaker/testsite/content/ContentConfiguration.java) | `@Configuration` with three `@Bean` methods: `articleRepository()`, `frontPage(...)` and `adInventory()`. It reads the files with Jackson's `ObjectMapper.readTree`. Article files are read in **file-name order**. It logs `Loaded N articles from ...`. |
-| [`ArticleParser`](../src/main/java/nu/rainmaker/testsite/content/ArticleParser.java) | Turns one JSON tree into an `Article` and checks every field. `SLUG_PATTERN` allows lower-case `a-z`, digits and single hyphens. Dates must have a time zone offset (`Z` or `+02:00`), so they never depend on the server's zone. The body must contain at least one paragraph. `premium` defaults to `false`. |
-| [`JsonFields`](../src/main/java/nu/rainmaker/testsite/content/JsonFields.java) | Small helpers such as `requireText` and `requireObject`, which throw with "file: field" messages. Package-private. |
-| [`ContentValidationException`](../src/main/java/nu/rainmaker/testsite/content/ContentValidationException.java) | The message is always `<file>: <problem>`, e.g. `vb-0005-kantareller.json: "section" is not a known section: matt` |
+| [`ContentConfiguration`](../src/main/java/se/rainmaker/testsite/content/ContentConfiguration.java) | `@Configuration` with three `@Bean` methods: `articleRepository()`, `frontPage(...)` and `adInventory()`. It reads the files with Jackson 3's `JsonMapper.readTree`; a JSON syntax error arrives as a `JacksonException`. Article files are read in **file-name order**. It logs `Loaded N articles from ...`. |
+| [`ArticleParser`](../src/main/java/se/rainmaker/testsite/content/ArticleParser.java) | Turns one JSON tree into an `Article` and checks every field. `SLUG_PATTERN` allows lower-case `a-z`, digits and single hyphens. Dates must have a time zone offset (`Z` or `+02:00`), so they never depend on the server's zone. The body must contain at least one paragraph. `premium` defaults to `false`. |
+| [`JsonFields`](../src/main/java/se/rainmaker/testsite/content/JsonFields.java) | Small helpers such as `requireText` and `requireObject`, which throw with "file: field" messages. Package-private. A value is only read (`asString()`) after its type is checked (`isString()`); these are the Jackson 3 names of the old `asText()`/`isTextual()`. |
+| [`ContentValidationException`](../src/main/java/se/rainmaker/testsite/content/ContentValidationException.java) | The message is always `<file>: <problem>`, e.g. `vb-0005-kantareller.json: "section" is not a known section: matt` |
 
 `FrontPage.parse` and `AdInventory.parse` follow the same pattern. `FrontPage`
 also checks that every article id exists and that "Mest läst" has no
 duplicates.
 
 #### `ArticleRepository`
-[ArticleRepository.java](../src/main/java/nu/rainmaker/testsite/content/ArticleRepository.java)
+[ArticleRepository.java](../src/main/java/se/rainmaker/testsite/content/ArticleRepository.java)
 
 Holds all articles **sorted newest first** by `publishedAt`. The sort uses
 the actual moment in time, so `+02:00` and `Z` compare correctly. It fails at
@@ -347,7 +371,7 @@ needed with thousands of articles.
 
 #### `AdInventory.pick(section, slotNumber)`, the ad rule
 
-[AdInventory.java](../src/main/java/nu/rainmaker/testsite/content/AdInventory.java)
+[AdInventory.java](../src/main/java/se/rainmaker/testsite/content/AdInventory.java)
 
 ```
 ordered = [ads that target this section, in file order] + [all other ads, in file order]
@@ -363,7 +387,7 @@ ad      = ordered[ slotNumber mod ordered.size ]
 ### 5.4 Package `view`: preparing data for the templates
 
 #### `ViewHelper` (bean name `view`)
-[ViewHelper.java](../src/main/java/nu/rainmaker/testsite/view/ViewHelper.java)
+[ViewHelper.java](../src/main/java/se/rainmaker/testsite/view/ViewHelper.java)
 
 Templates call it as `${@view.time(...)}`. The `@` means "a Spring bean".
 
@@ -378,8 +402,8 @@ Templates call it as `${@view.time(...)}`. The `@` means "a Spring bean".
 | `showKicker(article, sectionName)` | `false` | Hides the kicker if it just repeats the section ("RESOR RESOR") |
 
 #### `AdSlot`, `AdSlots`
-[AdSlot.java](../src/main/java/nu/rainmaker/testsite/view/AdSlot.java) ·
-[AdSlots.java](../src/main/java/nu/rainmaker/testsite/view/AdSlots.java)
+[AdSlot.java](../src/main/java/se/rainmaker/testsite/view/AdSlot.java) ·
+[AdSlots.java](../src/main/java/se/rainmaker/testsite/view/AdSlots.java)
 
 `AdSlot(format, creativeId, reserveSpace)` describes an **empty** ad box.
 - Formats: `PANORAMA` (wide, top), `RECTANGLE` (in the text) and `SKYSCRAPER`
@@ -397,8 +421,8 @@ Slot numbers used by `PageController`:
 | Section page | panorama | – | – |
 
 #### `ArticleBodyBuilder` and `ArticleBody`
-[ArticleBodyBuilder.java](../src/main/java/nu/rainmaker/testsite/view/ArticleBodyBuilder.java) ·
-[ArticleBody.java](../src/main/java/nu/rainmaker/testsite/view/ArticleBody.java)
+[ArticleBodyBuilder.java](../src/main/java/se/rainmaker/testsite/view/ArticleBodyBuilder.java) ·
+[ArticleBody.java](../src/main/java/se/rainmaker/testsite/view/ArticleBody.java)
 
 This is the most "clever" code on the site. Read it carefully before changing
 the ad or paywall placement.
@@ -426,7 +450,7 @@ so Rainmaker can be tested for layout shift (CLS).
 ### 5.5 Package `web`: URLs, filters and errors
 
 #### `PageController`, the HTML pages
-[PageController.java](../src/main/java/nu/rainmaker/testsite/web/PageController.java)
+[PageController.java](../src/main/java/se/rainmaker/testsite/web/PageController.java)
 
 | URL | Method | Template | Model attributes it sets |
 |---|---|---|---|
@@ -443,8 +467,8 @@ newest articles become the "secondary" stories, and the rest go to "Fler
 nyheter".
 
 #### `LayoutAttributes` and `LayoutModelAdvice`
-[LayoutAttributes.java](../src/main/java/nu/rainmaker/testsite/web/LayoutAttributes.java) ·
-[LayoutModelAdvice.java](../src/main/java/nu/rainmaker/testsite/web/LayoutModelAdvice.java)
+[LayoutAttributes.java](../src/main/java/se/rainmaker/testsite/web/LayoutAttributes.java) ·
+[LayoutModelAdvice.java](../src/main/java/se/rainmaker/testsite/web/LayoutModelAdvice.java)
 
 Every page needs the menu (`sections`), the settings (`site`) and the widget
 config (`rainmaker`).
@@ -455,7 +479,7 @@ config (`rainmaker`).
 That is why the map lives in its own class.
 
 #### `ErrorPageAdvice`
-[ErrorPageAdvice.java](../src/main/java/nu/rainmaker/testsite/web/ErrorPageAdvice.java)
+[ErrorPageAdvice.java](../src/main/java/se/rainmaker/testsite/web/ErrorPageAdvice.java)
 
 `@ControllerAdvice` with four `@ExceptionHandler`s (see the table in
 [4.3](#43-what-the-site-answers-when-something-goes-wrong)). Spring picks the
@@ -467,12 +491,12 @@ of `ServletException`) goes to `staticFileNotFound`, not to `requestError`.
   the page.**
 
 #### `PageNotFoundException`
-[PageNotFoundException.java](../src/main/java/nu/rainmaker/testsite/web/PageNotFoundException.java)
+[PageNotFoundException.java](../src/main/java/se/rainmaker/testsite/web/PageNotFoundException.java)
 
 Throw it from a controller to show the 404 page.
 
 #### `FeedController`, machine-readable URLs
-[FeedController.java](../src/main/java/nu/rainmaker/testsite/web/FeedController.java)
+[FeedController.java](../src/main/java/se/rainmaker/testsite/web/FeedController.java)
 
 | URL | Returns | Used by |
 |---|---|---|
@@ -485,7 +509,7 @@ Throw it from a controller to show the 404 page.
 | `/health` | `ok` | Uptime checks |
 
 #### `SecurityHeadersFilter`
-[SecurityHeadersFilter.java](../src/main/java/nu/rainmaker/testsite/web/SecurityHeadersFilter.java)
+[SecurityHeadersFilter.java](../src/main/java/se/rainmaker/testsite/web/SecurityHeadersFilter.java)
 
 Adds these headers to **every** response:
 - `Content-Security-Policy`
@@ -505,7 +529,7 @@ style-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 browser. All JS and CSS must be in files under `static/`.
 
 #### `RequestLoggingFilter`
-[RequestLoggingFilter.java](../src/main/java/nu/rainmaker/testsite/web/RequestLoggingFilter.java)
+[RequestLoggingFilter.java](../src/main/java/se/rainmaker/testsite/web/RequestLoggingFilter.java)
 
 Runs first (`@Order(HIGHEST_PRECEDENCE)`).
 - It sets `trace_id` and `correlation_id` in the SLF4J **MDC**, so every log
@@ -518,7 +542,7 @@ Runs first (`@Order(HIGHEST_PRECEDENCE)`).
 A real log line, from `GET /artikel/vintraloppet-firar-25-ar`:
 
 ```json
-{"@timestamp":"2026-10-14T07:40:12.203636700Z","log":{"level":"INFO","logger":"nu.rainmaker.testsite.web.RequestLoggingFilter"},
+{"@timestamp":"2026-10-14T07:40:12.203636700Z","log":{"level":"INFO","logger":"se.rainmaker.testsite.web.RequestLoggingFilter"},
  "message":"Request handled","correlation_id":"1fac1ed3-...","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736",
  "event":{"name":"http.request"},"http":{"request":{"method":"GET"},"response":{"status_code":200}},
  "url":{"path":"/artikel/vintraloppet-firar-25-ar"},"duration_ms":307, ...}
@@ -531,9 +555,9 @@ The JSON (ECS) format comes from `logging.structured.format.console: ecs` in
 
 | Class | What it does |
 |---|---|
-| [`FeedWriter`](../src/main/java/nu/rainmaker/testsite/feed/FeedWriter.java) | `rss()`, `newsSitemap()`, `robotsTxt()` and `evaluationLabels()`. Uses **no current time**: `lastBuildDate` is the newest article's date. `csvField` quotes CSV values that contain `,` `"` or line breaks. `rfc822` writes RSS dates in GMT. |
-| [`XmlDocument`](../src/main/java/nu/rainmaker/testsite/feed/XmlDocument.java) | A small wrapper around the JDK's StAX `XMLStreamWriter`, with indentation. StAX escapes `&`, `<` and so on itself, so the XML is always valid, whatever is in an article. |
-| [`TagContainer`](../src/main/java/nu/rainmaker/testsite/feed/TagContainer.java) | The fake tag manager's tag list. It always contains `vintra-stats` (trigger `consent`). It adds `rainmaker` (trigger `pageview`) only when `RAINMAKER_INSTALL_METHOD=tag-manager`. |
+| [`FeedWriter`](../src/main/java/se/rainmaker/testsite/feed/FeedWriter.java) | `rss()`, `newsSitemap()`, `robotsTxt()` and `evaluationLabels()`. Uses **no current time**: `lastBuildDate` is the newest article's date. `csvField` quotes CSV values that contain `,` `"` or line breaks. `rfc822` writes RSS dates in GMT. |
+| [`XmlDocument`](../src/main/java/se/rainmaker/testsite/feed/XmlDocument.java) | A small wrapper around the JDK's StAX `XMLStreamWriter`, with indentation. StAX escapes `&`, `<` and so on itself, so the XML is always valid, whatever is in an article. |
+| [`TagContainer`](../src/main/java/se/rainmaker/testsite/feed/TagContainer.java) | The fake tag manager's tag list. It always contains `vintra-stats` (trigger `consent`). It adds `rainmaker` (trigger `pageview`) only when `RAINMAKER_INSTALL_METHOD=tag-manager`. |
 
 ---
 
@@ -727,7 +751,7 @@ Try the widget installation with the stub (PowerShell):
 ```powershell
 $env:RAINMAKER_SCRIPT_URL = 'http://localhost:3000/static/js/widget-stub.js'
 $env:RAINMAKER_INSTALL_METHOD = 'tag-manager'   # leave out for the template install
-.\mvnw.cmd spring-boot:run
+.\mvnw.cmd -pl apps/test-site spring-boot:run   # from the repository root
 ```
 
 Remove them again with `Remove-Item Env:RAINMAKER_SCRIPT_URL, Env:RAINMAKER_INSTALL_METHOD`.
@@ -775,8 +799,8 @@ or `IllegalArgumentException`. The text after it names the file or setting.
 | A CSS/JS file gives 404 | The path must start with `/static/` and the file must be in `src/main/resources/static/` |
 | Layout looks broken on mobile | `styles.css` section `/* 7. Responsive` |
 | RSS/sitemap wrong | `FeedWriter`, plus `BASE_URL` for the absolute links |
-| `./mvnw verify` fails with `spotless` | Run `./mvnw spotless:apply`, then verify again |
-| `./mvnw verify` fails with Checkstyle | The message gives the file:line and the rule, e.g. a Javadoc summary must end with a period |
+| `verify` fails with `spotless` | Run `./mvnw -pl apps/test-site spotless:apply`, then verify again |
+| `verify` fails with Checkstyle | The message gives the file:line and the rule, e.g. a Javadoc summary must end with a period |
 | A test fails | Read the **AssertJ message**: it shows expected vs. actual. Then run only that test with `-Dtest=Class#method`. |
 
 ### 9.3 Following one request through the log
@@ -795,7 +819,7 @@ services will do it.
 ## 10. How to change things
 
 Always: create a branch, write or adjust the test first, change the code,
-run `./mvnw verify`, then open a PR.
+run `./mvnw -pl apps/test-site verify`, then open a PR to `develop`.
 
 ### Add an article
 1. Copy an existing file in `content/articles/`, and name it
@@ -803,7 +827,7 @@ run `./mvnw verify`, then open a PR.
 2. Change `id`, `slug` (both unique), `section`, `expectedZone`, the texts
    and the dates.
 3. Start the site. If something is wrong, the log says what. Then run
-   `./mvnw test`.
+   `./mvnw -pl apps/test-site test`.
 4. Some tests check the content set as a whole:
    - `ContentFilesTest` expects **8–12** articles, all three zones, and some
      (but not all) PLUS articles.
@@ -874,7 +898,7 @@ Think twice: the strict CSP is part of what we are testing.
 
 ## 11. Tests
 
-About 180 Java tests and 27 JavaScript tests. They are fast and deterministic:
+About 185 Java tests and 27 JavaScript tests. They are fast and deterministic:
 no sleeps, no network and no wall clock.
 
 | Test class | Covers |
@@ -922,7 +946,7 @@ them are checked by tests:
    it.
 8. **Deterministic output.** No `now()` and no randomness on the server.
 9. **No secrets in the repo, ever.**
-10. **Google Java Style and constructor injection.** `./mvnw verify` must
+10. **Google Java Style and constructor injection.** `./mvnw -pl apps/test-site verify` must
     pass.
 
 ---
@@ -935,15 +959,6 @@ today.
 - **Content files with a UTF-8 BOM are rejected** (see 9.1). That is safe,
   but the message is cryptic. A possible improvement is to strip a leading
   BOM in `ContentConfiguration.readJson`.
-- **A few comments in the JavaScript still refer to the earlier Node version
-  of the site:**
-  - `consent-core.js` mentions `test/consent.test.ts` (now
-    `src/test/javascript/`).
-  - `consent.js` mentions `render/consent.ts` (now
-    `templates/fragments.html`).
-  - `widget-stub.js` says `npm start` (now `.\mvnw.cmd spring-boot:run`).
-
-  These should be fixed in a small separate PR.
 - **The fake CMP is not a real CMP.** The `tcString` is readable text
   (`FAKE-TCF.all`) and there is no vendor list. A widget that decodes a real
   TC string would need a real CMP to test against.

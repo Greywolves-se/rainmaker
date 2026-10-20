@@ -12,7 +12,7 @@
   </parent>
 
   <artifactId>test-site</artifactId>
-  <name>Test publisher site (Vintrabladet)</name>
+  <name>Test site (Vintrabladet)</name>
   <description>Fictional Swedish news site used to develop and test Rainmaker. All content is made up.</description>
 
   <dependencies>
