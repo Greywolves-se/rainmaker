@@ -25,12 +25,18 @@ class OpenAiClientTest {
   static WireMockExtension openAi =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
-  private static final String PATH = "/v1/chat/completions";
+  private static final String PATH = "/v1/responses";
   private static final String KEY = "sk-test-not-a-real-key";
   private static final String ANSWER_JSON =
-      """
-      {"choices": [{"message": {"role": "assistant", "content": "Two items are blocked."}}]}
-      """;
+      responseWithText("{\\\"answer\\\": \\\"Two items are blocked.\\\"}");
+
+  /** A Responses API answer whose message has one output_text item. */
+  private static String responseWithText(String escapedText) {
+    return "{\"status\": \"completed\", \"output\": [{\"type\": \"message\", \"content\": "
+        + "[{\"type\": \"output_text\", \"text\": \""
+        + escapedText
+        + "\"}]}]}";
+  }
 
   private OpenAiClient client(Duration timeout) {
     OpenAiSettings settings =
@@ -44,7 +50,7 @@ class OpenAiClientTest {
   }
 
   @Test
-  void sendsModelMessagesAndTokenLimitWithTheKeyAndReturnsTheAnswer() {
+  void asksTheResponsesApiForStrictJsonAndReturnsTheAnswer() {
     openAi.stubFor(post(urlPathEqualTo(PATH)).willReturn(okJson(ANSWER_JSON)));
 
     String answer = client().complete("System rules.", "What is blocked?");
@@ -57,11 +63,83 @@ class OpenAiClientTest {
                 equalToJson(
                     """
                     {"model": "test-model",
-                     "max_completion_tokens": 300,
-                     "messages": [
-                       {"role": "system", "content": "System rules."},
-                       {"role": "user", "content": "What is blocked?"}]}
+                     "instructions": "System rules.",
+                     "input": "What is blocked?",
+                     "max_output_tokens": 300,
+                     "text": {"format": {
+                       "type": "json_schema",
+                       "name": "navigator_answer",
+                       "strict": true,
+                       "schema": {
+                         "type": "object",
+                         "additionalProperties": false,
+                         "properties": {"answer": {"type": "string"}},
+                         "required": ["answer"]}}}}
                     """)));
+  }
+
+  @Test
+  void treatsRefusalAsUnavailable() {
+    openAi.stubFor(
+        post(urlPathEqualTo(PATH))
+            .willReturn(
+                okJson(
+                    "{\"status\": \"completed\", \"output\": [{\"type\": \"message\", \"content\": "
+                        + "[{\"type\": \"refusal\", \"refusal\": \"No.\"}]}]}")));
+
+    assertThatThrownBy(() -> client().complete("s", "q"))
+        .isInstanceOfSatisfying(
+            OpenAiException.class, e -> assertThat(e).hasMessage("OpenAI refused to answer"));
+  }
+
+  @Test
+  void treatsIncompleteAnswerAsUnavailable() {
+    openAi.stubFor(
+        post(urlPathEqualTo(PATH))
+            .willReturn(okJson("{\"status\": \"incomplete\", \"output\": []}")));
+
+    assertThatThrownBy(() -> client().complete("s", "q"))
+        .isInstanceOfSatisfying(
+            OpenAiException.class,
+            e -> assertThat(e).hasMessage("OpenAI stopped before the answer was complete"));
+  }
+
+  @Test
+  void treatsTextThatIsNotTheAgreedJsonAsUnavailable() {
+    openAi.stubFor(post(urlPathEqualTo(PATH)).willReturn(okJson(responseWithText("just prose"))));
+
+    assertThatThrownBy(() -> client().complete("s", "q"))
+        .isInstanceOfSatisfying(
+            OpenAiException.class, e -> assertThat(e.kind()).isEqualTo(Kind.UNAVAILABLE));
+  }
+
+  @Test
+  void treatsBodyThatIsNotJsonAsUnavailable() {
+    openAi.stubFor(
+        post(urlPathEqualTo(PATH)).willReturn(aResponse().withStatus(200).withBody("<html>")));
+
+    assertThatThrownBy(() -> client().complete("s", "q"))
+        .isInstanceOfSatisfying(
+            OpenAiException.class, e -> assertThat(e.kind()).isEqualTo(Kind.UNAVAILABLE));
+  }
+
+  @Test
+  void saysWhenTheQuotaIsUsedUpWithoutRetrying() {
+    openAi.stubFor(
+        post(urlPathEqualTo(PATH))
+            .willReturn(
+                aResponse()
+                    .withStatus(429)
+                    .withBody(
+                        "{\"error\": {\"code\": \"insufficient_quota\", \"message\": \"key "
+                            + KEY
+                            + "\"}}")));
+
+    assertThatThrownBy(() -> client().complete("s", "q"))
+        .isInstanceOfSatisfying(
+            OpenAiException.class,
+            e -> assertThat(e).hasMessage("OpenAI quota used up; check billing"));
+    openAi.verify(1, postRequestedFor(urlPathEqualTo(PATH)));
   }
 
   @Test
@@ -132,7 +210,9 @@ class OpenAiClientTest {
 
   @Test
   void treatsAnAnswerWithoutTextAsUnavailable() {
-    openAi.stubFor(post(urlPathEqualTo(PATH)).willReturn(okJson("{\"choices\": []}")));
+    openAi.stubFor(
+        post(urlPathEqualTo(PATH))
+            .willReturn(okJson("{\"status\": \"completed\", \"output\": []}")));
 
     assertThatThrownBy(() -> client().complete("s", "q"))
         .isInstanceOfSatisfying(

@@ -15,7 +15,7 @@ A Java collector reads GitHub and YAML data files, writes one JSON snapshot, and
 | `out/` | Generated snapshot and reports – git-ignored, never commit | |
 
 ## Build
-`pom.xml` in this folder groups Mission Control's Java modules (today: `anonymizer`, `collector` and `navigator-api`). Each module inside lists this POM (`mission-control`, `../pom.xml`) as its `<parent>`. Build only Mission Control from the repository root:
+`pom.xml` in this folder groups Mission Control's Java modules (today: `anonymizer`, `collector`, `navigator-api` and `person-names`). Each module inside lists this POM (`mission-control`, `../pom.xml`) as its `<parent>`. Build only Mission Control from the repository root:
 
 ```
 ./mvnw -f apps/mission-control/pom.xml verify

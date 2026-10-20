@@ -5,7 +5,7 @@
 # - The "changes" job decides which of the jobs below have to run, so a PR that only
 #   touches the web app runs only the web job. A job skipped this way counts as passing.
 # - The collector job builds every Java module of Mission Control (anonymizer, collector,
-#   navigator-api).
+#   navigator-api, person-names).
 #   It also runs when the root Maven build (pom.xml, mvnw, .mvn/) changes,
 #   because those files decide how the collector is built and checked.
 # - The infra job (#125) builds and tests the CDK app in infra/ when infra/ or the root Maven
@@ -70,7 +70,7 @@ jobs:
           else
             echo "web=false" >> "$GITHUB_OUTPUT"
           fi
-          if echo "$changed" | grep -qE '^(apps/mission-control/(anonymizer|collector|navigator-api|contract|data)/|apps/mission-control/pom\.xml$|pom\.xml$|mvnw$|\.mvn/|\.github/workflows/mission-control-ci\.yml$)'; then
+          if echo "$changed" | grep -qE '^(apps/mission-control/(anonymizer|collector|navigator-api|person-names|contract|data)/|apps/mission-control/pom\.xml$|pom\.xml$|mvnw$|\.mvn/|\.github/workflows/mission-control-ci\.yml$)'; then
             echo "collector=true" >> "$GITHUB_OUTPUT"
           else
             echo "collector=false" >> "$GITHUB_OUTPUT"

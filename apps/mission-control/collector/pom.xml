@@ -49,6 +49,12 @@
       <artifactId>anonymizer</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- The names to hide before text goes to OpenAI, shared with navigator-api (#136). -->
+    <dependency>
+      <groupId>se.rainmaker</groupId>
+      <artifactId>person-names</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!-- Google Drive source (#113): service-account access token (read-only Drive scope). -->
     <dependency>
       <groupId>com.google.auth</groupId>
