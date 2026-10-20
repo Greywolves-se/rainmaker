@@ -32,7 +32,7 @@ class AskNavigatorAnonymizationTest {
   static WireMockExtension openAi =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
-  private static final String PATH = "/v1/chat/completions";
+  private static final String PATH = "/v1/responses";
 
   private static AskNavigator navigator(PageData pageData) {
     Clock clock = Clock.fixed(Instant.parse("2026-10-19T08:15:00Z"), ZoneOffset.UTC);
@@ -66,9 +66,10 @@ class AskNavigatorAnonymizationTest {
         post(urlPathEqualTo(PATH))
             .willReturn(
                 okJson(
-                    "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": \""
+                    "{\"status\": \"completed\", \"output\": [{\"type\": \"message\", \"content\": "
+                        + "[{\"type\": \"output_text\", \"text\": \"{\\\"answer\\\": \\\""
                         + content
-                        + "\"}}]}")));
+                        + "\\\"}\"}]}]}")));
   }
 
   @Test

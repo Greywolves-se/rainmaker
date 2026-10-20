@@ -8,9 +8,9 @@ import java.time.Duration;
  *
  * @param baseUrl the API address, {@code https://api.openai.com} in production
  * @param model the model id from ADR 0002
- * @param maxCompletionTokens upper limit on the answer's length
+ * @param maxOutputTokens upper limit on the answer's length
  * @param timeout how long one call may take; shorter than the Lambda's own timeout (about 30 s)
  * @param retryBackoff the wait before the single retry after a server error
  */
 public record OpenAiSettings(
-    URI baseUrl, String model, int maxCompletionTokens, Duration timeout, Duration retryBackoff) {}
+    URI baseUrl, String model, int maxOutputTokens, Duration timeout, Duration retryBackoff) {}

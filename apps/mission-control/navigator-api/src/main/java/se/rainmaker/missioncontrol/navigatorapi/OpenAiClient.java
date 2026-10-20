@@ -15,16 +15,21 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Asks OpenAI's chat completions API for one answer (ADR 0003).
+ * Asks OpenAI's Responses API for one answer, as strict JSON {@code {"answer": "..."}} (ADR 0003,
+ * #136). The request and answer handling follow the collector's client (#115), so both modules call
+ * OpenAI the same way.
  *
- * <p>A server error or a lost connection is retried once. A timeout is not retried, so the call
- * stays within the Lambda's own timeout; other errors (401, 429 …) are not retried either. Errors
- * become an {@link OpenAiException} with a safe message: never the key, the question or the body of
+ * <p>The retry rules are this module's own, because a reader is waiting: a server error or a lost
+ * connection is retried once; a timeout, a rate limit (429) and other errors are not. Errors become
+ * an {@link OpenAiException} with a safe message: never the key, the question or the body of
  * OpenAI's response.
  */
 public final class OpenAiClient implements AnswerSource {
 
-  private static final String CHAT_COMPLETIONS = "/v1/chat/completions";
+  private static final String RESPONSES = "/v1/responses";
+  private static final String SCHEMA_NAME = "navigator_answer";
+  private static final String NOT_AGREED_JSON =
+      "OpenAI answered with text that is not the agreed JSON";
   private static final JsonMapper JSON = JsonMapper.builder().build();
 
   private final OpenAiSettings settings;
@@ -54,7 +59,7 @@ public final class OpenAiClient implements AnswerSource {
   /**
    * Returns OpenAI's answer to one question.
    *
-   * @throws OpenAiException when OpenAI is unreachable, too slow or answers with an error
+   * @throws OpenAiException when OpenAI is unreachable, too slow, refuses or answers with an error
    */
   @Override
   public String complete(String systemPrompt, String userMessage) {
@@ -69,21 +74,30 @@ public final class OpenAiClient implements AnswerSource {
   private String requestBody(String systemPrompt, String userMessage) {
     ObjectNode request = JSON.createObjectNode();
     request.put("model", settings.model());
-    request.put("max_completion_tokens", settings.maxCompletionTokens());
-    request
-        .putArray("messages")
-        .add(message("system", systemPrompt))
-        .add(message("user", userMessage));
+    request.put("instructions", systemPrompt);
+    request.put("input", userMessage);
+    request.put("max_output_tokens", settings.maxOutputTokens());
+    ObjectNode format = request.putObject("text").putObject("format");
+    format.put("type", "json_schema");
+    format.put("name", SCHEMA_NAME);
+    format.put("strict", true);
+    format.set("schema", answerSchema());
     return JSON.writeValueAsString(request);
   }
 
-  private static ObjectNode message(String role, String content) {
-    return JSON.createObjectNode().put("role", role).put("content", content);
+  /** The JSON the model must answer with: one string, {@code answer}. */
+  private static ObjectNode answerSchema() {
+    ObjectNode schema = JSON.createObjectNode();
+    schema.put("type", "object");
+    schema.put("additionalProperties", false);
+    schema.putObject("properties").putObject("answer").put("type", "string");
+    schema.putArray("required").add("answer");
+    return schema;
   }
 
   private String callOnce(String body) {
     HttpRequest request =
-        HttpRequest.newBuilder(settings.baseUrl().resolve(CHAT_COMPLETIONS))
+        HttpRequest.newBuilder(settings.baseUrl().resolve(RESPONSES))
             .timeout(settings.timeout())
             .header("Authorization", "Bearer " + apiKey)
             .header("Content-Type", "application/json")
@@ -105,22 +119,53 @@ public final class OpenAiClient implements AnswerSource {
     if (status >= 500) {
       throw new RetryableFailure("OpenAI answered HTTP " + status);
     }
+    if (status == 429 && "insufficient_quota".equals(errorCode(response.body()))) {
+      throw new OpenAiException(Kind.UNAVAILABLE, "OpenAI quota used up; check billing");
+    }
     if (status != 200) {
       throw new OpenAiException(Kind.UNAVAILABLE, "OpenAI answered HTTP " + status);
     }
-    return answerText(response.body());
+    return answer(readJson(response.body(), "OpenAI answered with a body that is not JSON"));
   }
 
-  private static String answerText(String body) {
+  /** OpenAI's {@code error.code}; only the code is read, never the message (it can quote input). */
+  private static String errorCode(String body) {
     try {
-      JsonNode content =
-          JSON.readTree(body).path("choices").path(0).path("message").path("content");
-      if (!content.isString() || content.asString().isBlank()) {
-        throw new OpenAiException(Kind.UNAVAILABLE, "OpenAI's answer had no text");
-      }
-      return content.asString();
+      return JSON.readTree(body).path("error").path("code").asString("");
     } catch (JacksonException unreadable) {
-      throw new OpenAiException(Kind.UNAVAILABLE, "OpenAI's answer could not be read");
+      return "";
+    }
+  }
+
+  /** The {@code answer} inside the message's {@code output_text}; a refusal or early stop fails. */
+  private static String answer(JsonNode response) {
+    if ("incomplete".equals(response.path("status").asString(""))) {
+      throw new OpenAiException(Kind.UNAVAILABLE, "OpenAI stopped before the answer was complete");
+    }
+    for (JsonNode item : response.path("output")) {
+      for (JsonNode content : item.path("content")) {
+        String type = content.path("type").asString("");
+        if ("refusal".equals(type)) {
+          throw new OpenAiException(Kind.UNAVAILABLE, "OpenAI refused to answer");
+        }
+        if ("output_text".equals(type)) {
+          JsonNode answer =
+              readJson(content.path("text").asString(""), NOT_AGREED_JSON).path("answer");
+          if (!answer.isString() || answer.asString().isBlank()) {
+            throw new OpenAiException(Kind.UNAVAILABLE, NOT_AGREED_JSON);
+          }
+          return answer.asString();
+        }
+      }
+    }
+    throw new OpenAiException(Kind.UNAVAILABLE, "OpenAI's answer had no text");
+  }
+
+  private static JsonNode readJson(String text, String problem) {
+    try {
+      return JSON.readTree(text);
+    } catch (JacksonException unreadable) {
+      throw new OpenAiException(Kind.UNAVAILABLE, problem);
     }
   }
 
