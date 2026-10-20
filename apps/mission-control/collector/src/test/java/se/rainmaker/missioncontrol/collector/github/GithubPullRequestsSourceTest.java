@@ -239,7 +239,8 @@ class GithubPullRequestsSourceTest {
             1,
             Duration.ofMillis(1),
             Duration.ofSeconds(60),
-            5);
+            5,
+            Map.of());
     GithubPullRequestsSource source =
         new GithubPullRequestsSource(new GithubClient(properties, clock), properties, clock);
     CollectorProperties collector =

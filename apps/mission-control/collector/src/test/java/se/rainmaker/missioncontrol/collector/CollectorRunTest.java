@@ -56,6 +56,7 @@ class CollectorRunTest {
             tuple("data-files", Source.Status.OK),
             tuple("fake-ok", Source.Status.OK),
             tuple("github", Source.Status.DISABLED),
+            tuple("github-builds", Source.Status.DISABLED),
             tuple("github-pull-requests", Source.Status.DISABLED),
             tuple("google-drive", Source.Status.DISABLED),
             tuple("navigator-ai", Source.Status.DISABLED));
