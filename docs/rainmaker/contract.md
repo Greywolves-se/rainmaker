@@ -25,7 +25,7 @@ sequenceDiagram
     G3->>G2: GET /api/articles?url=… (is it still green?)
     G1-->>JS: links with signed click URLs
     JS->>G1: reader clicks /c/{token}
-    G1->>G3: GET /api/offers/{offerId}
+    G1->>G1: check the signature, store the click
     G1-->>JS: 302 to the offer's page
 ```
 
@@ -44,7 +44,7 @@ sequenceDiagram
 - [x] **D-3** Topics are a fixed list of commercial categories, shared with offers; not the site's sections. Agreed 21 Oct 2026 ([section 3.2](#32-classification-g2-content-intent)).
 - [x] **D-4** An unclassified or failed article is stored as its own state, not as red, but treated exactly like red: no suggestions, no links, no panel. Agreed 21 Oct 2026 ([section 3.3](#33-zone-rules-d-4)).
 - [x] **D-5** A new article version resets its suggestions; the editor approves again. Agreed 21 Oct 2026 ([section 5](#5-suggestion-lifecycle-d-5)).
-- [x] **D-6** `clickId` is created when the link is served and lives inside the signed token. Agreed 21 Oct 2026 ([section 7.5](#75-click-link-g1-153-d-6)).
+- [x] **D-6** `clickId` is created when the link is served and lives inside the signed token, with the destination and an expiry, so a click needs no other app. Agreed 21 Oct 2026; destination and expiry added after review ([section 7.5](#75-click-link-g1-153-d-6)).
 - [x] **D-7** G1 serves both rainmaker.js and the widget API, from one origin. Agreed 21 Oct 2026 ([section 7.4](#74-widget-api-g1-151-d-7)).
 - [x] **D-8** We reach Claude through Amazon Bedrock. Decided 21 Oct 2026 ([section 8](#8-reaching-claude-g2-148-d-8)).
 - [x] **D-9** Claude writes its `reason` in both Swedish and English; the editor view shows the one for the chosen language. Agreed 21 Oct 2026 ([section 3.2](#32-classification-g2-content-intent)).
@@ -75,8 +75,8 @@ Ports: Vintrabladet **3000**, G1 **8081**, G2 **8082**, G3 **8083**, PostgreSQL 
 server, one database per module; started by #146).
 
 **Between the groups, the architecture uses EventBridge + SQS for events.** AWS is "not now"
-for the demo, so G3 polls G2 instead (section 7.1). Whoever merges this file records that in
-an ADR in `docs/adr/`.
+for the demo, so G3 polls G2 instead (section 7.1). This departs from `CLAUDE.md` and is
+recorded in [ADR 0004](../adr/0004-rainmaker-demo-three-apps-over-rest.md).
 
 ---
 
@@ -216,8 +216,9 @@ Rule for #148: a few retries with back-off, then `failed`.
 
 - 5–10 fictional offers, loaded by a Flyway migration (#149). Each `destinationUrl` points to
   its own fictional landing page in G3.
-- `destinationUrl` only travels between the apps (G3 → G1 for the redirect), never to the
-  browser. The widget only gets click links (section 7.4).
+- `destinationUrl` travels from G3 to G1 in the approved links (section 7.3). G1 puts it only
+  inside the signed click link (section 7.5), never as a field in the widget API. The link is
+  signed, not encrypted: anyone can decode it, but nobody can change it.
 
 ### 3.5 Suggestion (G2: matching-ranking)
 
@@ -341,6 +342,8 @@ Rules for every call between the apps:
 - Short timeouts and retries with back-off, and circuit breakers (Resilience4j), as `CLAUDE.md`
   requires for external calls. All of them are settings.
 - No login between the apps: the internal APIs (`/api/…`) are for localhost only in the demo.
+- **Start in any order.** G2 needs G3's offers and G3 polls G2, so each app must start, and keep
+  retrying, while the other one isn't up yet (#146).
 - **Fail closed for brand safety:** when a call that decides whether links may be shown fails,
   the answer is "no links", never the last known answer.
 - **Contract tests:** each JSON example in this section becomes a file in
@@ -349,7 +352,7 @@ Rules for every call between the apps:
 | Call | From → to | Section |
 |---|---|---|
 | `GET /api/articles?since=…` and `?url=…` | G3 → G2 | 7.1 |
-| `GET /api/offers`, `GET /api/offers/{offerId}` | G2 → G3, G1 → G3 | 7.2 |
+| `GET /api/offers` | G2 → G3 | 7.2 |
 | `GET /api/approved-links?url=…` | G1 → G3 | 7.3 |
 | `GET /widget/v1/links?url=…` | rainmaker.js → G1 | 7.4 |
 | `GET /c/{token}` | reader's browser → G1 | 7.5 |
@@ -413,10 +416,9 @@ GET http://localhost:8082/api/articles?url=http%3A%2F%2Flocalhost%3A3000%2Fartik
 
 ```
 GET http://localhost:8083/api/offers
-GET http://localhost:8083/api/offers/0192f3d0-…
 ```
 
-`200 OK` for the list (the single offer is the same object on its own, or `404`):
+`200 OK`:
 
 ```json
 {
@@ -434,7 +436,7 @@ GET http://localhost:8083/api/offers/0192f3d0-…
 }
 ```
 
-G2 reads the list for matching; G1 reads one offer for the click redirect (section 7.5).
+G2 reads the list for matching.
 
 ### 7.3 Approved links API (G3, #150)
 
@@ -454,7 +456,8 @@ GET http://localhost:8083/api/approved-links?url=http%3A%2F%2Flocalhost%3A3000%2
       "rank": 1,
       "advertiser": "Vintra Kakel & Bad",
       "title": "Gratis hembesök för badrumsoffert",
-      "text": "Vi mäter upp och ger fast pris inom en vecka."
+      "text": "Vi mäter upp och ger fast pris inom en vecka.",
+      "destinationUrl": "http://localhost:8083/landing/0192f3d0-…"
     }
   ]
 }
@@ -465,7 +468,8 @@ GET http://localhost:8083/api/approved-links?url=http%3A%2F%2Flocalhost%3A3000%2
 - An unknown article: `"articleId": null` and `"links": []`. Any article that is not green, or
   has no approved suggestions: `"links": []`.
 - If G2 can't be reached: `503`, never links (fail closed).
-- No `destinationUrl`: G1 doesn't need it to build the click link.
+- `destinationUrl` is for G1 to put into the signed click link (section 7.5). It never goes to
+  the browser as a field.
 
 **Known limit:** each hover is G1 → G3 → G2, three hops. Fine for the demo; caching is out of
 scope.
@@ -516,7 +520,10 @@ Its Content-Security-Policy then allows the one origin `http://localhost:8081`: 
 GET http://localhost:8081/c/{payload}.{signature}
 ```
 
-- `payload` = base64url of `{"c":"<clickId>","a":"<articleId>","o":"<offerId>"}`.
+- `payload` = base64url of
+  `{"c":"<clickId>","a":"<articleId>","o":"<offerId>","d":"<destinationUrl>","exp":1793440931}`.
+  `exp` is when the link stops working, in Unix seconds (an exception to section 3, to keep
+  the link short): the time the link was served plus 24 hours (a setting).
 - `signature` = base64url HMAC-SHA256 of the payload. The key comes from the environment
   (`RAINMAKER_CLICK_SIGNING_KEY`), never from code.
 
@@ -524,17 +531,25 @@ GET http://localhost:8081/c/{payload}.{signature}
 So a double-click or a retry of the same link carries the same `clickId` and is stored once. A
 page reload gives a new link, and that is a new click (the 30-minute dedupe is "not now").
 
-Opening the link (G1 reads the offer from G3, section 7.2):
+The destination is inside the signed link, so G1 redirects and stores the click on its own:
+the money path doesn't depend on G3, and the redirect needs no network call (the
+architecture's target is under 100 ms). `exp` limits how long a copied link can be replayed.
+
+Opening the link:
 
 | Case | Answer | Stored? |
 |---|---|---|
-| Valid signature, offer exists | `302 Found`, `Location`: the offer's `destinationUrl` | One row per `clickId` |
+| Valid signature, not expired | `302 Found`, `Location`: the `d` from the link | One row per `clickId` |
 | Same `clickId` again | `302` to the same place | No new row |
-| Bad, changed or garbled token | `400`, error page "Länken är ogiltig" | Nothing |
-| Valid token, offer no longer exists | `404` error page | Nothing |
-| Valid token, G3 can't be reached | `503` error page; the reader can try again | Nothing (a retry carries the same `clickId`) |
+| Bad, changed or garbled token | `400` error page | Nothing |
+| Valid signature, expired | `410 Gone` error page | Nothing |
 
-The redirect target always comes from G3's offer, never from the request (no open redirect).
+- The redirect target comes from the signed link, which only G1 can make, never from anything
+  the request can change (no open redirect).
+- **Trade-off:** an offer removed after its link was served still redirects until the link
+  expires.
+- The error pages' text comes from G1's sv/en translation files (`CLAUDE.md`), e.g. "Länken är
+  ogiltig" / "The link is invalid".
 
 ### 7.6 Editor page (G3, #150)
 
@@ -562,8 +577,9 @@ like this:
 set up in #161: the dev account, the G2 role and local SSO login. No Anthropic API key is used,
 and no key is stored anywhere: the AWS SDK picks up the SSO login locally.
 
-- content-intent calls Claude through one `ClaudeClient` interface. Tests use a fake
-  `ClaudeClient` (or WireMock), never Bedrock (`CLAUDE.md`: external APIs are mocked).
+- content-intent classifies through one `ArticleClassifier` interface (the name #148 uses).
+  The Bedrock call is one implementation of it. Tests use a fake `ArticleClassifier` (or
+  WireMock), never Bedrock (`CLAUDE.md`: external APIs are mocked).
 - The model id and the region are settings. Their exact values come from #161: use the Bedrock
   model id, or the inference profile, that #161's role is allowed to call.
 - Model: Claude Haiku 5.5. Check it against the site's `/eval/labels.csv` by hand (#148); if it
@@ -598,6 +614,10 @@ Answer format (structured output; anything else counts as `failed`):
   }
 }
 ```
+
+Structured-output modes don't always support every JSON Schema keyword (`maxLength`,
+`minItems` and `maxItems` here). If Bedrock rejects them, leave them out of the request,
+check the same limits in code, and treat a violation as `failed`.
 
 The prompt says that the article is data, never instructions. Only the headline and text are
 sent. Nothing about readers is ever sent.
