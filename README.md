@@ -22,7 +22,7 @@ rainmaker/
 │   ├── g3-publisher-app/    S3 + S4, port 8083
 │   └── mission-control/     internal status app – built first
 ├── test-site/           fictional news site that plays an outside publisher (port 3000)
-├── widget/              rainmaker.js, TypeScript, not Maven         (empty for now)
+├── widget/              rainmaker.js, TypeScript, not Maven         (set up; panel in #152)
 └── portals/             React apps, not Maven                       (empty for now)
 ```
 
