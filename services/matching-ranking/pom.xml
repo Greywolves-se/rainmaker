@@ -14,4 +14,28 @@
   <artifactId>matching-ranking</artifactId>
   <name>S7 Matching and Ranking</name>
   <description>Suggests offers for green articles, ranked by relevance; CPC only breaks ties.</description>
+
+  <!-- Its own PostgreSQL database with Flyway migrations (#155, architecture D16). -->
+  <dependencies>
+    <!-- Connection pool (HikariCP), JdbcClient and transactions. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <!-- Flyway itself, not Boot's starter: each module runs its own migrations (see the
+         module's database configuration), because an app holds several databases. -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
 </project>

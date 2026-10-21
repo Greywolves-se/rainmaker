@@ -1,0 +1,25 @@
+# Rainmaker's local stack (#155). For now only PostgreSQL, with one database and one login per
+# module (docker/postgres/init). #146 adds the apps and the test site, so one command starts it all.
+#
+#   docker compose up -d        start PostgreSQL on localhost:5432
+#   docker compose down -v      stop it and delete the data (the init script runs again next time)
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: postgres
+      # Local only: the server's admin password on a developer's machine.
+      POSTGRES_PASSWORD: ${RAINMAKER_LOCAL_POSTGRES_PASSWORD:-local-dev-only}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - rainmaker-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  rainmaker-postgres:
