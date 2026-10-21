@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>se.rainmaker</groupId>
+    <artifactId>rainmaker-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>services</artifactId>
+  <packaging>pom</packaging>
+  <name>Rainmaker services</name>
+  <description>Groups Rainmaker's logical services (S1-S10). Each is a library that an app
+    (apps/g1-g4) assembles; services never depend on apps (CLAUDE.md, "Architecture rules").</description>
+
+  <!-- One module per logical service, added as it is built (#155). Not yet: S8, S9, S10. -->
+  <modules>
+    <module>widget-delivery</module>
+    <module>tracking-click</module>
+    <module>publisher-control</module>
+    <module>advertiser-marketplace</module>
+    <module>content-ingestion</module>
+    <module>content-intent</module>
+    <module>matching-ranking</module>
+  </modules>
+
+  <!-- What every service needs for the demo flow (#145), so #147-#153 can start without
+       touching build files: its own REST endpoints, and calls to the other apps. A module adds
+       anything else it needs (e.g. the AWS SDK for Bedrock in content-intent, #148). -->
+  <dependencies>
+    <!-- Spring MVC for the module's REST endpoints (and Jackson 3 for JSON). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+    <!-- RestClient for REST queries to the other apps (#145: G1 -> G3 -> G2). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+
+    <!-- JUnit 5, AssertJ, Mockito and MockMvc. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
