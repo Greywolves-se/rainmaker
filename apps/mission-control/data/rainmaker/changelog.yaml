@@ -17,3 +17,13 @@
   title: The GitHub OIDC provider and the github-actions-rainmaker role imported into GithubDeployAccess-staging, unchanged (#82)
   owner: Maruf
   rollbackPlan: Delete the stack; the provider and the role are retained (DeletionPolicy Retain) with all their inline policies, including read-mission-control-secrets, and are managed by hand again. docker.yml keeps working
+- id: C-3
+  date: 2026-10-21
+  title: "Planned, not done yet: CDK bootstrap of the dev account (greywolves, eu-north-1), stack CDKToolkit (#161). Costs fractions of a cent a month (an S3 bucket and an ECR repository). Update the date and title when it is done"
+  owner: Emil
+  rollbackPlan: Delete the CDKToolkit stack, but only when no CDK stack is left in the dev account. Its assets bucket is retained, so empty and delete the bucket by hand before running cdk bootstrap again
+- id: C-4
+  date: 2026-10-21
+  title: "Planned, not done yet: deploy BedrockAccess-dev, the rainmaker-g2-content-app role that may only call Claude Haiku 5.5 through the EU inference profile (#161). Free; no Bedrock call is made. Update the date and title when it is done"
+  owner: Emil
+  rollbackPlan: Delete the stack; the role is retained (DeletionPolicy Retain), so also delete the role rainmaker-g2-content-app by hand. Nothing uses it until #148 runs in AWS
