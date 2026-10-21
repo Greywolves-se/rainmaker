@@ -48,7 +48,7 @@
 
   <build>
     <plugins>
-      <!-- ./mvnw -pl apps/g2-content-app -am spring-boot:run, and the runnable jar. -->
+      <!-- Builds the runnable jar (target/g2-content-app-0.1.0-SNAPSHOT.jar); see README.md, "Run". -->
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>

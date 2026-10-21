@@ -27,7 +27,8 @@ rainmaker/
 ```
 
 The apps assemble the services (#145, #155); G4 (`apps/g4-money-app`) is added later.
-Run one with `./mvnw -pl apps/g1-reader-app -am spring-boot:run`.
+Run one with `./mvnw -pl apps/g1-reader-app -am package -DskipTests`, then
+`java -jar apps/g1-reader-app/target/g1-reader-app-0.1.0-SNAPSHOT.jar` (see the app's README).
 Empty folders contain only a `.gitkeep`, because Git cannot store empty folders.
 
 ## Build
