@@ -17,8 +17,9 @@ import tools.jackson.databind.JsonNode;
 /**
  * Turns one parsed article JSON file into an {@link Article}, checking every field.
  *
- * <p>Validation runs once at start-up: a broken article file stops the site with a message that
- * names the file and the field, instead of producing a half-broken page later.
+ * <p>Validation runs at start-up and whenever the files change ({@link LiveContent}): a broken
+ * article file stops the start-up, or is refused while the site runs, with a message that names the
+ * file and the field, instead of producing a half-broken page later.
  */
 public final class ArticleParser {
 

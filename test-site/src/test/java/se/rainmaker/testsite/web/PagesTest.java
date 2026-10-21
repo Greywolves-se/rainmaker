@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -28,6 +29,7 @@ import se.rainmaker.testsite.content.Article;
 import se.rainmaker.testsite.content.ArticleBlock;
 import se.rainmaker.testsite.content.ArticleRepository;
 import se.rainmaker.testsite.content.FrontPage;
+import se.rainmaker.testsite.content.LiveContent;
 import se.rainmaker.testsite.content.Section;
 import se.rainmaker.testsite.view.ViewHelper;
 
@@ -39,11 +41,19 @@ class PagesTest {
   private static final Locale SWEDISH = Locale.forLanguageTag("sv");
 
   @Autowired private MockMvc mockMvc;
-  @Autowired private ArticleRepository articles;
-  @Autowired private FrontPage frontPage;
+  @Autowired private LiveContent liveContent;
   @Autowired private AdInventory adInventory;
   @Autowired private MessageSource messages;
   @Autowired private ViewHelper view;
+
+  private ArticleRepository articles;
+  private FrontPage frontPage;
+
+  @BeforeEach
+  void readContent() {
+    articles = liveContent.current().articles();
+    frontPage = liveContent.current().frontPage();
+  }
 
   private String message(String key, Object... arguments) {
     return messages.getMessage(key, arguments, SWEDISH);

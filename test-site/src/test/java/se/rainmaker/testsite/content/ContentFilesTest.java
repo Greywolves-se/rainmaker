@@ -23,7 +23,8 @@ class ContentFilesTest {
   private final ContentConfiguration content =
       new ContentConfiguration(
           new SiteProperties("http://localhost:3000", Path.of("content"), null), new JsonMapper());
-  private final ArticleRepository articles = content.articleRepository();
+  private final SiteContent siteContent = content.liveContent().current();
+  private final ArticleRepository articles = siteContent.articles();
 
   @Test
   void hasBetweenEightAndTwelveArticles() {
@@ -52,7 +53,7 @@ class ContentFilesTest {
 
   @Test
   void frontPageAndAdsFilesAreValid() {
-    FrontPage frontPage = content.frontPage(articles);
+    FrontPage frontPage = siteContent.frontPage();
 
     assertThat(frontPage.breakingNews()).isPresent();
     assertThat(frontPage.mostRead()).isNotEmpty();

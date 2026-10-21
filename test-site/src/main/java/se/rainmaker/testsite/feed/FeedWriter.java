@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import se.rainmaker.testsite.config.SiteProperties;
 import se.rainmaker.testsite.content.Article;
 import se.rainmaker.testsite.content.ArticleRepository;
+import se.rainmaker.testsite.content.LiveContent;
 
 /**
  * The machine-readable outputs that Rainmaker's Content Ingestion (S5) and the AI evaluation use -
@@ -37,18 +38,19 @@ public class FeedWriter {
   private static final String NEWS = "http://www.google.com/schemas/sitemap-news/0.9";
 
   private final SiteProperties site;
-  private final ArticleRepository articles;
+  private final LiveContent liveContent;
   private final MessageSource messages;
 
   /** Creates the writer. */
-  public FeedWriter(SiteProperties site, ArticleRepository articles, MessageSource messages) {
+  public FeedWriter(SiteProperties site, LiveContent liveContent, MessageSource messages) {
     this.site = site;
-    this.articles = articles;
+    this.liveContent = liveContent;
     this.messages = messages;
   }
 
   /** The RSS 2.0 feed. */
   public String rss(Locale locale) {
+    ArticleRepository articles = liveContent.current().articles();
     OffsetDateTime lastBuild =
         articles
             .latestPublishedAt()
@@ -81,6 +83,7 @@ public class FeedWriter {
                 .element("link", site.absoluteUrl(article.path()))
                 .elementWithAttribute("guid", "isPermaLink", "false", article.id())
                 .element("pubDate", rfc822(article.publishedAt()))
+                .element("atom", "updated", ATOM, iso(article.lastModified()))
                 .element("category", message(article.section().messageKey(), locale))
                 .element("dc", "creator", DUBLIN_CORE, article.author().name())
                 .element("description", article.lead())
@@ -92,10 +95,11 @@ public class FeedWriter {
 
   /**
    * The news sitemap. Note: Google only wants articles from the last two days in a real news
-   * sitemap; we list all of them, because the test content never changes and Rainmaker should find
-   * every article.
+   * sitemap; we list all of them, because the test articles are old and Rainmaker should find every
+   * article.
    */
   public String newsSitemap(Locale locale) {
+    ArticleRepository articles = liveContent.current().articles();
     return XmlDocument.build(
         xml -> {
           xml.start("urlset").namespace("", SITEMAP).namespace("news", NEWS);
@@ -127,6 +131,7 @@ public class FeedWriter {
 
   /** CSV with one row per article: id, expected zone, section and URL. */
   public String evaluationLabels() {
+    ArticleRepository articles = liveContent.current().articles();
     Stream<List<String>> header =
         Stream.of(List.of("article_id", "expected_zone", "section", "url"));
     Stream<List<String>> rows =
