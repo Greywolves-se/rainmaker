@@ -20,6 +20,7 @@ class InfraAppTest {
     context.put("rainmaker:staging", Map.of("account", "659947636280", "region", "eu-north-1"));
     context.put("rainmaker:dev", Map.of("region", "eu-north-1"));
     context.put("rainmaker:bedrock", BedrockModelAccessTest.bedrockContext());
+    context.put("rainmaker:cost-alerts", Map.of("thresholdUsd", 5));
     return context;
   }
 
@@ -53,10 +54,43 @@ class InfraAppTest {
   }
 
   @Test
+  void putsTheCostAlertInTheDevAccount() {
+    Map<String, Object> context = context();
+    context.put("rainmaker:dev-account", "111111111111");
+
+    Stack costs = stack(defineStacks(context), "CostGuardrails-dev");
+
+    assertThat(costs.getAccount()).isEqualTo("111111111111");
+    assertThat(costs.getRegion()).isEqualTo("eu-north-1");
+  }
+
+  @Test
+  void addsTheDeveloperPermissionSetOnlyWithIdentityCenterInstance() {
+    Map<String, Object> context = context();
+    context.put("rainmaker:dev-account", "111111111111");
+    assertThat(defineStacks(context).getNode().tryFindChild("DeveloperAccess-dev")).isNull();
+
+    context.put("rainmaker:sso-instance-arn", "arn:aws:sso:::instance/ssoins-0000000000000000");
+    assertThat(defineStacks(context).getNode().tryFindChild("DeveloperAccess-dev")).isNotNull();
+  }
+
+  @Test
+  void refusesSomethingElseAsIdentityCenterInstance() {
+    Map<String, Object> context = context();
+    context.put("rainmaker:dev-account", "111111111111");
+    context.put("rainmaker:sso-instance-arn", "ssoins-0000000000000000");
+
+    assertThatThrownBy(() -> defineStacks(context))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("rainmaker:sso-instance-arn");
+  }
+
+  @Test
   void leavesOutTheDevStacksWithoutDevAccount() {
     App app = defineStacks(context());
 
     assertThat(app.getNode().tryFindChild("BedrockAccess-dev")).isNull();
+    assertThat(app.getNode().tryFindChild("CostGuardrails-dev")).isNull();
     assertThat(app.getNode().tryFindChild("GithubDeployAccess-staging")).isNotNull();
   }
 

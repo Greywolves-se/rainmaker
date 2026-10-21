@@ -27,3 +27,13 @@
   title: "Planned, not done yet: deploy BedrockAccess-dev, the rainmaker-g2-content-app role that may only call Claude Haiku 5.5 through the EU inference profile (#161). Free; no Bedrock call is made. Update the date and title when it is done"
   owner: Emil
   rollbackPlan: Delete the stack; the role is retained (DeletionPolicy Retain), so also delete the role rainmaker-g2-content-app by hand. Nothing uses it until #148 runs in AWS
+- id: C-5
+  date: 2026-10-21
+  title: "Planned, not done yet: deploy CostGuardrails-dev, the cost anomaly monitor for every service, the IMMEDIATE alert from $5 and the SNS topic rainmaker-cost-alerts (#161). Free. Then subscribe your e-mail to the topic. Update the date and title when it is done"
+  owner: Emil
+  rollbackPlan: Delete the stack; the monitor, the subscription and the topic are deleted with it, and alerts stop. The account-wide budget keeps working
+- id: C-6
+  date: 2026-10-21
+  title: "Planned, not done yet: deploy DeveloperAccess-dev, the IAM Identity Center permission set RainmakerBedrockDeveloper, and assign it to the developers for the dev account (#161). Free. Update the date and title when it is done"
+  owner: Emil
+  rollbackPlan: Remove the assignments in IAM Identity Center, then delete the stack; the permission set is deleted and developers lose Bedrock access. Nothing else uses it

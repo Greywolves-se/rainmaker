@@ -18,8 +18,11 @@ public final class InfraApp {
   static final String STAGING = "rainmaker:staging";
   static final String DEV = "rainmaker:dev";
   static final String DEV_ACCOUNT = "rainmaker:dev-account";
+  static final String SSO_INSTANCE_ARN = "rainmaker:sso-instance-arn";
 
   private static final Pattern ACCOUNT_ID = Pattern.compile("^\\d{12}$");
+  private static final Pattern SSO_INSTANCE =
+      Pattern.compile("^arn:aws:sso:::instance/ssoins-[0-9a-zA-Z]+$");
 
   private InfraApp() {}
 
@@ -52,11 +55,25 @@ public final class InfraApp {
           "CDK context \"" + DEV_ACCOUNT + "\" must be a 12-digit AWS account id");
     }
     Map<?, ?> dev = ContextValues.requireObject(app, DEV);
-    new BedrockAccessStack(
-        app,
-        "BedrockAccess-dev",
-        stackProps(account, ContextValues.requireText(dev, DEV, "region")),
-        BedrockModelAccess.fromContext(app));
+    StackProps devProps = stackProps(account, ContextValues.requireText(dev, DEV, "region"));
+    BedrockModelAccess model = BedrockModelAccess.fromContext(app);
+    new BedrockAccessStack(app, "BedrockAccess-dev", devProps, model);
+    new CostGuardrailsStack(
+        app, "CostGuardrails-dev", devProps, CostAlertSettings.fromContext(app));
+
+    // The permission set needs the Identity Center instance, assumed to be in the dev account.
+    // Without its ARN the stack is left out, so the other dev stacks still work.
+    Object instanceArn = app.getNode().tryGetContext(SSO_INSTANCE_ARN);
+    if (instanceArn == null) {
+      System.err.println(
+          "DeveloperAccess-dev left out: add -c " + SSO_INSTANCE_ARN + "=<arn> to include it.");
+      return;
+    }
+    if (!(instanceArn instanceof String arn) || !SSO_INSTANCE.matcher(arn).matches()) {
+      throw new IllegalArgumentException(
+          "CDK context \"" + SSO_INSTANCE_ARN + "\" must be an Identity Center instance ARN");
+    }
+    new DeveloperAccessStack(app, "DeveloperAccess-dev", devProps, model, arn);
   }
 
   private static StackProps stackProps(String account, String region) {
