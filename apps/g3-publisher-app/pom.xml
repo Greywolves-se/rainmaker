@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Formatting, Checkstyle, JaCoCo and the Java version come from the root POM. -->
+  <parent>
+    <groupId>se.rainmaker</groupId>
+    <artifactId>rainmaker-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>g3-publisher-app</artifactId>
+  <name>G3 Publisher and marketplace</name>
+  <description>The editor page with approvals, and the advertisers' offers and landing pages.</description>
+
+  <dependencies>
+    <!-- The services this app assembles (#145). An app depends on services, never the other way. -->
+    <dependency>
+      <groupId>se.rainmaker</groupId>
+      <artifactId>publisher-control</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>se.rainmaker</groupId>
+      <artifactId>advertiser-marketplace</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- JUnit 5, AssertJ, Mockito and MockMvc. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Module boundaries (README.md, "Code quality"). -->
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- ./mvnw -pl apps/g3-publisher-app -am spring-boot:run, and the runnable jar. -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

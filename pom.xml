@@ -99,10 +99,14 @@
     </dependencies>
   </dependencyManagement>
 
-  <!-- Maven modules are listed here as they are added. -->
-  <!-- Services (services/*) and apps G1–G4 (apps/g1-*-app ...) come later. -->
+  <!-- Maven modules are listed here as they are added. The services are grouped by
+       services/pom.xml; the apps G1-G3 assemble them (#155). G4 comes later. -->
   <modules>
     <module>apps/mission-control</module>
+    <module>services</module>
+    <module>apps/g1-reader-app</module>
+    <module>apps/g2-content-app</module>
+    <module>apps/g3-publisher-app</module>
     <module>test-site</module>
     <module>infra</module>
   </modules>

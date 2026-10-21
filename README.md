@@ -15,15 +15,19 @@ one at a time.
 rainmaker/
 ├── pom.xml              parent POM, lists all Maven modules
 ├── docs/                architecture, decisions, START HERE        (empty for now)
-├── services/            one Maven module per logical service S1–S10 (empty for now)
+├── services/            one Maven module per logical service; S1–S7 so far (empty, #155)
 ├── apps/                deployable apps
+│   ├── g1-reader-app/       S1 + S2, port 8081
+│   ├── g2-content-app/      S5 + S6 + S7, port 8082
+│   ├── g3-publisher-app/    S3 + S4, port 8083
 │   └── mission-control/     internal status app – built first
-├── test-site/           fictional news site that plays an outside publisher
+├── test-site/           fictional news site that plays an outside publisher (port 3000)
 ├── widget/              rainmaker.js, TypeScript, not Maven         (empty for now)
 └── portals/             React apps, not Maven                       (empty for now)
 ```
 
-The service apps G1–G4 (`apps/g1-reader-app` … `apps/g4-money-app`) are added later.
+The apps assemble the services (#145, #155); G4 (`apps/g4-money-app`) is added later.
+Run one with `./mvnw -pl apps/g1-reader-app -am spring-boot:run`.
 Empty folders contain only a `.gitkeep`, because Git cannot store empty folders.
 
 ## Build
