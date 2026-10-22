@@ -37,3 +37,8 @@
   title: Quota increase requested in rainmaker-dev, eu-north-1, for Claude Haiku 5.5 cross-region tokens per minute (from 0 to 10,000,000, the console's minimum); open as an AWS Support case. Free; Bedrock is only billed per call (#161)
   owner: Emil
   rollbackPlan: Withdraw the request in Service Quotas or the support case. Once granted, the quota can stay; it costs nothing unless Bedrock is called, and the cost alert and the $50 budget cover the account
+- id: C-9
+  date: 2026-10-22
+  title: "Hard cost stop for rainmaker-dev, made by hand in the management account's console (an agreed exception to CDK-only, as a safety net): budget \"rainmaker-dev - Monthly Cost Budget ($20)\", filtered on rainmaker-dev, mails at 80 % and 100 %; at 100 % a budget action attaches the SCP rainmaker-dev-budget-stop-bedrock to rainmaker-dev, which denies every Bedrock model invocation in that account. Cost data lags a few hours, so the code still needs its own limits (#148). Could move into CDK later (#161)"
+  owner: Emil
+  rollbackPlan: "If the stop has fired and work should go on: Budgets, the rainmaker-dev budget, Actions, select the action, Reverse action; that detaches the SCP. To remove the stop: delete the budget action, then the budget, the SCP and the role rainmaker-dev-budget-action-role"
