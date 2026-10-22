@@ -37,3 +37,13 @@
   title: "Planned, not done yet: CDK bootstrap of the management account (eu-north-1) for this one stack, then deploy DeveloperAccess-dev there: the IAM Identity Center permission set RainmakerBedrockDeveloper, assigned to the developers for the rainmaker-dev account (#161). Free apart from the bootstrap (fractions of a cent a month). Update the date and title when it is done"
   owner: Emil
   rollbackPlan: Remove the assignments in IAM Identity Center, then delete the stack; the permission set is deleted and developers lose Bedrock access. Nothing else uses it
+- id: C-7
+  date: 2026-10-22
+  title: Member account rainmaker-dev created in the GreyWolves AWS Organization for Rainmaker's workloads (Bedrock, the G2 role, cost alerts); the Admins group has AdministratorAccess and ReadOnlyAccess there. The management account keeps only the organisation, billing and IAM Identity Center (#161)
+  owner: Emil
+  rollbackPlan: Close the account in AWS Organizations once nothing runs in it; AWS keeps a closed account for 90 days before it is gone. Remove the Admins assignment first
+- id: C-8
+  date: 2026-10-22
+  title: Quota increase requested in rainmaker-dev, eu-north-1, for Claude Haiku 5.5 cross-region tokens per minute (from 0 to 10,000,000, the console's minimum); open as an AWS Support case. Free; Bedrock is only billed per call (#161)
+  owner: Emil
+  rollbackPlan: Withdraw the request in Service Quotas or the support case. Once granted, the quota can stay; it costs nothing unless Bedrock is called, and the cost alert and the $50 budget cover the account
