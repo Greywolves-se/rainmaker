@@ -8,10 +8,11 @@ Serves rainmaker.js its links and handles clicks. The hot path: it must stay fas
 | S2 Tracking & Click | [`services/tracking-click`](../../services/tracking-click) | #153 |
 
 - **Port:** 8081 (`server.port` in `src/main/resources/application.properties`).
-- **Run** (from the repository root): build the app with the services it needs, then start
-  its jar:
+- **Run** (from the repository root): start PostgreSQL, build the app with the services it
+  needs, then start its jar:
 
   ```
+  docker compose up -d
   ./mvnw -pl apps/g1-reader-app -am package -DskipTests
   java -jar apps/g1-reader-app/target/g1-reader-app-0.1.0-SNAPSHOT.jar
   ```
