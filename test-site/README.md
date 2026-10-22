@@ -80,8 +80,9 @@ CI runs the same checks on every pull request that changes this folder
 The terminal shows one JSON log line per event (ECS format, with `trace_id`
 and `correlation_id`) – that is the project's logging standard, not an error.
 
-After editing a template, CSS, JavaScript or content file, restart the site
-to see the change.
+After editing a template, CSS or JavaScript file, restart the site to see the
+change. Articles and the front page change without a restart (see
+[Publishing and editing during a demo](#publishing-and-editing-during-a-demo)).
 
 ### Things to try in the browser
 
@@ -160,7 +161,7 @@ test-site/
 ├── Dockerfile                 ← image: the jar + content/, runs as a non-root user
 ├── docker-compose.yml         ← docker compose up --build
 ├── package.json               ← only "npm test" for the browser scripts
-├── content/                   ← EVERYTHING EDITORIAL (read at start-up)
+├── content/                   ← EVERYTHING EDITORIAL (articles re-read on change)
 │   ├── articles/              ← one JSON file per article
 │   ├── front-page.json        ← lead story, "JUST NU", "Mest läst"
 │   └── ads.json               ← fictional advertisers and their ads
@@ -171,7 +172,8 @@ test-site/
 │   │   ├── Article, ArticleBlock, Section, BrandSafetyZone   the data model
 │   │   ├── ArticleParser, ArticleRepository                  articles
 │   │   ├── FrontPage, AdInventory, AdCreative                front page, ads
-│   │   └── ContentConfiguration                              loads it all at start-up
+│   │   ├── LiveContent, SiteContent                          articles + front page, following the files
+│   │   └── ContentConfiguration                              creates LiveContent and the ads
 │   ├── view/                        prepares data for the templates
 │   │   ├── ViewHelper                dates in Swedish time, reading time, initials
 │   │   ├── ArticleBodyBuilder        places the in-article ad and the paywall
@@ -219,9 +221,10 @@ tested with Node in `src/test/javascript/`.
 ## Editing content
 
 **Articles:** copy a file in `content/articles/`, change `id` (unique, e.g.
-`vb-0013`), `slug` (unique, used in the URL) and the text. Restart the site.
-A mistake stops the start-up with a message naming the file and field. Then
-run `./mvnw -pl test-site test`.
+`vb-0013`), `slug` (unique, used in the URL) and the text. No restart: the
+next request shows it. A mistake is refused with a log line naming the file and
+field, and the site keeps the last good version (at start-up, a mistake stops
+the site). Then run `./mvnw -pl test-site test`.
 
 ```jsonc
 {
@@ -244,6 +247,29 @@ run `./mvnw -pl test-site test`.
   ]
 }
 ```
+
+### Publishing and editing during a demo
+
+The site re-reads `content/articles/` and `content/front-page.json` on every
+request (#159), so the demo and the end-to-end test (#154) change articles while
+everything runs:
+
+1. **Publish:** save a new file in `content/articles/`. It shows at once on
+   `/artikel/<slug>`, in `/rss.xml` and in `/sitemap.xml`.
+2. **Edit:** change the text in the same file. Keep `id` and `slug` (the URL),
+   and set `updatedAt` to a later time, with time zone. The feed shows it as
+   `<atom:updated>` and the sitemap as `<lastmod>`, so Rainmaker's ingestion
+   (#147) sees a new version.
+3. **Turn a story red:** edit the text into, say, an accident, set
+   `expectedZone` to `red` (only `/eval/labels.csv` shows it) and give it a new
+   `updatedAt`.
+4. **Nothing changed?** Look for `Content change refused` in the log: it names
+   the file and the field. Fix the file and save it again.
+
+With Docker, `docker-compose.yml` mounts `content/` into the container
+(read-only), so editing `test-site/content/` works the same. The files are in
+git: after the demo, `git status` shows what to remove or restore. To keep the
+real content untouched, point `CONTENT_DIRECTORY` at a copy instead.
 
 **Front page:** `content/front-page.json` picks the lead story, the article in
 the "JUST NU" bar (optional) and the "Mest läst" list, by article id.
@@ -321,11 +347,13 @@ quality"); this module's own notes are in `test-site/CLAUDE.md`.
 - **No wall-clock time in pages or feeds,** so output and tests are stable.
 - **No hard-coded UI text.** Everything visible comes from `messages.properties`.
   The site is fixed to Swedish (`spring.web.locale-resolver: fixed`).
-- **Fail fast at start-up** for broken content files.
+- **Fail fast at start-up** for broken content files; while the site runs, a
+  broken change is refused and the last good version stays.
 
 ## Known limitations
 
-- No live reload: restart after changes (Spring Boot DevTools could be added).
+- Only articles and the front page change without a restart. Templates, CSS,
+  JavaScript, `ads.json` and Java code still need one.
 - No real photos (drawn illustrations per section), no search, no comments.
 - The sticky menu's small logo and the click-through consent flow are checked
   through code and unit tests; automated *browser* tests (Playwright) are not
