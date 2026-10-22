@@ -3,6 +3,7 @@ package se.rainmaker.g1readerapp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -26,8 +27,7 @@ import se.rainmaker.trackingclick.database.TrackingClickDatabaseConfiguration;
 class G1ReaderApplicationTest {
 
   /** The same script docker-compose.yml runs: one database and one login per module. */
-  private static final Path INIT_SCRIPT =
-      Path.of("../../docker/postgres/init/01-rainmaker-databases.sql");
+  private static final Path INIT_SCRIPT = initScript();
 
   private static final String LOCAL_PASSWORD = "local-dev-only";
 
@@ -72,7 +72,7 @@ class G1ReaderApplicationTest {
 
   @Test
   void everyModuleDatabaseHasItsFirstMigration() {
-    assertThat(latestMigration(trackingClick)).isEqualTo("1");
+    assertThat(firstMigrationRuns(trackingClick)).isEqualTo(1L);
   }
 
   @Test
@@ -85,10 +85,26 @@ class G1ReaderApplicationTest {
         .hasMessageContaining("permission denied");
   }
 
-  private static String latestMigration(JdbcClient database) {
+  /** How many times V1 is recorded as applied: 1 when it ran, whatever migrations follow it. */
+  private static long firstMigrationRuns(JdbcClient database) {
     return database
-        .sql("SELECT max(version) FROM flyway_schema_history WHERE success")
-        .query(String.class)
+        .sql("SELECT count(*) FROM flyway_schema_history WHERE version = '1' AND success")
+        .query(Long.class)
         .single();
+  }
+
+  /**
+   * The init script, found by walking up from the working directory, so the test runs the same from
+   * Maven (the module folder), the repository root or an IDE.
+   */
+  private static Path initScript() {
+    Path script = Path.of("docker", "postgres", "init", "01-rainmaker-databases.sql");
+    for (Path folder = Path.of("").toAbsolutePath(); folder != null; folder = folder.getParent()) {
+      if (Files.isRegularFile(folder.resolve(script))) {
+        return folder.resolve(script);
+      }
+    }
+    throw new IllegalStateException(
+        "Cannot find " + script + " above " + Path.of("").toAbsolutePath());
   }
 }
