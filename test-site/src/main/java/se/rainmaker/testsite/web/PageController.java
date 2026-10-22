@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import se.rainmaker.testsite.content.Article;
 import se.rainmaker.testsite.content.ArticleRepository;
 import se.rainmaker.testsite.content.FrontPage;
+import se.rainmaker.testsite.content.LiveContent;
 import se.rainmaker.testsite.content.Section;
+import se.rainmaker.testsite.content.SiteContent;
 import se.rainmaker.testsite.view.AdSlot;
 import se.rainmaker.testsite.view.AdSlots;
 import se.rainmaker.testsite.view.ArticleBodyBuilder;
@@ -36,8 +38,7 @@ public class PageController {
   static final int LATEST_NEWS_COUNT = 6;
   static final int RELATED_ARTICLE_COUNT = 4;
 
-  private final ArticleRepository articles;
-  private final FrontPage frontPage;
+  private final LiveContent liveContent;
   private final AdSlots adSlots;
   private final ArticleBodyBuilder articleBodyBuilder;
   private final ViewHelper viewHelper;
@@ -45,14 +46,12 @@ public class PageController {
 
   /** Creates the controller. */
   public PageController(
-      ArticleRepository articles,
-      FrontPage frontPage,
+      LiveContent liveContent,
       AdSlots adSlots,
       ArticleBodyBuilder articleBodyBuilder,
       ViewHelper viewHelper,
       MessageSource messages) {
-    this.articles = articles;
-    this.frontPage = frontPage;
+    this.liveContent = liveContent;
     this.adSlots = adSlots;
     this.articleBodyBuilder = articleBodyBuilder;
     this.viewHelper = viewHelper;
@@ -62,6 +61,9 @@ public class PageController {
   /** The front page. */
   @GetMapping("/")
   public String frontPage(Model model, Locale locale) {
+    SiteContent content = liveContent.current();
+    ArticleRepository articles = content.articles();
+    FrontPage frontPage = content.frontPage();
     List<Article> others =
         articles.all().stream()
             .filter(article -> !article.id().equals(frontPage.lead().id()))
@@ -84,6 +86,7 @@ public class PageController {
   /** One article. */
   @GetMapping("/artikel/{slug}")
   public String article(@PathVariable String slug, Model model, Locale locale) {
+    ArticleRepository articles = liveContent.current().articles();
     Article article =
         articles.findBySlug(slug).orElseThrow(() -> new PageNotFoundException("article " + slug));
     String sectionName = messages.getMessage(article.section().messageKey(), null, locale);
@@ -107,6 +110,7 @@ public class PageController {
   /** All articles in one section. */
   @GetMapping("/sektion/{sectionId}")
   public String section(@PathVariable String sectionId, Model model, Locale locale) {
+    ArticleRepository articles = liveContent.current().articles();
     Section section =
         Section.fromId(sectionId)
             .orElseThrow(() -> new PageNotFoundException("section " + sectionId));

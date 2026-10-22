@@ -23,8 +23,10 @@ See `README.md`, and `docs/DEVELOPER_GUIDE.md` for a class-by-class walkthrough.
   breaking the article (fail open).
 - No current time and no randomness on the server; pages and feeds are deterministic.
   The only randomness is the ad delay in the browser.
-- Content files are validated at start-up; a broken file stops the site with a message
-  naming the file and field. Keep that behaviour when adding fields or block types.
+- Content files are validated at start-up, where a broken file stops the site, and again
+  when articles or the front page change while it runs, where a broken change is refused
+  and the last good version stays (#159). Both name the file and field. Keep that
+  behaviour when adding fields or block types.
 - All interface text is in `messages.properties`; article and ad text is content and lives
   in `content/`.
 - Java package root: `se.rainmaker.testsite`.
