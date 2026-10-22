@@ -22,8 +22,8 @@ approves them, and every click is tracked for settlement.
 |---|---|---|---|
 | `apps/mission-control/` | Internal status app: `collector/` (Java) + `web/` (React) | Maven aggregator + npm | **In progress** (#1–#32) |
 | `test-site/` | Fictional news site (Vintrabladet) to test the widget, ingestion and AI against; not part of the product | Maven module | Done; see its `README.md` |
-| `services/<name>/` | One logical service each (S1–S10, table below) | Maven module | Empty – later |
-| `apps/g1`–`g4-*-app/` | Deployable Spring Boot apps that assemble services | Maven module | Not created yet |
+| `services/<name>/` | One logical service each (S1–S10, table below), grouped by `services/pom.xml` | Maven module | S1–S7 created empty (#155); S8–S10 later |
+| `apps/g1`–`g4-*-app/` | Deployable Spring Boot apps that assemble services (ports 8081–8083) | Maven module | G1–G3 created (#155); G4 later |
 | `widget/` | rainmaker.js (TypeScript) | npm | Empty – later |
 | `portals/` | React apps for publishers and admins | npm | Empty – later |
 | `infra/` | AWS CDK app (Java), one stack per environment; see `infra/README.md` | Maven module | **In progress** (#61–#63) |
@@ -48,7 +48,9 @@ Planned services and apps (folder names to use when they are created):
 Base package per service: `se.rainmaker.<folder without dashes>` (e.g.
 `se.rainmaker.clearinghouse`). Other modules may only use its `.api` sub-package.
 Mission Control: `se.rainmaker.missioncontrol.<module>` (e.g.
-`se.rainmaker.missioncontrol.collector`). Test site: `se.rainmaker.testsite`.
+`se.rainmaker.missioncontrol.collector`). Test site: `se.rainmaker.testsite`. Apps:
+`se.rainmaker.<folder without dashes>` (e.g. `se.rainmaker.g1readerapp`); each app scans only
+the service packages it assembles, and its `ModuleBoundaryTest` enforces the `.api` rule.
 
 ## Claude behaviour
 
