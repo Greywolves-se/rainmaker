@@ -6,4 +6,5 @@ Gives rainmaker.js the approved links for an article.
 - **Built in:** #151 (milestone "Rainmaker demo 30 Oct"); this module was created empty in #155.
 - **Package:** `se.rainmaker.widgetdelivery`. Other modules may only use `se.rainmaker.widgetdelivery.api`
   (CLAUDE.md, "Architecture rules"); the app's ArchUnit test enforces it.
-- **Data:** its own database, never another module's (architecture D16).
+- **Data:** no database of its own for the demo: it asks G3 for the approved links on each
+  request (contract, section 7.3). A Redis projection comes later (architecture S1).
