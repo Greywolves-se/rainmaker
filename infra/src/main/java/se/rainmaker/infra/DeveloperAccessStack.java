@@ -13,7 +13,10 @@ import software.constructs.Construct;
  *
  * <p>The stack assigns nobody. An Identity Center admin assigns the permission set to the
  * developers (or their group) for the dev account in the console, so no names or e-mail addresses
- * are in the code. It must be deployed to the account that holds the Identity Center instance.
+ * are in the code.
+ *
+ * <p>It is deployed to the account that holds the Identity Center instance (the organisation's
+ * management account), while its policy names the dev account, where Bedrock is called.
  */
 public class DeveloperAccessStack extends Stack {
 
@@ -21,6 +24,8 @@ public class DeveloperAccessStack extends Stack {
    * Creates the stack.
    *
    * @param model which model may be called, from the {@code rainmaker:bedrock} context
+   * @param bedrockAccount the dev account, where the developers call Bedrock
+   * @param bedrockRegion the region they send their requests to
    * @param identityCenterInstanceArn the Identity Center instance, passed with {@code -c
    *     rainmaker:sso-instance-arn=<arn>}
    */
@@ -29,6 +34,8 @@ public class DeveloperAccessStack extends Stack {
       String id,
       StackProps props,
       BedrockModelAccess model,
+      String bedrockAccount,
+      String bedrockRegion,
       String identityCenterInstanceArn) {
     super(scope, id, props);
 
@@ -40,7 +47,7 @@ public class DeveloperAccessStack extends Stack {
         .sessionDuration("PT8H")
         .inlinePolicy(
             PolicyDocument.Builder.create()
-                .statements(model.invokeStatements(getAccount(), getRegion()))
+                .statements(model.invokeStatements(bedrockAccount, bedrockRegion))
                 .build()
                 .toJSON())
         .build();

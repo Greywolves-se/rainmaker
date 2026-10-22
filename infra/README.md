@@ -196,9 +196,11 @@ last 8 hours.
 **One-time setup by an Identity Center admin:**
 
 1. Find the instance ARN under IAM Identity Center, Settings (`arn:aws:sso:::instance/ssoins-...`).
-   The stack assumes the instance is in the dev account; if it is in another account, deploy
-   `DeveloperAccess-dev` there instead (the policy still names the dev account's profile).
-2. Deploy the stack with `-c rainmaker:sso-instance-arn=<arn>` (see "Synth, diff and deploy").
+   The instance is in the organisation's management account, so `DeveloperAccess-dev` is
+   deployed there, while its policy names the dev account, where Bedrock is called.
+2. Deploy the stack with `-c rainmaker:sso-instance-arn=<arn>` and
+   `-c rainmaker:sso-account=<management account id>`, with a profile for the management account
+   (see "Synth, diff and deploy"). The management account needs a CDK bootstrap for this one stack.
 3. In IAM Identity Center, AWS accounts, assign `RainmakerBedrockDeveloper` for the dev account
    to the developers or their group. The stack assigns nobody, so no names are in the code.
 
@@ -220,8 +222,9 @@ cdk diff   -c rainmaker:dev-account=<dev account id> --profile <admin profile> B
 cdk deploy -c rainmaker:dev-account=<dev account id> --profile <admin profile> BedrockAccess-dev
 ```
 
-The same flags work for `CostGuardrails-dev`, and for `DeveloperAccess-dev` with
-`-c rainmaker:sso-instance-arn=<arn>` added. If the account already has an "AWS services"
+The same flags work for `CostGuardrails-dev`. `DeveloperAccess-dev` also needs
+`-c rainmaker:sso-instance-arn=<arn> -c rainmaker:sso-account=<management account id>` and a
+profile for the management account, because it is deployed there. If the account already has an "AWS services"
 cost monitor (Billing and Cost Management, Cost Anomaly Detection, Cost monitors; only one is
 allowed per account), add `-c rainmaker:existing-cost-monitor-arn=<arn>` so the alert uses it
 instead of creating a second one.

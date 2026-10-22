@@ -65,19 +65,48 @@ class InfraAppTest {
   }
 
   @Test
-  void addsTheDeveloperPermissionSetOnlyWithIdentityCenterInstance() {
+  void addsTheDeveloperPermissionSetOnlyWithIdentityCenterInstanceAndAccount() {
     Map<String, Object> context = context();
     context.put("rainmaker:dev-account", "111111111111");
     assertThat(defineStacks(context).getNode().tryFindChild("DeveloperAccess-dev")).isNull();
 
     context.put("rainmaker:sso-instance-arn", "arn:aws:sso:::instance/ssoins-0000000000000000");
+    assertThat(defineStacks(context).getNode().tryFindChild("DeveloperAccess-dev")).isNull();
+
+    context.put("rainmaker:sso-account", "222222222222");
     assertThat(defineStacks(context).getNode().tryFindChild("DeveloperAccess-dev")).isNotNull();
+  }
+
+  @Test
+  void putsThePermissionSetInTheIdentityCenterAccount() {
+    Map<String, Object> context = context();
+    context.put("rainmaker:dev-account", "111111111111");
+    context.put("rainmaker:sso-instance-arn", "arn:aws:sso:::instance/ssoins-0000000000000000");
+    context.put("rainmaker:sso-account", "222222222222");
+
+    Stack developerAccess = stack(defineStacks(context), "DeveloperAccess-dev");
+
+    assertThat(developerAccess.getAccount()).isEqualTo("222222222222");
+    assertThat(developerAccess.getRegion()).isEqualTo("eu-north-1");
+  }
+
+  @Test
+  void refusesSsoAccountThatIsNoAccountId() {
+    Map<String, Object> context = context();
+    context.put("rainmaker:dev-account", "111111111111");
+    context.put("rainmaker:sso-instance-arn", "arn:aws:sso:::instance/ssoins-0000000000000000");
+    context.put("rainmaker:sso-account", "management");
+
+    assertThatThrownBy(() -> defineStacks(context))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("rainmaker:sso-account");
   }
 
   @Test
   void refusesSomethingElseAsIdentityCenterInstance() {
     Map<String, Object> context = context();
     context.put("rainmaker:dev-account", "111111111111");
+    context.put("rainmaker:sso-account", "222222222222");
     context.put("rainmaker:sso-instance-arn", "ssoins-0000000000000000");
 
     assertThatThrownBy(() -> defineStacks(context))

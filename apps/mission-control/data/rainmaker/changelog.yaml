@@ -34,6 +34,6 @@
   rollbackPlan: Delete the stack; the monitor, the subscription and the topic are deleted with it, and alerts stop. The account-wide budget keeps working
 - id: C-6
   date: 2026-10-21
-  title: "Planned, not done yet: deploy DeveloperAccess-dev, the IAM Identity Center permission set RainmakerBedrockDeveloper, and assign it to the developers for the dev account (#161). Free. Update the date and title when it is done"
+  title: "Planned, not done yet: CDK bootstrap of the management account (eu-north-1) for this one stack, then deploy DeveloperAccess-dev there: the IAM Identity Center permission set RainmakerBedrockDeveloper, assigned to the developers for the rainmaker-dev account (#161). Free apart from the bootstrap (fractions of a cent a month). Update the date and title when it is done"
   owner: Emil
   rollbackPlan: Remove the assignments in IAM Identity Center, then delete the stack; the permission set is deleted and developers lose Bedrock access. Nothing else uses it
