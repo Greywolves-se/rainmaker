@@ -3,8 +3,8 @@
 AWS CDK app (Java) that defines Rainmaker's AWS resources. CLAUDE.md: all AWS resources
 are created with CDK through the pipeline, never by hand in the console.
 
-- One stack per environment: **staging** (account `659947636280`) and **dev** (the greywolves
-  account, #161), both in `eu-north-1` (Stockholm). Accounts and regions are context in
+- One stack per environment: **staging** (account `659947636280`) and **dev** (the member account
+  `rainmaker-dev`, #161), both in `eu-north-1` (Stockholm). Accounts and regions are context in
   `cdk.json`; the dev account id is not committed (see "Dev account and Bedrock" below).
 - Package `se.rainmaker.infra`. The module inherits Spotless, Checkstyle and JaCoCo from the
   root POM (#39).
@@ -154,6 +154,10 @@ organisation rule that blocks service-account keys.
 Rainmaker reaches Claude through **Amazon Bedrock** in the dev account (contract D-8). Nobody
 uses an API key: the app gets credentials from its IAM role, and developers from their own SSO
 login.
+
+The dev account is the member account `rainmaker-dev` in the GreyWolves AWS Organization, one
+account per project and environment. The organisation's management account holds only the
+organisation, billing and IAM Identity Center, never workloads (decided 22 Oct 2026, #161).
 
 ### Settings for the code (#148)
 

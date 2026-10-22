@@ -19,7 +19,7 @@
   rollbackPlan: Delete the stack; the provider and the role are retained (DeletionPolicy Retain) with all their inline policies, including read-mission-control-secrets, and are managed by hand again. docker.yml keeps working
 - id: C-3
   date: 2026-10-21
-  title: "Planned, not done yet: CDK bootstrap of the dev account (greywolves, eu-north-1), stack CDKToolkit (#161). Costs fractions of a cent a month (an S3 bucket and an ECR repository). Update the date and title when it is done"
+  title: "Planned, not done yet: CDK bootstrap of the dev account (rainmaker-dev, eu-north-1), stack CDKToolkit (#161). Costs fractions of a cent a month (an S3 bucket and an ECR repository). Update the date and title when it is done"
   owner: Emil
   rollbackPlan: Delete the CDKToolkit stack, but only when no CDK stack is left in the dev account. Its assets bucket is retained, so empty and delete the bucket by hand before running cdk bootstrap again
 - id: C-4
