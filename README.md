@@ -38,6 +38,7 @@ setup with Testcontainers, so Docker must be running for `./mvnw verify`.
 **CI.** Each part has its own workflow in `.github/workflows/`: `rainmaker-ci.yml` builds and tests
 `services/` and the apps G1–G3 (#156), `mission-control-ci.yml` Mission Control and `infra/`,
 `test-site-ci.yml` the test site. Each runs only what a pull request changed.
+
 Empty folders contain only a `.gitkeep`, because Git cannot store empty folders.
 
 ## Build
