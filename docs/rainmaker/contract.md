@@ -127,8 +127,9 @@ Shared rules for every object, event and API:
 ```
 
 - `version` starts at 1. It goes up by one each time the site shows a newer `updatedAt` for
-  the same URL (#147). The RSS feed has no update time: the news sitemap (`<lastmod>`) and the
-  article page (`<time>` next to the byline) have it.
+  the same URL (#147). The RSS feed has it as `<atom:updated>` per item (#159), like the news
+  sitemap's `<lastmod>`: the last change, or the publish time if the article was never
+  updated.
 - `text` is the full body text, without the headline. It stays inside G2: never logged, never
   in a REST answer.
 

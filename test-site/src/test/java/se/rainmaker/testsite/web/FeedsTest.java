@@ -5,8 +5,10 @@ import static se.rainmaker.testsite.web.WebTestSupport.fetch;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +20,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import se.rainmaker.testsite.content.Article;
 import se.rainmaker.testsite.content.ArticleRepository;
+import se.rainmaker.testsite.content.LiveContent;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -26,11 +29,19 @@ import tools.jackson.databind.json.JsonMapper;
 @AutoConfigureMockMvc
 class FeedsTest {
 
+  private static final String ATOM = "http://www.w3.org/2005/Atom";
   private static final String NEWS = "http://www.google.com/schemas/sitemap-news/0.9";
 
   @Autowired private MockMvc mockMvc;
-  @Autowired private ArticleRepository articles;
+  @Autowired private LiveContent liveContent;
   @Autowired private JsonMapper jsonMapper;
+
+  private ArticleRepository articles;
+
+  @BeforeEach
+  void readContent() {
+    articles = liveContent.current().articles();
+  }
 
   private String text(String path) throws Exception {
     return fetch(mockMvc, path).getResponse().getContentAsString(StandardCharsets.UTF_8);
@@ -62,6 +73,9 @@ class FeedsTest {
       assertThat(child(item, "guid")).isEqualTo(article.id());
       assertThat(child(item, "pubDate"))
           .matches("[A-Z][a-z]{2}, \\d{1,2} [A-Z][a-z]{2} \\d{4} \\d{2}:\\d{2}:\\d{2} GMT");
+      // The last change, so ingestion (#147) sees an edited article (#159).
+      assertThat(item.getElementsByTagNameNS(ATOM, "updated").item(0).getTextContent())
+          .isEqualTo(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(article.lastModified()));
     }
   }
 

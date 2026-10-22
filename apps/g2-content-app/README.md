@@ -9,10 +9,11 @@ Reads articles, classifies them with Claude on Amazon Bedrock and suggests offer
 | S7 Matching & Ranking | [`services/matching-ranking`](../../services/matching-ranking) | #149 |
 
 - **Port:** 8082 (`server.port` in `src/main/resources/application.properties`).
-- **Run** (from the repository root): build the app with the services it needs, then start
-  its jar:
+- **Run** (from the repository root): start PostgreSQL, build the app with the services it
+  needs, then start its jar:
 
   ```
+  docker compose up -d
   ./mvnw -pl apps/g2-content-app -am package -DskipTests
   java -jar apps/g2-content-app/target/g2-content-app-0.1.0-SNAPSHOT.jar
   ```

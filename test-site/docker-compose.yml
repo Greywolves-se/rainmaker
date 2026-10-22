@@ -14,6 +14,10 @@ services:
     build:
       context: ..
       dockerfile: test-site/Dockerfile
+    volumes:
+      # Articles and the front page are re-read on change (#159): edit test-site/content/
+      # while the site runs.
+      - ./content:/app/content:ro
     ports:
       - "${TEST_SITE_PORT:-3000}:3000"
     environment:
