@@ -18,8 +18,12 @@ public final class InfraApp {
   static final String STAGING = "rainmaker:staging";
   static final String DEV = "rainmaker:dev";
   static final String DEV_ACCOUNT = "rainmaker:dev-account";
+  static final String SSO_INSTANCE_ARN = "rainmaker:sso-instance-arn";
+  static final String SSO_ACCOUNT = "rainmaker:sso-account";
 
   private static final Pattern ACCOUNT_ID = Pattern.compile("^\\d{12}$");
+  private static final Pattern SSO_INSTANCE =
+      Pattern.compile("^arn:aws:sso:::instance/ssoins-[0-9a-zA-Z]+$");
 
   private InfraApp() {}
 
@@ -52,11 +56,44 @@ public final class InfraApp {
           "CDK context \"" + DEV_ACCOUNT + "\" must be a 12-digit AWS account id");
     }
     Map<?, ?> dev = ContextValues.requireObject(app, DEV);
-    new BedrockAccessStack(
+    String devRegion = ContextValues.requireText(dev, DEV, "region");
+    StackProps devProps = stackProps(account, devRegion);
+    BedrockModelAccess model = BedrockModelAccess.fromContext(app);
+    new BedrockAccessStack(app, "BedrockAccess-dev", devProps, model);
+    new CostGuardrailsStack(
+        app, "CostGuardrails-dev", devProps, CostAlertSettings.fromContext(app));
+
+    // The permission set lives where IAM Identity Center is (the management account), and grants
+    // Bedrock in the dev account. Without both values the stack is left out, so the other dev
+    // stacks still work.
+    Object instanceArn = app.getNode().tryGetContext(SSO_INSTANCE_ARN);
+    Object ssoAccount = app.getNode().tryGetContext(SSO_ACCOUNT);
+    if (instanceArn == null || ssoAccount == null) {
+      System.err.println(
+          "DeveloperAccess-dev left out: add -c "
+              + SSO_INSTANCE_ARN
+              + "=<arn> and -c "
+              + SSO_ACCOUNT
+              + "=<account id> to include it.");
+      return;
+    }
+    if (!(instanceArn instanceof String arn) || !SSO_INSTANCE.matcher(arn).matches()) {
+      throw new IllegalArgumentException(
+          "CDK context \"" + SSO_INSTANCE_ARN + "\" must be an Identity Center instance ARN");
+    }
+    if (!(ssoAccount instanceof String identityCenterAccount)
+        || !ACCOUNT_ID.matcher(identityCenterAccount).matches()) {
+      throw new IllegalArgumentException(
+          "CDK context \"" + SSO_ACCOUNT + "\" must be a 12-digit AWS account id");
+    }
+    new DeveloperAccessStack(
         app,
-        "BedrockAccess-dev",
-        stackProps(account, ContextValues.requireText(dev, DEV, "region")),
-        BedrockModelAccess.fromContext(app));
+        "DeveloperAccess-dev",
+        stackProps(identityCenterAccount, devRegion),
+        model,
+        account,
+        devRegion,
+        arn);
   }
 
   private static StackProps stackProps(String account, String region) {
