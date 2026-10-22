@@ -11,7 +11,8 @@ services:
       # Local only: the server's admin password on a developer's machine.
       POSTGRES_PASSWORD: ${RAINMAKER_LOCAL_POSTGRES_PASSWORD:-local-dev-only}
     ports:
-      - "5432:5432"
+      # Only on this machine: the local passwords are in the repository.
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
       - rainmaker-postgres:/var/lib/postgresql

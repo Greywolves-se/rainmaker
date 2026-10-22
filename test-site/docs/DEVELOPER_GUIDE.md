@@ -48,11 +48,14 @@ tag manager, a strict security policy, a sticky menu and a paywall.
 
 ### Five ideas that explain most of the code
 
-1. **All content is loaded once, at start-up.** Articles, front page choices
+1. **Content is checked before it is used.** Articles, front page choices
    and ads are JSON files in [`content/`](../content). They are read and
    checked when the application starts. If one is wrong, the site *refuses to
-   start* and names the file and the field. This is called "fail fast". At
-   runtime nothing is read from disk, and nothing can change.
+   start* and names the file and the field. This is called "fail fast".
+   Articles and the front page are also re-read on every request
+   (`LiveContent`, #159): a changed file gets the same checks, and a broken
+   change is refused (logged with the file and the field) while the site keeps
+   the last good version. The ads are read once.
 2. **The server builds finished HTML.** Java collects data, and Thymeleaf
    templates turn it into HTML. There is no React and no client-side
    rendering. Rainmaker's Content Ingestion reads the HTML exactly as a
@@ -125,7 +128,8 @@ request that changes `test-site/` (`.github/workflows/test-site-ci.yml`).
 |---|---|
 | CSS, JS, or a template under `src/main/resources` | Restart the site. Static files are sent with `no-cache`, so a normal reload is enough after the restart. |
 | Java code | Restart the site |
-| A file in `content/` | Restart the site. Content is only read at start-up. |
+| An article or `front-page.json` in `content/` | Nothing: the next request shows it (#159). |
+| `content/ads.json` | Restart the site. |
 | Anything, when running in Docker | `docker compose up --build` again. The image contains the code and the content. |
 
 ---
@@ -205,11 +209,11 @@ main()  (TestSiteApplication)
   ├─ Spring reads application.yml + environment variables
   │    └─> SiteProperties (config)          checks base-url, widget URL, install method
   │
-  ├─ ContentConfiguration (content) creates three beans:
-  │    ├─ articleRepository()   reads content/articles/*.json
-  │    │     └─ ArticleParser.parse(...) for each file   ← stops start-up on any error
-  │    ├─ frontPage(...)        reads content/front-page.json, checks the ids exist
-  │    └─ adInventory()         reads content/ads.json
+  ├─ ContentConfiguration (content) creates two beans:
+  │    ├─ liveContent()   LiveContent reads content/articles/*.json and front-page.json
+  │    │     ├─ ArticleParser.parse(...) for each file   ← stops start-up on any error
+  │    │     └─ FrontPage.parse(...)   checks the ids exist
+  │    └─ adInventory()   reads content/ads.json
   │
   ├─ SecurityHeadersFilter builds the CSP header text once
   ├─ FeedController builds the TagContainer once
@@ -244,6 +248,7 @@ LayoutModelAdvice         adds "sections", "site", "rainmaker" to the model (all
   │
   v
 PageController.article
+  ├─ liveContent.current()             re-reads the files; parses them only if they changed
   ├─ articles.findBySlug(slug)        not found → PageNotFoundException → 404 page
   ├─ articleBodyBuilder.build(article) inserts the in-article ad, splits the paywall
   ├─ articles.related(article, 4)      "Läs också"
