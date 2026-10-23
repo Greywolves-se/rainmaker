@@ -1,0 +1,25 @@
+{
+  "root": true,
+  "extends": [
+    "./node_modules/gts/"
+  ],
+  "env": {
+    "browser": true
+  },
+  "overrides": [
+    {
+      "files": [
+        "scripts/**/*.mjs",
+        "vite.config.ts"
+      ],
+      "env": {
+        "node": true,
+        "browser": false
+      },
+      "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "module"
+      }
+    }
+  ]
+}
