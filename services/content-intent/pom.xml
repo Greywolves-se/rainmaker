@@ -37,5 +37,11 @@
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <!-- Checks Claude's answer against the contract's schema (#148, contract section 8). Version
+         managed in the root POM; the collector already uses it. -->
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+    </dependency>
   </dependencies>
 </project>
