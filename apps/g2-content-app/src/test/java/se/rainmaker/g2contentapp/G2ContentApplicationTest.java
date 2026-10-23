@@ -23,8 +23,11 @@ import se.rainmaker.contentingestion.database.ContentIngestionDatabaseConfigurat
 import se.rainmaker.contentintent.database.ContentIntentDatabaseConfiguration;
 import se.rainmaker.matchingranking.database.MatchingRankingDatabaseConfiguration;
 
-/** The app starts against a real PostgreSQL set up exactly like the local one (#155). */
-@SpringBootTest
+/**
+ * The app starts against a real PostgreSQL set up exactly like the local one (#155). Feed polling
+ * is off, so the test never reads a real site (#147 tests ingestion against WireMock).
+ */
+@SpringBootTest(properties = "rainmaker.content-ingestion.feed.polling=false")
 @Testcontainers
 class G2ContentApplicationTest {
 
