@@ -36,8 +36,10 @@ setup with Testcontainers, so Docker must be running for `./mvnw verify`.
 `docker compose down -v` deletes the data, and the databases are created again on the next start.
 
 **CI.** Each part has its own workflow in `.github/workflows/`: `rainmaker-ci.yml` builds and tests
-`services/` and the apps G1–G3 (#156), `mission-control-ci.yml` Mission Control and `infra/`,
-`test-site-ci.yml` the test site. Each runs only what a pull request changed.
+`services/`, the apps G1–G3 and `widget/` (#156), `mission-control-ci.yml` Mission Control and `infra/`,
+`test-site-ci.yml` the test site. The Mission Control and Rainmaker workflows run on every pull request
+and skip the jobs for parts it didn't change; the test site's workflow starts only when the test site
+changes.
 
 Empty folders contain only a `.gitkeep`, because Git cannot store empty folders.
 
