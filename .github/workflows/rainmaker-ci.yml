@@ -74,7 +74,7 @@ jobs:
           else
             echo "java=false" >> "$GITHUB_OUTPUT"
           fi
-          if echo "$changed" | grep -qE '^(widget/|.github/workflows/rainmaker-ci.yml$)'; then
+          if echo "$changed" | grep -qE '^(widget/|\.github/workflows/rainmaker-ci\.yml$)'; then
             echo "widget=true" >> "$GITHUB_OUTPUT"
           else
             echo "widget=false" >> "$GITHUB_OUTPUT"
