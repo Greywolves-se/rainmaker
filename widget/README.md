@@ -52,8 +52,9 @@ Run them in `widget/` (Node.js 22 or newer):
 | `npm run lint` | Google TypeScript style (gts); `npm run fix` fixes what it can |
 | `npm run build` | Typecheck, build `dist/rainmaker.js` (one file, IIFE) and check its size |
 
-`dist/` is git-ignored. G1 is to serve the built file at `/widget/rainmaker.js` (contract, D-7);
-that is part 2 of #152. Until then, nothing serves it.
+`dist/` is git-ignored. G1 serves the built file at `http://localhost:8081/widget/rainmaker.js`
+(contract, D-7; #178), read from `widget/dist/` on every request: after `npm run build`, reload the
+page. See G1's README for how to start it.
 
 ## Files
 
