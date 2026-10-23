@@ -10,7 +10,9 @@ import java.util.UUID;
  * @param title the link text
  * @param text one sentence under the title
  * @param category a commercial category key (#145, D-3), e.g. {@code "travel"}
- * @param destinationUrl the offer's landing page; never sent to the browser as a field
+ * @param destinationUrl the offer's landing page. It goes to the other apps ({@code GET
+ *     /api/offers}), but the reader's browser never gets it as a field: the widget only gets click
+ *     links (#151, #153)
  * @param cpcOre the price per click in whole öre
  */
 public record Offer(

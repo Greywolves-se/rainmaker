@@ -106,6 +106,12 @@ class OffersTest {
         .isEqualTo(404);
   }
 
+  @Test
+  void malformedOfferIdIsBadRequest() throws Exception {
+    assertThat(mockMvc.perform(get("/landing/abc")).andReturn().getResponse().getStatus())
+        .isEqualTo(400);
+  }
+
   private List<JsonNode> offers() throws Exception {
     MockHttpServletResponse response =
         mockMvc.perform(get("/api/offers")).andReturn().getResponse();
