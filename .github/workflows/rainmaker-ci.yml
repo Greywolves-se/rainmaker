@@ -1,0 +1,143 @@
+# Builds and tests Rainmaker's code on pull requests and on pushes to develop and main (#156):
+# the Java code (every service in services/ and every app that uses one) and rainmaker.js (widget/).
+# - It runs on every pull request, so its check can be required before merging: a required check
+#   that never runs would block a PR that changes only e.g. Mission Control or docs/.
+#   Pushes run it only when the files below change.
+# - The "changes" job decides which of the jobs below have to run; a job skipped this way counts
+#   as passing. Mission Control's own jobs are in mission-control-ci.yml.
+# - The Java job also runs when the root Maven build (pom.xml, mvnw, .mvn/) changes, because those
+#   files decide how the modules are built and checked, and when the local database setup
+#   (docker/postgres/) changes, because the apps' tests start PostgreSQL with it.
+# - The apps' tests start PostgreSQL through Testcontainers; GitHub's Ubuntu runners have Docker.
+# - Each job has a timeout, so a hung build or container stops instead of running for 6 hours.
+# - The widget job runs when widget/ changes: lint (gts), tests, and the build, which typechecks,
+#   bundles dist/rainmaker.js and fails above the 15 KB gzipped budget (widget/README.md).
+# - Job names start with "Rainmaker", because mission-control-ci.yml already has a job named
+#   "Detect changes", and branch rules require checks by name.
+
+name: Rainmaker CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+    paths:
+      - "services/**"
+      - "widget/**"
+      - "apps/g*-app/**"
+      - "docker/postgres/**"
+      - ".github/workflows/rainmaker-ci.yml"
+      - "pom.xml"
+      - "mvnw"
+      - ".mvn/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rainmaker-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Rainmaker detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      java: ${{ steps.diff.outputs.java }}
+      widget: ${{ steps.diff.outputs.widget }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare with the base commit
+        id: diff
+        env:
+          # Pull request: compare with the target branch. Push: compare with the previous commit.
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          # A brand-new branch has no previous commit; then run every job.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            {
+              echo "java=true"
+              echo "widget=true"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "$BASE" "$GITHUB_SHA")
+          echo "Changed files:"
+          echo "$changed"
+          if echo "$changed" | grep -qE '^(services/|apps/g[0-9]+-[a-z-]+-app/|docker/postgres/|pom\.xml$|mvnw$|\.mvn/|\.github/workflows/rainmaker-ci\.yml$)'; then
+            echo "java=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "java=false" >> "$GITHUB_OUTPUT"
+          fi
+          if echo "$changed" | grep -qE '^(widget/|\.github/workflows/rainmaker-ci\.yml$)'; then
+            echo "widget=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "widget=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  java:
+    name: Rainmaker (format, Checkstyle, tests)
+    needs: changes
+    if: needs.changes.outputs.java == 'true'
+    runs-on: ubuntu-latest
+    # Normally a few minutes; caps a hung build or container instead of GitHub's 6-hour default.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      # verify runs Spotless (format), Checkstyle, the tests (ModuleBoundaryTest and the database
+      # tests against PostgreSQL in Testcontainers) and JaCoCo.
+      # -pl services -am -amd selects the modules without listing them: the services aggregator,
+      # every service in it, the parent POM (-am) and every module that uses a service (-amd), i.e.
+      # the apps G1-G3. A new service or app (e.g. G4) is built without changing this line;
+      # Mission Control, the test site and infra are not.
+      - name: Build and test
+        run: ./mvnw -B -ntp -pl services -am -amd verify
+
+      # The test reports, to see why a test failed (e.g. a database test) without rerunning it.
+      - name: Keep the test reports of a failed build
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rainmaker-test-reports
+          path: "**/target/surefire-reports/"
+          retention-days: 7
+
+  widget:
+    name: Rainmaker widget (lint, test, build)
+    needs: changes
+    if: needs.changes.outputs.widget == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: widget
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: widget/package-lock.json
+
+      # Exactly the versions in package-lock.json.
+      - run: npm ci
+      # gts: Google TypeScript style.
+      - run: npm run lint
+      # Vitest with jsdom, incl. the fail-open test.
+      - run: npm test
+      # Typecheck, build dist/rainmaker.js and check the 15 KB gzipped budget.
+      - name: Build and size budget
+        run: npm run build
