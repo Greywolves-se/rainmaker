@@ -31,6 +31,10 @@ file and says it couldn't publish it.
 
 Write for the developer of the PR, who may not know every language or library it touches.
 
+**Write it in English**, like the code, the docs and the PRs, even when the conversation with
+Claude is in Swedish. That includes the quiz and the hub entry. Swedish only appears where the
+code or product uses it (for example the panel label "Annons").
+
 1. **The big picture:** what the change does for the user or the product, the flow through the
    apps, and the product rules it must keep.
 2. **Concepts first:** the language, framework or browser ideas the code depends on, explained
