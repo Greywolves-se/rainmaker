@@ -37,13 +37,29 @@ function watchHeadline(settings: Settings): void {
   const texts = textsFor(document.documentElement.lang);
   const url = articleUrl(document);
 
-  // Asked once per page view, on the first hover, so a reader who never hovers costs no call.
-  let links: Promise<ApprovedLink[]> | undefined;
+  // Asked on the first hover, so a reader who never hovers costs no call, and then remembered for
+  // the page view. A call that got no usable answer (null) is asked again on the next hover, not
+  // during the same one: right after a restart, the first answer through G1, G3 and G2 can take
+  // too long, and one failed call shouldn't hide the panel until the page is reloaded.
+  let links: Promise<ApprovedLink[] | null> | undefined;
+  let lastCallFailed = false;
   const loadLinks = () =>
-    (links ??= fetchApprovedLinks(settings.apiOrigin, url));
+    (links ??= fetchApprovedLinks(settings.apiOrigin, url).then(result => {
+      lastCallFailed = result === null;
+      return result;
+    }));
+  const onHoverStart = () => {
+    if (lastCallFailed) {
+      links = undefined;
+      lastCallFailed = false;
+    }
+    loadLinks();
+  };
 
-  attachHoverPanel(headline, loadLinks, async () => {
+  attachHoverPanel(headline, onHoverStart, async () => {
     const approved = await loadLinks();
-    return approved.length > 0 ? createPanel(approved, texts, headline) : null;
+    return approved && approved.length > 0
+      ? createPanel(approved, texts, headline)
+      : null;
   });
 }

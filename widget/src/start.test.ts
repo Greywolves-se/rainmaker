@@ -209,6 +209,50 @@ describe('rainmaker.js on an article page', () => {
     expect(panel()).not.toBeNull();
   });
 
+  it.each([
+    [
+      'the API was down',
+      () => Promise.reject(new TypeError('Failed to fetch')),
+    ],
+    ['G3 was unavailable', async () => new Response('{}', {status: 503})],
+  ])(
+    'asks again on the next hover when the first call failed (%s)',
+    async (_case, firstAnswer) => {
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockImplementationOnce(firstAnswer)
+          .mockImplementation(
+            async () =>
+              new Response(JSON.stringify(APPROVED_LINKS), {status: 200})
+          )
+      );
+      start(widgetScript());
+
+      await hover(OPEN_DELAY_MS);
+      expect(panel()).toBeNull();
+      headline().dispatchEvent(new MouseEvent('mouseleave'));
+      await vi.advanceTimersByTimeAsync(1000);
+      await hover(OPEN_DELAY_MS);
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(panel()).not.toBeNull();
+    }
+  );
+
+  it('does not ask again when the article simply has no links', async () => {
+    answerWith(200, {articleUrl: ARTICLE_URL, links: []});
+    start(widgetScript());
+
+    await hover(OPEN_DELAY_MS);
+    headline().dispatchEvent(new MouseEvent('mouseleave'));
+    await vi.advanceTimersByTimeAsync(1000);
+    await hover(OPEN_DELAY_MS);
+
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
   it('waits for the headline when it starts before the page has loaded (script in <head>)', async () => {
     answerWith(200, APPROVED_LINKS);
     document.body.innerHTML = '';

@@ -16,7 +16,9 @@ How it works:
    was loaded from (contract, D-7), and the headline is `[data-rainmaker-headline]`. A publisher
    with other markup adds `data-headline-selector="h1.title"` to the tag.
 2. On the first hover it asks G1's widget API once for the article's links
-   (`GET /widget/v1/links?url=…`, contract 7.4), using the article's canonical URL (D-2).
+   (`GET /widget/v1/links?url=…`, contract 7.4), using the article's canonical URL (D-2), and
+   remembers the answer for the page view. If the call failed (an error, 2 s without an answer or
+   a status other than 200), the next hover asks again.
 3. It shows at most 3 links. Each one is G1's click link; a link pointing anywhere else is
    dropped, so an advertiser's address never reaches the page directly.
 

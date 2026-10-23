@@ -15,13 +15,16 @@ export const API_TIMEOUT_MS = 2000;
 const MAX_LINKS = 3;
 
 /**
- * Asks G1's widget API for the article's approved links. Never rejects: an error, a timeout or
- * an answer other than 200 with links all mean no links, so no panel (fail open).
+ * Asks G1's widget API for the article's approved links. Never rejects (fail open).
+ *
+ * @returns the links (empty when the article has none), or null when there was no usable answer:
+ *     an error, a timeout or a status other than 200. Null means "try again later"; either way
+ *     there is no panel this time.
  */
 export async function fetchApprovedLinks(
   apiOrigin: string,
   articleUrl: string
-): Promise<ApprovedLink[]> {
+): Promise<ApprovedLink[] | null> {
   const timeout = new AbortController();
   const timer = setTimeout(() => timeout.abort(), API_TIMEOUT_MS);
   try {
@@ -34,12 +37,12 @@ export async function fetchApprovedLinks(
       }
     );
     if (response.status !== 200) {
-      return [];
+      return null;
     }
     return parseLinks(await response.json(), apiOrigin);
   } catch (error) {
     ignoreError(error);
-    return [];
+    return null;
   } finally {
     clearTimeout(timer);
   }
