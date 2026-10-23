@@ -1,3 +1,24 @@
 {
-  "app": "../mvnw -q compile exec:java"
+  "app": "../mvnw -q compile exec:java",
+  "context": {
+    "rainmaker:staging": {
+      "account": "659947636280",
+      "region": "eu-north-1"
+    },
+    "rainmaker:dev": {
+      "region": "eu-north-1"
+    },
+    "rainmaker:bedrock": {
+      "inferenceProfileId": "eu.anthropic.claude-haiku-5-5",
+      "foundationModelId": "anthropic.claude-haiku-5-5",
+      "destinationRegions": [
+        "eu-north-1",
+        "eu-central-1",
+        "eu-west-1",
+        "eu-west-3",
+        "eu-south-1",
+        "eu-south-2"
+      ]
+    }
+  }
 }
