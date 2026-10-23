@@ -51,6 +51,10 @@ code or product uses it (for example the panel label "Annons").
 
 Check every quiz answer against the code. A guide that teaches something wrong is worse than none.
 
+Spread the correct answers over all positions (A, B, C, D) with no pattern: written as they
+come, they tend to land on the same letter, and the quiz then tests nothing. Count the letters of
+the correct answers before publishing.
+
 ## Publishing the guide
 
 - **One self-contained HTML file**, written for the Artifact tool (it adds the document skeleton;
