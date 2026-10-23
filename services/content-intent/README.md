@@ -13,3 +13,17 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
   - inject the client with `@Qualifier(ContentIntentDatabaseConfiguration.JDBC_CLIENT) JdbcClient`;
   - mark transactions with `@Transactional(ContentIntentDatabaseConfiguration.TRANSACTION_MANAGER)`; an
     unnamed `@Transactional` is ambiguous, because an app holds several modules' databases.
+
+## Classification (#148)
+
+- **`api`:** the contract's types (`docs/rainmaker/contract.md`, section 3.2): `Classification`,
+  `ClassificationStatus`, `Zone`, `Topic`, `Reason`, `ArticleToClassify`, and the `ArticleClassifier`
+  interface. Only a classified green article may get suggestions (`mayGetSuggestions()`, D-4);
+  failed and unclassified are treated like red everywhere.
+- **`classification`** (internal):
+  - `ClaudeAnswerParser` accepts Claude's answer only if it matches the contract's schema
+    (`src/main/resources/content-intent/classification-answer.schema.json`, a copy of section 8;
+    change both together), with both reasons non-blank. Anything else means `failed`.
+  - `FakeArticleClassifier` gives every article one configured answer, for local work and tests.
+  - The Bedrock implementation, with its rate limit, daily token cap, timeout and retries, follows
+    in the next #148 PR.
