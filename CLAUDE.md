@@ -28,6 +28,7 @@ approves them, and every click is tracked for settlement.
 | `portals/` | React apps for publishers and admins | npm | Empty – later |
 | `infra/` | AWS CDK app (Java), one stack per environment; see `infra/README.md` | Maven module | **In progress** (#61–#63) |
 | `docs/` | START_HERE.md, architecture decision records | – | Empty – later |
+| `docs/study-guides.md` | How Claude writes and publishes a study guide for each PR, and the hub's link | – | Added in #179 |
 | `docs/adr/` | Architecture decision records, one Markdown file per decision | – | First ADR: 0001, Mission Control V1 (#6) |
 
 Build all Maven modules with `./mvnw verify` from the root (parent `pom.xml`, JDK 21
@@ -84,8 +85,20 @@ Before presenting any change, review it as a strict senior reviewer would:
 - Does it break any rule in this file, especially the product rules?
 - Is there a simpler way? Remove dead code, duplication and speculative abstractions.
 
-State the weaknesses, assumptions and open risks you found. Never present code
-as finished or "production-ready" without this review.
+Before opening a draft PR, fix the gaps this review finds instead of only listing
+them, and say in the PR summary what you found and fixed. State the weaknesses,
+assumptions and open risks that remain. Never present code as finished or
+"production-ready" without this review.
+
+### Study guides
+- After opening a draft PR that changes code (not for docs or config only), write a
+  study guide for it: one page that explains all the changed code, with questions at
+  the end that check the developer understood it.
+  Publish it as a private claude.ai page and add it to the team's hub. How, and what a
+  guide contains: `docs/study-guides.md`.
+- Then remind the developer to share the guide with the team from its Share menu.
+  Claude cannot change who has access to a page.
+- When the PR changes after a review, update the guide (same link) and its hub entry.
 
 ### Verify, don't assume
 - Run the build, formatter and relevant tests before saying a change works.
