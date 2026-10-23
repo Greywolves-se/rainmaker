@@ -13,7 +13,10 @@ import se.rainmaker.advertisermarketplace.api.Offer;
 import se.rainmaker.advertisermarketplace.api.OfferCatalog;
 import se.rainmaker.advertisermarketplace.database.AdvertiserMarketplaceDatabaseConfiguration;
 
-/** The offers in S4's own database (#149). */
+/**
+ * The offers in S4's own database (#149). Every offer's destination is its fictional landing page,
+ * built from the settings; that is demo only (see {@link LandingPageController}).
+ */
 @Component
 class JdbcOfferCatalog implements OfferCatalog {
 

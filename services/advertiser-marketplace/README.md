@@ -25,6 +25,8 @@ Advertisers, offers and their landing pages.
 - **Landing pages:** `GET /landing/{offerId}` shows a simple page with the offer and a "Fictional test content"
   label. An offer's `destinationUrl` is `rainmaker.advertiser-marketplace.landing-base-url` (the G3 app's own
   address) plus `/landing/{offerId}`, so no address is stored in the database.
+  **Demo only:** every offer is fictional. Real advertisers will need their own URL stored per offer (a new
+  `destination_url` column), and the landing pages would then only be for test offers.
 - **Text:** the page's labels and the category names come from
   `src/main/resources/advertiser-marketplace/messages*.properties`: Swedish by default, English when the browser
   asks for it. The offer's own text is shown as stored, always HTML-escaped.

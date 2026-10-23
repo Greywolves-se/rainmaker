@@ -23,6 +23,9 @@ import se.rainmaker.advertisermarketplace.api.OfferCatalog;
  * has a real page to land on. Like the test site, it says that it is fictional. The labels come
  * from {@code advertiser-marketplace/messages*.properties}, in Swedish or, if the browser asks for
  * it, English; the offer's own text is shown as it is stored, always HTML-escaped.
+ *
+ * <p>Demo only: these pages exist because every offer is fictional. Real advertisers will have
+ * their own destination URL per offer, and the pages will then only be for test offers.
  */
 @RestController
 class LandingPageController {

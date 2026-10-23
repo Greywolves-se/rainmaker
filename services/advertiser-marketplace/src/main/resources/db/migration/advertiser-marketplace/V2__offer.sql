@@ -1,5 +1,7 @@
 -- Offers (#149, contract 3.4). An offer's destination is its own landing page in G3
 -- (/landing/<offer_id>); the address is built from the app's settings, so it is not stored here.
+-- Demo only: every offer is fictional. Real advertisers need their own URL per offer (a new
+-- destination_url column in a later migration); the landing pages are then only for test offers.
 -- category is a commercial category key (#145, D-3); display names come from translation files.
 -- "other" is never an offer's category. cpc_ore is the price per click in whole öre.
 CREATE TABLE offer (
