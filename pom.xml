@@ -36,6 +36,9 @@
     <!-- 4.x is still beta. The standalone jar bundles its own Jetty, so it cannot clash with
          the libraries Spring Boot brings. -->
     <wiremock.version>3.13.2</wiremock.version>
+    <!-- AWS SDK for Java v2 (#148: Bedrock Runtime). Spring Boot does not manage it; the BOM
+         below keeps every AWS module on the same version. -->
+    <aws-sdk.version>2.55.12</aws-sdk.version>
 
     <!-- AWS CDK for the infra/ module (#61). -->
     <aws-cdk-lib.version>2.273.0</aws-cdk-lib.version>
@@ -53,6 +56,14 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- Versions of all AWS SDK v2 modules, e.g. bedrockruntime in content-intent (#148). -->
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${aws-sdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <!-- Architecture tests (module boundaries). See README.md, "Code quality". -->
       <dependency>
         <groupId>com.tngtech.archunit</groupId>

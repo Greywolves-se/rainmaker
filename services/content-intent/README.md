@@ -25,5 +25,46 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
     (`src/main/resources/content-intent/classification-answer.schema.json`, a copy of section 8;
     change both together), with both reasons non-blank. Anything else means `failed`.
   - `FakeArticleClassifier` gives every article one configured answer, for local work and tests.
-  - The Bedrock implementation, with its rate limit, daily token cap, timeout and retries, follows
-    in the next #148 PR.
+  - `BedrockArticleClassifier` calls Claude on Amazon Bedrock (Converse API, AWS SDK v2) with the
+    prompt in `src/main/resources/content-intent/classification-prompt.txt` and the schema as a tool
+    Claude must call. Only the headline and text are sent, as data.
+  - `ClassifierConfiguration` picks one of them from the settings below.
+
+### Settings (`rainmaker.content-intent.classifier.*`, in G2's `application.properties`)
+
+| Setting | Default | What it does |
+|---|---|---|
+| `mode` | `fake` (`RAINMAKER_CLASSIFIER_MODE`) | `fake` needs no AWS; `bedrock` calls Claude |
+| `region` | `eu-north-1` | Where Bedrock is called |
+| `model-id` | `eu.anthropic.claude-haiku-5-5` (`RAINMAKER_CLASSIFIER_MODEL_ID`) | The EU inference profile the G2 role may call (#161) |
+| `max-tokens` | `400` | Most tokens per answer; the answer is a short JSON |
+| `max-text-chars` | `20000` | Longer article texts are cut before sending, so one call can't use a large share of the daily cap |
+| `timeout` | `20s` | One call, including the answer |
+| `max-attempts` / `backoff` | `3` / `1s` | Tries for temporary errors only; the wait roughly doubles each time, with jitter |
+| `calls-per-minute` | `20` | More calls in any minute leave the article `unclassified` |
+| `daily-token-cap` | `200000` | When used, articles stay `unclassified` until the next UTC day |
+| `fake.*` | **red** (`RAINMAKER_FAKE_ZONE`), `home` | The fake classifier's answer for every article. Red by default, so nothing gets a panel without Claude; set `RAINMAKER_FAKE_ZONE=green` only for local work on matching or the widget. G2 logs a WARN at start-up while the fake is active |
+
+### What happens when something goes wrong
+
+| Situation | Result | Retried? |
+|---|---|---|
+| Calls per minute or daily token cap used | `unclassified` (no call made) | Later, by the next run |
+| Throttling, timeout, service error | `failed` once `max-attempts` are used | Yes, with back-off |
+| Other client error, e.g. an expired SSO login | `failed`, logged as ERROR (`failed-client-error`) | No |
+| `AccessDenied` (also the hard cost stop's SCP, #161) | `failed`, logged as ERROR (`failed-access-denied`) | No |
+| Validation error, unknown model | `failed` | No |
+| Refusal, cut-off answer, text instead of the tool, invalid answer | `failed` | No |
+
+Never green by default. Logs carry the article id, version, outcome and tokens, never the text.
+
+### Running against Bedrock locally
+
+Needs #161 deployed, the permission set `RainmakerBedrockDeveloper`, and Bedrock quota:
+
+```
+aws sso login --profile rainmaker-dev
+AWS_PROFILE=rainmaker-dev RAINMAKER_CLASSIFIER_MODE=bedrock ./mvnw -pl apps/g2-content-app spring-boot:run
+```
+
+Tests never call Bedrock: they use the fake classifier or a stubbed SDK client (CLAUDE.md).
