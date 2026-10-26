@@ -57,10 +57,14 @@ docker compose up --build        # stop with Ctrl+C, or add -d and stop with: do
   `docker compose down -v`.
 - **New articles:** add or edit a file in `test-site/content/articles/` while it runs; G2 reads the
   feed every minute.
-- **Claude:** G2 uses the fake classifier by default, so no AWS access is needed. For real Claude on
-  Bedrock, log in with `aws sso login`, set `AWS_PROFILE` in `.env` (copy `.env.example`) and start
-  with `docker compose -f docker-compose.yml -f docker-compose.bedrock.yml up --build`. Your SSO
-  login is mounted read-only; no keys go into any file.
+- **Claude:** G2 uses the fake classifier by default, so no AWS access is needed. It gives every
+  article the same zone, **red** by default, so **no panel shows** without Claude: safe, never a
+  panel on a red article. For local work on matching or the widget, set `RAINMAKER_FAKE_ZONE=green`
+  in `.env`; then every article gets a panel, the red test articles too, so never for the demo.
+  For real Claude on Bedrock, log in with `aws sso login`, set `AWS_PROFILE` in `.env` (copy
+  `.env.example`) and start with
+  `docker compose -f docker-compose.yml -f docker-compose.bedrock.yml up --build`. Your SSO login is
+  mounted read-only; no keys go into any file.
 - **How it fits together:** every port is on `127.0.0.1` only. G2 shares the test site's network, so
   it reads `http://localhost:3000/...`, the same article addresses the browser and the widget use
   (contract D-2); other containers reach G2 at `test-site:8082`.

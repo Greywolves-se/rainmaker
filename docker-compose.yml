@@ -78,6 +78,10 @@ services:
       RAINMAKER_DB_HOST: postgres
       # fake: no AWS needed (default). bedrock: see docker-compose.bedrock.yml.
       RAINMAKER_CLASSIFIER_MODE: ${RAINMAKER_CLASSIFIER_MODE:-fake}
+      # The fake classifier gives every article the same zone. red (default) fails closed: no
+      # article gets a panel. green only for local work on matching or the widget; then red
+      # articles get a panel too (#148).
+      RAINMAKER_FAKE_ZONE: ${RAINMAKER_FAKE_ZONE:-red}
     depends_on:
       postgres:
         condition: service_healthy
