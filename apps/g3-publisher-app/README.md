@@ -8,10 +8,11 @@ The editor page with approvals, and the advertisers' offers and landing pages. O
 | S4 Advertiser Marketplace | [`services/advertiser-marketplace`](../../services/advertiser-marketplace) | #149 |
 
 - **Port:** 8083 (`server.port` in `src/main/resources/application.properties`).
-- **Run** (from the repository root): build the app with the services it needs, then start
-  its jar:
+- **Run** (from the repository root): start PostgreSQL, build the app with the services it
+  needs, then start its jar:
 
   ```
+  docker compose up -d
   ./mvnw -pl apps/g3-publisher-app -am package -DskipTests
   java -jar apps/g3-publisher-app/target/g3-publisher-app-0.1.0-SNAPSHOT.jar
   ```
