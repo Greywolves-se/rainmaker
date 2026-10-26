@@ -218,6 +218,20 @@ work as before. Before the first deploy the dev account must be bootstrapped onc
 - **Quota:** the quota for Claude Haiku 5.5 cross-region tokens per minute is **0** in the dev
   account (21 Oct 2026). Every call is rejected until an increase is requested in Service Quotas.
 - **Where to see the cost:** Billing and Cost Management, Cost Explorer, filter *Service* =
-  *Amazon Bedrock*. The account-wide budget ($50 a month, alerts at 50 % and 100 %) already
-  covers it. A Cost Anomaly Detection alert follows in the second #161 PR; a Bedrock-only budget
-  can be added once Bedrock has billing history.
+  *Amazon Bedrock*. A Cost Anomaly Detection alert follows in the second #161 PR; a Bedrock-only
+  budget can be added once Bedrock has billing history.
+- **The budget and the hard stop (change log C-9):** the budget **"rainmaker-dev - Monthly
+  Budget"**, 100 USD a month of actual cost, filtered on the rainmaker-dev account. It lives in the
+  management account's AWS Budgets, **not** in rainmaker-dev, so it can't be seen from there. It
+  mails at 80 % and 100 %. At 100 % an automatically approved budget action attaches an SCP to
+  rainmaker-dev that blocks API calls there. **If calls in rainmaker-dev suddenly get
+  `AccessDenied`, check this budget first.** Check it from the management account:
+
+  ```
+  aws budgets describe-budgets --account-id <management account id>
+  aws budgets describe-budget-actions-for-budget --account-id <management account id> \
+    --budget-name "rainmaker-dev - Monthly Budget"
+  ```
+
+  The management account has its own, separate budget of 50 USD a month; it doesn't cover
+  rainmaker-dev.
