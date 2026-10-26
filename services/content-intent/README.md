@@ -38,11 +38,12 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 | `region` | `eu-north-1` | Where Bedrock is called |
 | `model-id` | `eu.anthropic.claude-haiku-5-5` (`RAINMAKER_CLASSIFIER_MODEL_ID`) | The EU inference profile the G2 role may call (#161) |
 | `max-tokens` | `400` | Most tokens per answer; the answer is a short JSON |
+| `max-text-chars` | `20000` | Longer article texts are cut before sending, so one call can't use a large share of the daily cap |
 | `timeout` | `20s` | One call, including the answer |
-| `max-attempts` / `backoff` | `3` / `1s` | Tries for temporary errors only; the wait doubles each time |
+| `max-attempts` / `backoff` | `3` / `1s` | Tries for temporary errors only; the wait roughly doubles each time, with jitter |
 | `calls-per-minute` | `20` | More calls in any minute leave the article `unclassified` |
 | `daily-token-cap` | `200000` | When used, articles stay `unclassified` until the next UTC day |
-| `fake.*` | green, `home` | The fake classifier's answer |
+| `fake.*` | **red** (`RAINMAKER_FAKE_ZONE`), `home` | The fake classifier's answer for every article. Red by default, so nothing gets a panel without Claude; set `RAINMAKER_FAKE_ZONE=green` only for local work on matching or the widget. G2 logs a WARN at start-up while the fake is active |
 
 ### What happens when something goes wrong
 
@@ -50,7 +51,8 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 |---|---|---|
 | Calls per minute or daily token cap used | `unclassified` (no call made) | Later, by the next run |
 | Throttling, timeout, service error | `failed` once `max-attempts` are used | Yes, with back-off |
-| `AccessDenied` (also the $100 cost stop's SCP, #161) | `failed` | No |
+| Other client error, e.g. an expired SSO login | `failed`, logged as ERROR (`failed-client-error`) | No |
+| `AccessDenied` (also the hard cost stop's SCP, #161) | `failed`, logged as ERROR (`failed-access-denied`) | No |
 | Validation error, unknown model | `failed` | No |
 | Refusal, cut-off answer, text instead of the tool, invalid answer | `failed` | No |
 

@@ -14,9 +14,12 @@ import org.slf4j.LoggerFactory;
 import se.rainmaker.contentintent.api.ArticleClassifier;
 import se.rainmaker.contentintent.api.ArticleToClassify;
 import se.rainmaker.contentintent.api.Classification;
+import software.amazon.awssdk.core.exception.ApiCallAttemptTimeoutException;
+import software.amazon.awssdk.core.exception.ApiCallTimeoutException;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
+import software.amazon.awssdk.services.bedrockruntime.model.AccessDeniedException;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
@@ -46,11 +49,13 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
  *   <li>Our own brakes first: the daily token cap and the calls-per-minute limit. If either says
  *       no, no call is made and the article stays {@code unclassified}, to be classified later.
  *   <li>One Converse call: the system prompt ({@code content-intent/classification-prompt.txt}),
- *       the headline and text as data, a small {@code maxTokens}, temperature 0, and the contract's
- *       schema as a tool Claude must call. Nothing about readers is ever sent.
+ *       the headline and text as data (escaped, and the text cut to {@code maxTextChars}), a small
+ *       {@code maxTokens}, temperature 0, and the contract's schema as a tool Claude must call.
+ *       Nothing about readers is ever sent.
  *   <li>Temporary errors (throttling, timeouts, service errors) are retried with exponential
- *       back-off, at most {@code maxAttempts} times in all. Everything else fails at once,
- *       including {@code AccessDenied}, which is how the hard cost stop (an SCP) shows up.
+ *       back-off and jitter, at most {@code maxAttempts} times in all. Everything else fails at
+ *       once and is logged as an error: {@code AccessDenied}, which is how the hard cost stop (an
+ *       SCP) shows up, and client errors such as an expired SSO login.
  *   <li>The tool input must match the schema ({@link ClaudeAnswerParser}). A refusal, a cut-off
  *       answer, a text answer or an invalid one is {@code failed}: never green by default.
  * </ol>
@@ -66,6 +71,11 @@ public class BedrockArticleClassifier implements ArticleClassifier {
   static final String PROMPT_RESOURCE = "content-intent/classification-prompt.txt";
 
   private static final Logger LOG = LoggerFactory.getLogger(BedrockArticleClassifier.class);
+
+  private static final double BACKOFF_MULTIPLIER = 2.0;
+
+  /** Each wait is randomly up to 50 % shorter or longer than the exponential value. */
+  private static final double BACKOFF_JITTER = 0.5;
 
   private final BedrockRuntimeClient client;
   private final ClassifierProperties settings;
@@ -90,7 +100,10 @@ public class BedrockArticleClassifier implements ArticleClassifier {
             "bedrock-classify",
             RetryConfig.custom()
                 .maxAttempts(settings.maxAttempts())
-                .intervalFunction(IntervalFunction.ofExponentialBackoff(settings.backoff(), 2.0))
+                // Exponential with jitter, so calls throttled together don't retry together.
+                .intervalFunction(
+                    IntervalFunction.ofExponentialRandomBackoff(
+                        settings.backoff(), BACKOFF_MULTIPLIER, BACKOFF_JITTER))
                 .retryOnException(BedrockArticleClassifier::isTemporary)
                 .build());
     this.systemPrompt = readPrompt();
@@ -123,11 +136,7 @@ public class BedrockArticleClassifier implements ArticleClassifier {
       log(article, "deferred-calls-per-minute", 0);
       return Classification.unclassified();
     } catch (SdkException e) {
-      LOG.atWarn()
-          .addKeyValue("article_id", article.articleId())
-          .addKeyValue("article_version", article.version())
-          .addKeyValue("error", e.getClass().getSimpleName())
-          .log("Bedrock call failed; classification stored as failed");
+      logFailure(article, e);
       return Classification.failed(settings.modelId(), clock.instant());
     }
     long tokens = response.usage() == null ? 0 : response.usage().totalTokens();
@@ -156,11 +165,16 @@ public class BedrockArticleClassifier implements ArticleClassifier {
   }
 
   private ConverseRequest request(ArticleToClassify article) {
+    String text = article.text();
+    if (text.length() > settings.maxTextChars()) {
+      text = text.substring(0, settings.maxTextChars());
+    }
+    // Escaped, so the article can't close these tags and pose as text outside the data.
     String articleAsData =
         "<article>\n<headline>"
-            + article.headline()
+            + escapeTags(article.headline())
             + "</headline>\n<text>"
-            + article.text()
+            + escapeTags(text)
             + "</text>\n</article>";
     return ConverseRequest.builder()
         .modelId(settings.modelId())
@@ -191,13 +205,48 @@ public class BedrockArticleClassifier implements ArticleClassifier {
         .flatMap(input -> parser.parse(JsonDocuments.toJson(input)));
   }
 
-  /** Throttling, timeouts and service-side errors may pass; everything else will not. */
+  private static String escapeTags(String value) {
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+  }
+
+  /**
+   * Throttling, timeouts and service-side errors may pass; everything else will not. Other client
+   * errors, such as an expired SSO login, are not retried: they won't pass on a second try.
+   */
   private static boolean isTemporary(Throwable error) {
     return error instanceof ThrottlingException
         || error instanceof ServiceUnavailableException
         || error instanceof InternalServerException
         || error instanceof ModelNotReadyException
-        || error instanceof SdkClientException;
+        || error instanceof ApiCallTimeoutException
+        || error instanceof ApiCallAttemptTimeoutException;
+  }
+
+  /**
+   * Access denied (also how the hard cost stop's SCP shows up) and client errors such as an expired
+   * login are errors that need a person; anything else is a warning about one article.
+   */
+  private void logFailure(ArticleToClassify article, SdkException error) {
+    String outcome;
+    String message;
+    boolean needsPerson = true;
+    if (error instanceof AccessDeniedException) {
+      outcome = "failed-access-denied";
+      message = "Bedrock access denied: the cost stop (SCP) or the role's permissions";
+    } else if (error instanceof SdkClientException && !isTemporary(error)) {
+      outcome = "failed-client-error";
+      message = "Bedrock call could not be made; check the AWS login and settings";
+    } else {
+      outcome = "failed-bedrock-error";
+      message = "Bedrock call failed; classification stored as failed";
+      needsPerson = false;
+    }
+    (needsPerson ? LOG.atError() : LOG.atWarn())
+        .addKeyValue("article_id", article.articleId())
+        .addKeyValue("article_version", article.version())
+        .addKeyValue("outcome", outcome)
+        .addKeyValue("error", error.getClass().getSimpleName())
+        .log(message);
   }
 
   private void log(ArticleToClassify article, String outcome, long tokens) {

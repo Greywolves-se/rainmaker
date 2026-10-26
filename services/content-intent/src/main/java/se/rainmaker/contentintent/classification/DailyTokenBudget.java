@@ -8,6 +8,10 @@ import java.time.ZoneOffset;
  * A cap on the Bedrock tokens (input and output) used per UTC day (#148). Once it is reached, no
  * more calls are made that day; the articles stay unclassified and are classified the next day.
  *
+ * <p>The cap is checked before a call and charged after it, with the tokens the call really used.
+ * So the last call of the day, or calls running at the same time, can go a little over the cap: it
+ * is a brake, not exact accounting.
+ *
  * <p>The count is kept in memory, so it starts again when the app restarts. That is fine as a brake
  * on runaway loops; the monthly budget and its cost stop cover the rest.
  */

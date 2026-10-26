@@ -14,6 +14,8 @@ import se.rainmaker.contentintent.api.Zone;
  * @param region the AWS region Bedrock is called in, e.g. {@code eu-north-1}
  * @param modelId the inference profile to call, e.g. {@code eu.anthropic.claude-haiku-5-5}
  * @param maxTokens most tokens Claude may answer with; the answer is a short JSON
+ * @param maxTextChars most characters of the article text sent; a longer text is cut, so one call
+ *     can't use a large share of the daily token cap
  * @param timeout how long one call may take, including reading the answer
  * @param maxAttempts tries per article for temporary errors (throttling, timeouts), at least 1
  * @param backoff wait before the first retry; it doubles for each further retry
@@ -28,6 +30,7 @@ public record ClassifierProperties(
     String region,
     String modelId,
     int maxTokens,
+    int maxTextChars,
     Duration timeout,
     int maxAttempts,
     Duration backoff,
@@ -62,6 +65,7 @@ public record ClassifierProperties(
       require(region != null && !region.isBlank(), "region is required");
       require(modelId != null && !modelId.isBlank(), "model-id is required");
       require(maxTokens > 0, "max-tokens must be positive");
+      require(maxTextChars > 0, "max-text-chars must be positive");
       require(timeout != null && timeout.isPositive(), "timeout must be positive");
       require(maxAttempts >= 1, "max-attempts must be at least 1");
       require(backoff != null && backoff.isPositive(), "backoff must be positive");
