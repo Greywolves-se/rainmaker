@@ -21,8 +21,9 @@ import software.constructs.Construct;
  * this is free: Cost Anomaly Detection costs nothing, and SNS e-mails stay within the free tier.
  * The topic is not encrypted with a customer-managed KMS key, which would cost about $1 a month.
  *
- * <p>A budget for Bedrock alone cannot be filtered until Bedrock has billing history; the
- * account-wide budget ($50 a month) already covers it until then.
+ * <p>A budget for Bedrock alone cannot be filtered until Bedrock has billing history. Until then
+ * the rainmaker-dev budget covers it: 100 USD a month, kept in the management account, with the
+ * hard stop at 100 % (change log C-9).
  */
 public class CostGuardrailsStack extends Stack {
 

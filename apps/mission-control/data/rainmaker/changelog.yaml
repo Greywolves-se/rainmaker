@@ -31,7 +31,7 @@
   date: 2026-10-21
   title: "Planned, not done yet: deploy CostGuardrails-dev, the cost anomaly monitor for every service, the IMMEDIATE alert from $5 and the SNS topic rainmaker-cost-alerts (#161). Free. Then subscribe your e-mail to the topic. Update the date and title when it is done"
   owner: Emil
-  rollbackPlan: Delete the stack; the monitor, the subscription and the topic are deleted with it, and alerts stop. The account-wide budget keeps working
+  rollbackPlan: Delete the stack; the monitor, the subscription and the topic are deleted with it, and alerts stop. The rainmaker-dev budget and its hard stop (C-9) keep working
 - id: C-6
   date: 2026-10-21
   title: "Planned, not done yet: CDK bootstrap of the management account (eu-north-1) for this one stack, then deploy DeveloperAccess-dev there: the IAM Identity Center permission set RainmakerBedrockDeveloper, assigned to the developers for the rainmaker-dev account (#161). Free apart from the bootstrap (fractions of a cent a month). Update the date and title when it is done"
@@ -46,9 +46,9 @@
   date: 2026-10-22
   title: Quota increase requested in rainmaker-dev, eu-north-1, for Claude Haiku 5.5 cross-region tokens per minute (from 0 to 10,000,000, the console's minimum); open as an AWS Support case. Free; Bedrock is only billed per call (#161)
   owner: Emil
-  rollbackPlan: Withdraw the request in Service Quotas or the support case. Once granted, the quota can stay; it costs nothing unless Bedrock is called, and the cost alert and the $50 budget cover the account
+  rollbackPlan: Withdraw the request in Service Quotas or the support case. Once granted, the quota can stay; it costs nothing unless Bedrock is called, and the cost alert and the rainmaker-dev budget (100 USD a month, C-9) cover the account
 - id: C-9
   date: 2026-10-22
-  title: "Hard cost stop for rainmaker-dev, made by hand in the management account's console (an agreed exception to CDK-only, as a safety net): budget \"rainmaker-dev - Monthly Cost Budget ($20)\", filtered on rainmaker-dev, mails at 80 % and 100 %; at 100 % a budget action attaches the SCP rainmaker-dev-budget-stop-bedrock to rainmaker-dev, which denies every Bedrock model invocation in that account. Cost data lags a few hours, so the code still needs its own limits (#148). Could move into CDK later (#161)"
+  title: "Hard cost stop for rainmaker-dev, made by hand in the management account's console (an agreed exception to CDK-only, as a safety net): the budget \"rainmaker-dev - Monthly Budget\", 100 USD a month of actual cost filtered on the rainmaker-dev account, lives in the management account's AWS Budgets and is not visible from rainmaker-dev. It mails at 80 % and 100 %; at 100 % an automatically approved budget action attaches an SCP to rainmaker-dev that blocks API calls there. If calls in rainmaker-dev suddenly get AccessDenied, check this budget first (infra/README.md, Cost). Cost data lags a few hours, so the code still needs its own limits (#148). Could move into CDK later (#161)"
   owner: Emil
   rollbackPlan: "If the stop has fired and work should go on: Budgets, the rainmaker-dev budget, Actions, select the action, Reverse action; that detaches the SCP. To remove the stop: delete the budget action, then the budget, the SCP and the role rainmaker-dev-budget-action-role"
