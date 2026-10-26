@@ -84,6 +84,12 @@
         <artifactId>resilience4j-retry</artifactId>
         <version>${resilience4j.version}</version>
       </dependency>
+      <!-- Circuit breakers for calls to external systems (CLAUDE.md; #185, the Bedrock call). -->
+      <dependency>
+        <groupId>io.github.resilience4j</groupId>
+        <artifactId>resilience4j-circuitbreaker</artifactId>
+        <version>${resilience4j.version}</version>
+      </dependency>
       <dependency>
         <groupId>com.google.auth</groupId>
         <artifactId>google-auth-library-oauth2-http</artifactId>

@@ -32,6 +32,10 @@ class ClassifierConfigurationTest {
               PREFIX + "backoff=1s",
               PREFIX + "calls-per-minute=20",
               PREFIX + "daily-token-cap=200000",
+              PREFIX + "circuit-breaker.failure-rate-percent=50",
+              PREFIX + "circuit-breaker.window-size=10",
+              PREFIX + "circuit-breaker.minimum-calls=5",
+              PREFIX + "circuit-breaker.open-for=1m",
               PREFIX + "fake.zone=green",
               PREFIX + "fake.topics=home,personal-finance",
               PREFIX + "fake.reason-sv=Låtsas.",
@@ -82,6 +86,17 @@ class ClassifierConfigurationTest {
   void refusesToStartInBedrockModeWithoutTextLimit() {
     runner
         .withPropertyValues(PREFIX + "mode=bedrock", PREFIX + "max-text-chars=0")
+        .run(context -> assertThat(context).hasFailed());
+  }
+
+  @Test
+  void refusesToStartInBedrockModeWithoutValidCircuitBreaker() {
+    runner
+        .withPropertyValues(
+            PREFIX + "mode=bedrock", PREFIX + "circuit-breaker.failure-rate-percent=0")
+        .run(context -> assertThat(context).hasFailed());
+    runner
+        .withPropertyValues(PREFIX + "mode=bedrock", PREFIX + "circuit-breaker.open-for=0s")
         .run(context -> assertThat(context).hasFailed());
   }
 

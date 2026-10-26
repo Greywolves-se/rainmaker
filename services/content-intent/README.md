@@ -43,6 +43,7 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 | `max-attempts` / `backoff` | `3` / `1s` | Tries for temporary errors only; the wait roughly doubles each time, with jitter |
 | `calls-per-minute` | `20` | More calls in any minute leave the article `unclassified` |
 | `daily-token-cap` | `200000` | When used, articles stay `unclassified` until the next UTC day |
+| `circuit-breaker.*` | `50` %, `10`, `5`, `1m` | Opens when at least `failure-rate-percent` of the last `window-size` articles (at least `minimum-calls` seen) still failed after their retries; then no call for `open-for`, and one trial call decides (#185) |
 | `fake.*` | **red** (`RAINMAKER_FAKE_ZONE`), `home` | The fake classifier's answer for every article. Red by default, so nothing gets a panel without Claude; set `RAINMAKER_FAKE_ZONE=green` only for local work on matching or the widget. G2 logs a WARN at start-up while the fake is active |
 
 ### What happens when something goes wrong
@@ -50,7 +51,8 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 | Situation | Result | Retried? |
 |---|---|---|
 | Calls per minute or daily token cap used | `unclassified` (no call made) | Later, by the next run |
-| Throttling, timeout, service error | `failed` once `max-attempts` are used | Yes, with back-off |
+| Circuit breaker open (Bedrock kept failing) | `unclassified` (no call made); one WARN when it opens and one when it closes | Later, by the next run |
+| Throttling, timeout, service error, network error (e.g. a reset connection) | `failed` once `max-attempts` are used; counts toward the circuit breaker | Yes, with back-off and jitter |
 | Other client error, e.g. an expired SSO login | `failed`, logged as ERROR (`failed-client-error`) | No |
 | `AccessDenied` (also the hard cost stop's SCP, #161) | `failed`, logged as ERROR (`failed-access-denied`) | No |
 | Validation error, unknown model | `failed` | No |

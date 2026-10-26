@@ -55,5 +55,11 @@
       <groupId>io.github.resilience4j</groupId>
       <artifactId>resilience4j-retry</artifactId>
     </dependency>
+    <!-- A circuit breaker around the Bedrock call (#185, CLAUDE.md "Architecture rules"); same
+         project and version as resilience4j-retry, managed in the root POM. -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-circuitbreaker</artifactId>
+    </dependency>
   </dependencies>
 </project>
