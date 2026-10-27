@@ -26,5 +26,8 @@ The editor page: approve or reject suggested offers, with an audit log.
 - **Settings** (`rainmaker.publisher-control.articles.*`, in G3's `application.properties`): `base-url`
   (`RAINMAKER_G2_URL` in Docker), `connect-timeout`, `read-timeout`, `max-attempts`, `backoff`,
   `poll-interval`, and `polling=false` to turn the schedule off in tests.
-- **Not yet:** approving and rejecting with an audit log, the editor page, and the approved links API
-  for G1 (contract 7.3).
+- **`decision/SuggestionDecisions`** approves or rejects one suggestion and writes an audit row (who,
+  when, what) in `suggestion_audit`. A withdrawn suggestion, or one of an article that isn't green,
+  can't be decided. The same decision twice writes one row; a changed decision writes a new one. The
+  database refuses any change to an audit row (append-only).
+- **Not yet:** the editor page, and the approved links API for G1 (contract 7.3).
