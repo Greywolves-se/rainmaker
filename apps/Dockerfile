@@ -30,12 +30,15 @@ COPY apps/${APP}/ apps/${APP}/
 # The root POM alone (-N), then the services, then the app against them. Building this way means
 # the other modules of the root build (Mission Control, infra, ...) don't have to be copied.
 # Tests, formatting, Checkstyle and coverage run in CI; the image only packages the jar.
-RUN --mount=type=cache,target=/root/.m2 \
+# sharing=locked: G1, G2 and G3 build at the same time, and the Maven Wrapper's first download of
+# Maven into the shared cache fails now and then when two builds write it at once.
+RUN --mount=type=cache,target=/root/.m2,sharing=locked \
     ./mvnw -B -q -N install \
         -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true -Djacoco.skip=true \
     && ./mvnw -B -q -f services/pom.xml install \
         -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true -Djacoco.skip=true \
-    && ./mvnw -B -q -f apps/${APP}/pom.xml package -DskipTests \
+    && ./mvnw -B -q -f apps/${APP}/pom.xml package \
+        -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true -Djacoco.skip=true \
     && cp apps/${APP}/target/${APP}-*.jar /app.jar
 
 FROM eclipse-temurin:21-jre-noble AS app

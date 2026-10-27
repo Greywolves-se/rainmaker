@@ -82,6 +82,9 @@ services:
       # article gets a panel. green only for local work on matching or the widget; then red
       # articles get a panel too (#148).
       RAINMAKER_FAKE_ZONE: ${RAINMAKER_FAKE_ZONE:-red}
+      # G2 fetches the offers from G3 (#149, #190). G2 shares the test site's network, where
+      # localhost:8083 isn't G3, so it uses G3's service name.
+      RAINMAKER_G3_URL: http://g3:8083
     depends_on:
       postgres:
         condition: service_healthy
