@@ -13,7 +13,7 @@ Serves rainmaker.js its links and handles clicks. The hot path: it must stay fas
 
   ```
   docker compose up -d
-  (cd widget && npm install && npm run build)
+  (cd widget && npm ci && npm run build)
   ./mvnw -pl apps/g1-reader-app -am package -DskipTests
   java -jar apps/g1-reader-app/target/g1-reader-app-0.1.0-SNAPSHOT.jar
   ```
@@ -23,6 +23,9 @@ Serves rainmaker.js its links and handles clicks. The hot path: it must stay fas
   `rainmaker.widget-delivery.script-location` (default `file:widget/dist/rainmaker.js`, relative to
   the folder G1 is started from), on every request: after `npm run build`, reload the page, no
   restart. Without the build, the address answers 404 and the article page works without a panel.
+  `npm ci` installs exactly the versions in `widget/package-lock.json`. A reload while
+  `npm run build` is running can briefly get a 404 or a half-written file, because Vite empties
+  `dist/` first; the page still works (fail open), and the next reload gets the new script.
 
   `spring-boot:run` together with `-am` doesn't work: Maven then runs it on every module it
   builds, and the root POM and the services have no main class.
