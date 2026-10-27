@@ -37,5 +37,25 @@
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <!-- S6's api: the ArticleClassified event and the Topic and Zone types (#149). Same app (G2),
+         so only the api package; the app's ArchUnit test checks it. -->
+    <dependency>
+      <groupId>se.rainmaker</groupId>
+      <artifactId>content-intent</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!-- Retries with back-off on the call to G3's offers API (CLAUDE.md, "External calls");
+         managed in the root POM, as in content-intent and the collector. -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-retry</artifactId>
+    </dependency>
+
+    <!-- A fake G3 in the tests: external APIs are never called from tests (CLAUDE.md). -->
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>
