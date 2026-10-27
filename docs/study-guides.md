@@ -51,6 +51,22 @@ code or product uses it (for example the panel label "Annons").
 
 Check every quiz answer against the code. A guide that teaches something wrong is worse than none.
 
+Spread the correct answers over all positions (A, B, C, D) with no pattern: written as they
+come, they tend to land on the same letter, and the quiz then tests nothing. Count the letters of
+the correct answers before publishing.
+
+Don't let the options give the answer away. Written as they come, the correct option is the long,
+careful one and the wrong ones are short throwaways ("It is faster."), so picking the longest
+option wins (#195):
+
+- **Wrong options are real misconceptions:** the mistake a developer could plausibly make, such
+  as "a CountDownLatch guarantees the inserts overlap". Each one must still be false; check it
+  against the code like the correct answer.
+- **All four options are about as long.** Keep the correct option short, and put the reasons in
+  the explanation shown after answering.
+- **Before publishing, compare the lengths:** the correct option should be the longest in about a
+  quarter of the questions, as often as chance would make it.
+
 ## Publishing the guide
 
 - **One self-contained HTML file**, written for the Artifact tool (it adds the document skeleton;
