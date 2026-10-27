@@ -34,6 +34,8 @@ rainmaker/
 ├── docker-compose.yml   local PostgreSQL; its init script is in docker/postgres/
 ├── infra/               AWS CDK app (Java): every AWS resource, created through the pipeline
 └── portals/             React apps for publishers and admins, not Maven (empty for now)
+├── widget/              rainmaker.js, TypeScript, not Maven         (panel on headline hover, #152)
+└── portals/             React apps, not Maven                       (empty for now)
 ```
 
 The apps assemble the services (#145, #155); G4 (`apps/g4-money-app`) is added later.
