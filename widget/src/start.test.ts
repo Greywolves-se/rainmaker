@@ -97,6 +97,20 @@ describe('rainmaker.js on an article page', () => {
     );
   });
 
+  it("keeps the panel out of reach of the page's rules for ordinary elements", async () => {
+    answerWith(200, APPROVED_LINKS);
+    const pageStyle = document.createElement('style');
+    pageStyle.textContent = 'div { display: none; padding: 20px; }';
+    document.head.append(pageStyle);
+    start(widgetScript());
+
+    await hover(OPEN_DELAY_MS);
+
+    const host = document.querySelector<HTMLElement>('[data-rainmaker-panel]')!;
+    expect(host.localName).toBe('rainmaker-panel');
+    expect(getComputedStyle(host).display).not.toBe('none');
+  });
+
   it('closes the panel when the pointer leaves the headline', async () => {
     answerWith(200, APPROVED_LINKS);
     start(widgetScript());
@@ -173,6 +187,31 @@ describe('rainmaker.js on an article page', () => {
     await hover(10_000);
 
     expect(document.body.innerHTML).toBe(pageBefore);
+    expect(uncaughtErrors).toEqual([]);
+  });
+
+  it('shows no panel when the pointer leaves before a slow answer arrives', async () => {
+    let answer: (response: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>(resolve => {
+            answer = resolve;
+          })
+      )
+    );
+    start(widgetScript());
+
+    await hover(OPEN_DELAY_MS + 100);
+    headline().dispatchEvent(new MouseEvent('mouseleave'));
+    answer(new Response(JSON.stringify(APPROVED_LINKS), {status: 200}));
+    // Look before the 200 ms close timer could hide a panel that wrongly opened.
+    await vi.advanceTimersByTimeAsync(10);
+    expect(panel()).toBeNull();
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(panel()).toBeNull();
     expect(uncaughtErrors).toEqual([]);
   });
 

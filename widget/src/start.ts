@@ -1,7 +1,9 @@
 import {failOpen} from './fail-open';
 import {attachHoverPanel} from './hover-panel';
-import {ApprovedLink, fetchApprovedLinks} from './links-api';
-import {Settings, articleUrl, readSettings} from './page';
+import {fetchApprovedLinks} from './links-api';
+import type {ApprovedLink} from './links-api';
+import {articleUrl, readSettings} from './page';
+import type {Settings} from './page';
 import {createPanel} from './panel';
 import {textsFor} from './translations';
 

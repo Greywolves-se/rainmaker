@@ -30,10 +30,14 @@ How it works:
   `fetchApprovedLinks` for the API call (an error, a non-200 answer or 2 s without an answer
   means no links). Tests check each one. Errors are dropped silently for now; reporting them is
   #175.
-- **Isolated from the page:** the panel lives in a Shadow DOM and is positioned absolutely, so
-  the page's CSS doesn't reach it and nothing on the page moves. Its CSS is a constructed
-  stylesheet, which a Content-Security-Policy with `style-src 'self'` (like the fake-news
-  site's) allows.
+- **Isolated from the page, as far as a script can be:** the panel's content lives in a Shadow
+  DOM, so the page's CSS doesn't reach it, and its host is positioned absolutely, so nothing on
+  the page moves. The host is its own element, `<rainmaker-panel>`, so page rules for ordinary
+  elements (`div { … }`) don't match it; rules that match every element (`body > * { … }`) still
+  could. Its CSS is a constructed stylesheet, which a Content-Security-Policy with
+  `style-src 'self'` (like the fake-news site's) allows.
+- **Quiet:** the widget never writes to the reader's console. The browser itself still logs a
+  request that fails (for example when the API is down); a script can't prevent that.
 - **Texts from translation files:** `src/translations/sv.json` and `en.json`, chosen by
   `<html lang>`.
 - **Small:** at most 15 KB gzipped (architecture, acceptance criteria for A1). `npm run build`

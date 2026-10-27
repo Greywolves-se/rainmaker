@@ -32,6 +32,13 @@ const PANEL_CSS = `
 `;
 
 /**
+ * The host element's own tag, so page rules for ordinary elements (e.g. {@code div { padding }}) don't
+ * match it. Rules that match every element (e.g. {@code body > *}) still can; nothing a script adds
+ * to someone else's page is fully out of reach.
+ */
+const HOST_TAG = 'rainmaker-panel';
+
+/**
  * Builds the panel for the approved links, placed just below the headline. The returned element
  * is not on the page yet. It is positioned absolutely, so adding it moves nothing (no layout
  * shift). All text goes in as text, never as HTML.
@@ -41,7 +48,7 @@ export function createPanel(
   texts: Texts,
   headline: Element
 ): HTMLElement {
-  const host = document.createElement('div');
+  const host = document.createElement(HOST_TAG);
   host.setAttribute('data-rainmaker-panel', '');
   placeBelow(host, headline);
 
