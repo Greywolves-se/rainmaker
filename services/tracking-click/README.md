@@ -17,6 +17,13 @@ The click redirect: stores each click once and sends the reader to the offer.
     expired. The signature is checked before anything in the payload is read, and the destination
     only ever comes from a signed link (no open redirect).
   - Opening a link (`GET /c/{token}`: store the click once, then redirect) is part 2.
+- **Stored clicks** (#153 part 2, contract 3.6): `click/ClickStore` writes one row per click id to
+  the `click` table (`V2__click.sql`): click id, article, offer and time; no IP, cookie or user id.
+  - The click id is the primary key and the insert is `ON CONFLICT DO NOTHING`, so a double-click,
+    a retry or two requests at the same time are one row.
+  - The table is append-only: the database refuses `UPDATE`, `DELETE` and `TRUNCATE` on it. A
+    mistake is corrected with a new compensating record (CLAUDE.md, product rules).
+  - `ClickStoreTest` runs against a real PostgreSQL (Testcontainers), so Docker must be running.
 - **Data:** its own PostgreSQL database `tracking_click` with its own login, never another module's
   (architecture D16). `database/TrackingClickDatabaseConfiguration` sets it up:
   - migrations go in `src/main/resources/db/migration/tracking-click/` (`V2__…sql` and up; never edit a
