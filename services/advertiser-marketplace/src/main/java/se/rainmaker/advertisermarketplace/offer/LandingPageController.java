@@ -79,7 +79,11 @@ class LandingPageController {
         offers
             .find(offerId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No offer"));
-    return ResponseEntity.ok().contentType(HTML).body(page(offer, language(acceptLanguage)));
+    return ResponseEntity.ok()
+        .contentType(HTML)
+        // The language depends on this header, so a cache must not reuse the page for another.
+        .header(HttpHeaders.VARY, HttpHeaders.ACCEPT_LANGUAGE)
+        .body(page(offer, language(acceptLanguage)));
   }
 
   /**

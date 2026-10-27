@@ -27,6 +27,8 @@ Advertisers, offers and their landing pages.
   address) plus `/landing/{offerId}`, so no address is stored in the database.
   **Demo only:** every offer is fictional. Real advertisers will need their own URL stored per offer (a new
   `destination_url` column), and the landing pages would then only be for test offers.
+  **In Docker** (#146), set `RAINMAKER_ADVERTISERMARKETPLACE_LANDINGBASEURL` to the address the browser uses for
+  G3 (e.g. `http://localhost:8083`); Spring reads it as `rainmaker.advertiser-marketplace.landing-base-url`.
 - **Text:** the page's labels and the category names come from
   `src/main/resources/advertiser-marketplace/messages*.properties`: Swedish by default, English when the browser
   asks for it. The offer's own text is shown as stored, always HTML-escaped.
