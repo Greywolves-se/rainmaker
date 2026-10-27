@@ -106,6 +106,8 @@ class ClickRedirectControllerTest {
     mockMvc
         .perform(get("/c/not-a-click-link").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
         .andExpect(status().isBadRequest())
+        .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+        .andExpect(header().string(HttpHeaders.VARY, HttpHeaders.ACCEPT_LANGUAGE))
         .andExpect(content().string(containsString("The link is invalid")));
 
     verifyNoInteractions(clicks);
@@ -120,6 +122,8 @@ class ClickRedirectControllerTest {
         .perform(opening(link))
         .andExpect(status().isGone())
         .andExpect(header().doesNotExist(HttpHeaders.LOCATION))
+        .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+        .andExpect(header().string(HttpHeaders.VARY, HttpHeaders.ACCEPT_LANGUAGE))
         .andExpect(content().string(containsString("Länken har gått ut")));
 
     verifyNoInteractions(clicks);
@@ -133,6 +137,8 @@ class ClickRedirectControllerTest {
         .perform(opening(newLink()).header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
         .andExpect(status().isServiceUnavailable())
         .andExpect(header().doesNotExist(HttpHeaders.LOCATION))
+        .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+        .andExpect(header().string(HttpHeaders.VARY, HttpHeaders.ACCEPT_LANGUAGE))
         .andExpect(content().string(containsString("Please try again")));
   }
 
