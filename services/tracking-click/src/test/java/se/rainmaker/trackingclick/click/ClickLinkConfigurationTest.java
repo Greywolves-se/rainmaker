@@ -2,6 +2,7 @@ package se.rainmaker.trackingclick.click;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +49,14 @@ class ClickLinkConfigurationTest {
             });
 
     assertThat(output).contains("WARN").contains("RAINMAKER_CLICK_SIGNING_KEY");
+  }
+
+  @Test
+  void settingsNeverPrintTheKey() {
+    ClickLinkProperties settings =
+        new ClickLinkProperties("http://localhost:8081", Duration.ofHours(24), KEY);
+
+    assertThat(settings.toString()).doesNotContain(KEY).contains("signingKey=<set>");
   }
 
   @Test

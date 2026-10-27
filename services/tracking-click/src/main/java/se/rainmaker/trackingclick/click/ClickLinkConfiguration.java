@@ -35,7 +35,7 @@ public class ClickLinkConfiguration {
   }
 
   private static byte[] signingKey(ClickLinkProperties settings, SecureRandom random) {
-    if (!settings.hasNoSigningKey()) {
+    if (settings.hasSigningKey()) {
       return settings.signingKey().getBytes(StandardCharsets.UTF_8);
     }
     LOG.warn(

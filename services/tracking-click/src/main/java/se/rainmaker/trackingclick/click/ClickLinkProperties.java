@@ -37,8 +37,20 @@ record ClickLinkProperties(String baseUrl, Duration lifetime, String signingKey)
     }
   }
 
-  /** True when no key is configured. */
-  boolean hasNoSigningKey() {
-    return signingKey == null || signingKey.isBlank();
+  /** True when a key is configured. */
+  boolean hasSigningKey() {
+    return signingKey != null && !signingKey.isBlank();
+  }
+
+  /** Never the key itself: a record's own {@code toString} would print it in any log of this. */
+  @Override
+  public String toString() {
+    return "ClickLinkProperties[baseUrl="
+        + baseUrl
+        + ", lifetime="
+        + lifetime
+        + ", signingKey="
+        + (hasSigningKey() ? "<set>" : "<not set>")
+        + "]";
   }
 }
