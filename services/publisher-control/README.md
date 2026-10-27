@@ -13,3 +13,18 @@ The editor page: approve or reject suggested offers, with an audit log.
   - inject the client with `@Qualifier(PublisherControlDatabaseConfiguration.JDBC_CLIENT) JdbcClient`;
   - mark transactions with `@Transactional(PublisherControlDatabaseConfiguration.TRANSACTION_MANAGER)`; an
     unnamed `@Transactional` is ambiguous, because an app holds several modules' databases.
+
+## What it does so far (#150, part 1)
+
+- **`articles/`** copies G2's articles and suggestions. Every `poll-interval` it asks G2's articles API
+  for the changes since the last answer (`GET /api/articles?since=…`, contract 7.1), with timeouts and
+  retries. If G2 is down, nothing changes and the next poll asks again, so G2 and G3 can start in any
+  order.
+  - A new article version withdraws the whole earlier set, even approved suggestions (D-5).
+  - A suggestion missing from G2's current set is withdrawn.
+  - An article that isn't classified + green keeps no open suggestions, whatever G2 sends (D-4).
+- **Settings** (`rainmaker.publisher-control.articles.*`, in G3's `application.properties`): `base-url`
+  (`RAINMAKER_G2_URL` in Docker), `connect-timeout`, `read-timeout`, `max-attempts`, `backoff`,
+  `poll-interval`, and `polling=false` to turn the schedule off in tests.
+- **Not yet:** approving and rejecting with an audit log, the editor page, and the approved links API
+  for G1 (contract 7.3).
