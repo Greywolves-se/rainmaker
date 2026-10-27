@@ -46,4 +46,11 @@ The editor page: approve or reject suggested offers, with an audit log.
   when, what) in `suggestion_audit`. A withdrawn suggestion, or one of an article that isn't green,
   can't be decided. The same decision twice writes one row; a changed decision writes a new one. The
   database refuses any change to an audit row (append-only).
-- **Not yet:** the approved links API for G1 (contract 7.3).
+- **The approved links API for G1:** `GET /api/approved-links?url=…` (`links/`, contract 7.3).
+  - A link is given only when the suggestion is approved, belongs to the article's latest version, and
+    G2 says at that moment that this version is classified + green (contract 5).
+  - G2 is asked on every call (`GET /api/articles?url=…`), with the caller's `X-Correlation-Id`. If G2
+    can't answer, the API answers `503`, never the last known links (fail closed).
+  - An unknown article gives `"articleId": null` and `"links": []`. A missing or non-http(s) `url`
+    gives `400`.
+  - `destinationUrl` is for G1's signed click link; it never goes to the reader's browser.
