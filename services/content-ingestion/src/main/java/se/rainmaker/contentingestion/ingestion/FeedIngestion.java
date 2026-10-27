@@ -1,8 +1,12 @@
 package se.rainmaker.contentingestion.ingestion;
 
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.SecureRandom;
+import java.time.Clock;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -30,7 +34,9 @@ import se.rainmaker.contentingestion.site.SiteUnavailableException;
  *   <li>A feed that is down or invalid is logged; the next poll tries again. One article page that
  *       fails only skips that article.
  *   <li>Pages are only read from the feed's own site, so a feed can never make ingestion call
- *       another address.
+ *       another address. A link that isn't a valid address is skipped and logged; the rest of the
+ *       feed is still read.
+ *   <li>Article and correlation ids are UUIDv7, sorted by creation time (contract section 3).
  * </ul>
  */
 public class FeedIngestion {
@@ -44,6 +50,8 @@ public class FeedIngestion {
   private final ArticlePageParser pageParser;
   private final ArticleVersions versions;
   private final Consumer<ArticleStored> announcer;
+  private final Clock clock;
+  private final Random random = new SecureRandom();
 
   FeedIngestion(
       URI feedUrl,
@@ -51,13 +59,15 @@ public class FeedIngestion {
       RssFeedParser feedParser,
       ArticlePageParser pageParser,
       ArticleVersions versions,
-      Consumer<ArticleStored> announcer) {
+      Consumer<ArticleStored> announcer,
+      Clock clock) {
     this.feedUrl = Objects.requireNonNull(feedUrl);
     this.site = site;
     this.feedParser = feedParser;
     this.pageParser = pageParser;
     this.versions = versions;
     this.announcer = announcer;
+    this.clock = Objects.requireNonNull(clock);
   }
 
   /** Reads the feed once. Never throws for a site that is down or sends something invalid. */
@@ -83,7 +93,14 @@ public class FeedIngestion {
     if (latest.isPresent() && !item.lastModified().isAfter(latest.get().lastModified())) {
       return;
     }
-    URI page = URI.create(item.url());
+    URI page;
+    try {
+      page = new URI(item.url());
+    } catch (URISyntaxException notAnAddress) {
+      // Only another publisher's feed could have one; it must not stop the rest of the poll.
+      LOG.warn("Skipped {}: not a valid address", item.url());
+      return;
+    }
     if (!sameSite(page)) {
       LOG.warn("Skipped {}: not on the feed's site {}", item.url(), feedUrl);
       return;
@@ -91,7 +108,7 @@ public class FeedIngestion {
     ArticlePage article = pageParser.parse(site.read(page), item.url());
     ArticleStored stored =
         new ArticleStored(
-            latest.map(LatestVersion::articleId).orElseGet(UUID::randomUUID),
+            latest.map(LatestVersion::articleId).orElseGet(this::newId),
             latest.map(version -> version.version() + 1).orElse(1),
             item.url(),
             item.headline(),
@@ -100,7 +117,7 @@ public class FeedIngestion {
             language,
             item.publishedAt(),
             item.lastModified().equals(item.publishedAt()) ? null : item.lastModified(),
-            UUID.randomUUID().toString());
+            newId().toString());
     MDC.put(CORRELATION_ID, stored.correlationId());
     try {
       if (versions.insert(stored, item.externalId(), item.lastModified())) {
@@ -110,6 +127,10 @@ public class FeedIngestion {
     } finally {
       MDC.remove(CORRELATION_ID);
     }
+  }
+
+  private UUID newId() {
+    return UuidV7.create(clock.instant(), random);
   }
 
   private boolean sameSite(URI page) {

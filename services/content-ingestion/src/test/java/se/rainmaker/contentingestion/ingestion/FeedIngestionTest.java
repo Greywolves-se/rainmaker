@@ -11,10 +11,12 @@ import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import java.net.URI;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,7 +81,8 @@ class FeedIngestionTest {
             new RssFeedParser(),
             new ArticlePageParser(),
             new ArticleVersions(database),
-            events::add);
+            events::add,
+            Clock.systemUTC());
     servePage(BADRUM, "bostad", "Byt inte golvet i onödan.");
     servePage(ELBIL, "motor", "Räckvidden räcker.");
   }
@@ -102,8 +105,9 @@ class FeedIngestionTest {
     assertThat(stored.language()).isEqualTo("sv");
     assertThat(stored.publishedAt()).isEqualTo(Instant.parse("2026-10-10T05:45:00Z"));
     assertThat(stored.updatedAt()).isNull();
-    assertThat(stored.articleId()).isNotNull();
-    assertThat(stored.correlationId()).isNotBlank();
+    // Ids are UUIDv7, sorted by creation time (contract section 3).
+    assertThat(stored.articleId().version()).isEqualTo(7);
+    assertThat(UUID.fromString(stored.correlationId()).version()).isEqualTo(7);
   }
 
   @Test
@@ -178,6 +182,23 @@ class FeedIngestionTest {
     ingestion.pollOnce();
 
     assertThat(storedVersions()).isEqualTo(2);
+  }
+
+  @Test
+  void skipsLinkThatIsNoValidAddressAndReadsTheRest(CapturedOutput output) {
+    // A space makes the link an invalid URI; only someone else's feed could have one.
+    serveFeed(
+        item(
+                "vb-0098",
+                site.baseUrl() + "/artikel/med mellanslag",
+                "Trasig",
+                "2026-10-10T07:45:00+02:00")
+            + item("vb-0006", BADRUM, "Badrummet", "2026-10-10T07:45:00+02:00"));
+
+    ingestion.pollOnce();
+
+    assertThat(output).contains("not a valid address");
+    assertThat(events).extracting(ArticleStored::headline).containsExactly("Badrummet");
   }
 
   @Test

@@ -1,5 +1,6 @@
 package se.rainmaker.contentingestion.ingestion;
 
+import java.time.Clock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -34,7 +35,8 @@ class FeedIngestionConfiguration {
         new RssFeedParser(),
         new ArticlePageParser(),
         new ArticleVersions(database),
-        events::publishEvent);
+        events::publishEvent,
+        Clock.systemUTC());
   }
 
   /** The first poll runs at start-up, the next one {@code poll-interval} after it ends. */
