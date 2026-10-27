@@ -18,6 +18,7 @@ final class FakeG2Articles {
 
   static final String ARTICLES = "/api/articles";
   static final String NEXT_SINCE = "2026-10-30T09:15:05Z";
+  static final String CHANGED_AT = "\"changedAt\": \"2026-10-30T09:15:05Z\"";
   static final UUID HOME_OFFER = UUID.fromString("01a1629f-c407-7538-b453-538453d70007");
   static final UUID TRAVEL_OFFER = UUID.fromString("01a1629f-c401-79e3-9779-9e3779b10001");
 
@@ -49,9 +50,21 @@ final class FakeG2Articles {
            "reason": {"sv": "Praktiska råd.", "en": "Practical advice."},
            "model": "claude-haiku-5-5", "classifiedAt": "2026-10-30T09:15:04Z"},
          "suggestions": [%s],
-         "changedAt": "2026-10-30T09:15:05Z", "correlationId": "c0a1"}
+         %s, "correlationId": "c0a1"}
         """;
-    return json.formatted(articleId, version, articleId, zone, String.join(",", suggestions));
+    return json.formatted(
+        articleId, version, articleId, zone, String.join(",", suggestions), CHANGED_AT);
+  }
+
+  /**
+   * An article G2 hasn't classified yet, or couldn't: status {@code unclassified} or {@code
+   * failed}.
+   */
+  static String notClassified(UUID articleId, String status) {
+    return article(articleId, 1, "green")
+        .replace(
+            "\"status\": \"classified\", \"zone\": \"green\"",
+            "\"status\": \"" + status + "\", \"zone\": null");
   }
 
   /** One suggestion of an article's set. */

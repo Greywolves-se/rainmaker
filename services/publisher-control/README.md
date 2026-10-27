@@ -14,7 +14,23 @@ The editor page: approve or reject suggested offers, with an audit log.
   - mark transactions with `@Transactional(PublisherControlDatabaseConfiguration.TRANSACTION_MANAGER)`; an
     unnamed `@Transactional` is ambiguous, because an app holds several modules' databases.
 
-## What it does so far (#150, part 1)
+## What it does so far (#150)
+
+> **No login.** The editor page is for the local demo only: anyone who can reach G3 can approve or
+> reject, and every decision is saved as `demo-editor`. The page says so too. A login comes later
+> (#150: "Not now").
+
+- **The editor page:** <http://localhost:8083/publisher/articles> (`editor/`, contract 7.6).
+  - It lists the 100 most recently changed articles: the headline, the zone (or "Not classified yet" /
+    "Couldn't be classified") and Claude's reason.
+  - A green article also gets its open suggestions: the offer's advertiser and title (from S4's
+    `OfferCatalog`), the matched topic and the status, with Approve and Reject buttons. A red, yellow
+    or unclassified article shows "No suggestions".
+  - The buttons post to `/publisher/suggestions/{id}/approve` or `…/reject`, then go back to the page
+    (303). An unknown suggestion gives 404; one that can't be decided any more gives 409. Both get a
+    short page that says why.
+  - Texts are in `src/main/resources/publisher-control/messages*.properties`, Swedish by default and
+    English when the browser asks for it. Text from G2 and the offers is always HTML-escaped.
 
 - **`articles/`** copies G2's articles and suggestions. Every `poll-interval` it asks G2's articles API
   for the changes since the last answer (`GET /api/articles?since=…`, contract 7.1), with timeouts and
@@ -30,4 +46,4 @@ The editor page: approve or reject suggested offers, with an audit log.
   when, what) in `suggestion_audit`. A withdrawn suggestion, or one of an article that isn't green,
   can't be decided. The same decision twice writes one row; a changed decision writes a new one. The
   database refuses any change to an audit row (append-only).
-- **Not yet:** the editor page, and the approved links API for G1 (contract 7.3).
+- **Not yet:** the approved links API for G1 (contract 7.3).
