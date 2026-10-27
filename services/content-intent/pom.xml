@@ -37,5 +37,23 @@
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <!-- Checks Claude's answer against the contract's schema (#148, contract section 8). Version
+         managed in the root POM; the collector already uses it. -->
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+    </dependency>
+    <!-- Calls Claude on Amazon Bedrock (#148, contract D-8). Version from the AWS BOM in the
+         root POM. Credentials come from the environment: SSO locally, the task role in AWS. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>bedrockruntime</artifactId>
+    </dependency>
+    <!-- Retries with back-off for the Bedrock call (CLAUDE.md, "Architecture rules"); already
+         managed in the root POM and used by the collector. -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-retry</artifactId>
+    </dependency>
   </dependencies>
 </project>

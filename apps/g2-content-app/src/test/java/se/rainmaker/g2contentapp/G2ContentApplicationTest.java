@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,6 +21,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.MountableFile;
 import se.rainmaker.contentingestion.database.ContentIngestionDatabaseConfiguration;
+import se.rainmaker.contentintent.api.ArticleClassifier;
+import se.rainmaker.contentintent.api.ArticleToClassify;
+import se.rainmaker.contentintent.api.Classification;
+import se.rainmaker.contentintent.api.Zone;
 import se.rainmaker.contentintent.database.ContentIntentDatabaseConfiguration;
 import se.rainmaker.matchingranking.database.MatchingRankingDatabaseConfiguration;
 
@@ -79,6 +84,24 @@ class G2ContentApplicationTest {
   @Autowired
   @Qualifier(MatchingRankingDatabaseConfiguration.JDBC_CLIENT)
   private JdbcClient matchingRanking;
+
+  @Autowired private ArticleClassifier classifier;
+
+  /**
+   * Without RAINMAKER_CLASSIFIER_MODE=bedrock, G2 uses the fake classifier. Its default must fail
+   * closed, so a red article (a robbery, a fatal accident) never gets suggestions or a panel (#173
+   * review, CLAUDE.md "Product rules").
+   */
+  @Test
+  void defaultFakeClassificationNeverAllowsSuggestions() {
+    Classification classification =
+        classifier.classify(
+            new ArticleToClassify(
+                UUID.randomUUID(), 1, "Två döda i trafikolycka", "Två personer omkom."));
+
+    assertThat(classification.zone()).isEqualTo(Zone.RED);
+    assertThat(classification.mayGetSuggestions()).isFalse();
+  }
 
   @Test
   void startsOnItsOwnPort() {
