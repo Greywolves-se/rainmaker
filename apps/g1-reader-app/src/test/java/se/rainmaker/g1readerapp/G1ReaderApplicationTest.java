@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,9 +31,10 @@ import se.rainmaker.trackingclick.database.TrackingClickDatabaseConfiguration;
 
 /**
  * The app starts against a real PostgreSQL set up exactly like the local one (#155), and serves
- * rainmaker.js (#152).
+ * rainmaker.js (#152). It runs as on a developer's machine, with the local profile (#153).
  */
 @SpringBootTest
+@ActiveProfiles("local")
 @AutoConfigureMockMvc
 @Testcontainers
 class G1ReaderApplicationTest {

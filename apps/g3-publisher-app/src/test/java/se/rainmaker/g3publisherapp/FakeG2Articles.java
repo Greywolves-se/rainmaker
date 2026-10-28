@@ -17,24 +17,17 @@ import se.rainmaker.publishercontrol.articles.ArticleSync;
 final class FakeG2Articles {
 
   static final String ARTICLES = "/api/articles";
-  static final String NEXT_SINCE = "2026-10-30T09:15:05Z";
-  static final String CHANGED_AT = "\"changedAt\": \"2026-10-30T09:15:05Z\"";
+  static final String PUBLISHED_AT = "\"publishedAt\": \"2026-10-10T05:45:00Z\"";
   static final UUID HOME_OFFER = UUID.fromString("01a1629f-c407-7538-b453-538453d70007");
   static final UUID TRAVEL_OFFER = UUID.fromString("01a1629f-c401-79e3-9779-9e3779b10001");
 
   private FakeG2Articles() {}
 
-  /** Makes the fake G2 answer with these articles, then lets G3 poll once. */
+  /** Makes the fake G2's snapshot these articles, then lets G3 poll once. */
   static void g2Sends(WireMockExtension g2, ArticleSync sync, String... articles) {
     g2.stubFor(
         get(urlPathEqualTo(ARTICLES))
-            .willReturn(
-                okJson(
-                    "{\"articles\": ["
-                        + String.join(",", articles)
-                        + "], \"nextSince\": \""
-                        + NEXT_SINCE
-                        + "\"}")));
+            .willReturn(okJson("{\"articles\": [" + String.join(",", articles) + "]}")));
     sync.pollOnce();
   }
 
@@ -44,16 +37,16 @@ final class FakeG2Articles {
         """
         {"articleId": "%s", "externalId": "vb-0006", "version": %d,
          "url": "http://localhost:3000/artikel/%s", "headline": "Badrummet som håller i 40 år",
-         "section": "bostad", "language": "sv", "publishedAt": "2026-10-10T05:45:00Z",
+         "section": "bostad", "language": "sv", %s,
          "updatedAt": null,
          "classification": {"status": "classified", "zone": "%s", "topics": ["home"],
            "reason": {"sv": "Praktiska råd.", "en": "Practical advice."},
            "model": "claude-haiku-5-5", "classifiedAt": "2026-10-30T09:15:04Z"},
          "suggestions": [%s],
-         %s, "correlationId": "c0a1"}
+         "correlationId": "c0a1"}
         """;
     return json.formatted(
-        articleId, version, articleId, zone, String.join(",", suggestions), CHANGED_AT);
+        articleId, version, articleId, PUBLISHED_AT, zone, String.join(",", suggestions));
   }
 
   /**
