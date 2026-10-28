@@ -37,9 +37,10 @@ import se.rainmaker.matchingranking.api.Suggestion;
 
 /**
  * Matching in G2 (#149): a classified article gets suggestions from G3's offers (a fake G3 here),
- * and loses them when it is no longer green. The database is real (Testcontainers).
+ * and loses them when it is no longer green. The database is real (Testcontainers). Feed polling is
+ * off, so the test never reads a real site.
  */
-@SpringBootTest
+@SpringBootTest(properties = "rainmaker.content-ingestion.feed.polling=false")
 @ExtendWith(OutputCaptureExtension.class)
 class MatchingTest {
 
