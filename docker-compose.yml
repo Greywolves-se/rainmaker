@@ -106,6 +106,9 @@ services:
       - "127.0.0.1:8083:8083"
     environment:
       RAINMAKER_DB_HOST: postgres
+      # G3 polls G2's articles (#150, #197). G2 shares the test site's network (see g2 above), so
+      # it is reached at test-site:8082; localhost:8082 here would be G3 itself.
+      RAINMAKER_G2_URL: http://test-site:8082
     depends_on:
       postgres:
         condition: service_healthy
