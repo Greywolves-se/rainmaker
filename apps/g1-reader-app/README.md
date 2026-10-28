@@ -15,8 +15,13 @@ Serves rainmaker.js its links and handles clicks. The hot path: it must stay fas
   docker compose up -d
   (cd widget && npm ci && npm run build)
   ./mvnw -pl apps/g1-reader-app -am package -DskipTests
-  java -jar apps/g1-reader-app/target/g1-reader-app-0.1.0-SNAPSHOT.jar
+  java -jar apps/g1-reader-app/target/g1-reader-app-0.1.0-SNAPSHOT.jar --spring.profiles.active=local
   ```
+
+  **The `local` profile** (`application-local.properties`) is for a developer's machine and the
+  local Docker stack only. It points the click links at `http://localhost:8081` and lets G1 sign
+  them with a random key for each run when `RAINMAKER_CLICK_SIGNING_KEY` isn't set. Without the
+  profile, G1 doesn't start unless both `RAINMAKER_CLICK_BASE_URL` and the key are set (#153).
 
   The widget step builds `widget/dist/rainmaker.js`, which G1 serves at
   `http://localhost:8081/widget/rainmaker.js` (#152, contract D-7). G1 reads it from

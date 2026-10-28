@@ -178,6 +178,8 @@ in "nyheter" can be about travel, and "nyheter" can't be matched to an offer.
   in G3 use the same values. Display names come from the sv/en translation files (`CLAUDE.md`).
 - Claude picks 1–3 keys and never invents new ones: the JSON schema in section 8 only allows
   these values. No offer has the category `other`, so `other` never matches.
+- Claude lists the topics **most relevant first**, and `topics` keeps that order: matching
+  ranks by it (section 4).
 - Crime, politics and accidents are not topics; the zone handles them.
 
 **Decision D-9: `reason` in both languages.** The editor view runs in Swedish or English, so
@@ -260,12 +262,17 @@ Append-only. `clickId` is unique in the database (#153). No IP, no cookie, no us
 ## 4. Matching rules (G2: matching-ranking)
 
 - Only `classified` + `green` articles get suggestions. Everything else gets an empty set (D-4).
-- An offer fits when its `category` is in the article's `topics`. More shared topics means a
-  better fit.
-- At most 3 suggestions, ordered by fit. **CPC only breaks ties** (product rule).
-- Matching reads the offers from G3 (section 7.2). If G3 can't be reached, the article keeps
-  its classification and gets no suggestions for now. When to match it again is decided in
-  #149.
+- An offer fits when its `category` is one of the article's `topics`. The earlier the topic in
+  the list, the better the fit: an offer for the first topic beats one for the second, whatever
+  the CPC (decided in #149).
+- At most 3 suggestions, ordered by fit. **CPC only breaks ties** (product rule), then the offer
+  id, so the order never changes.
+- An offer whose `category` isn't a known topic key is skipped and logged, never an error: the
+  keys are kept in both G3 and G2.
+- Matching reads the offers from G3 (section 7.2), with timeouts and retries. If G3 still can't
+  be reached, nothing new is stored and the error is logged; a new version still loses its old
+  set (D-5). The article is matched again the next time it is classified (decided in #149).
+- Not green never waits for G3: the set is emptied at once.
 
 ---
 
