@@ -17,14 +17,18 @@ The editor page: approve or reject suggested offers, with an audit log.
 ## What it does so far (#150, part 1)
 
 - **`articles/`** copies G2's articles and suggestions. Every `poll-interval` it asks G2's articles API
-  for the changes since the last answer (`GET /api/articles?since=…`, contract 7.1), with timeouts and
-  retries. If G2 is down, nothing changes and the next poll asks again, so G2 and G3 can start in any
-  order.
+  for a snapshot of the `recent` most recently stored articles (`GET /api/articles?recent=…`, contract
+  7.1), with timeouts and retries, and applies the whole snapshot. There is no bookmark: a
+  reclassification or a lost answer is caught by the next poll. If G2 is down, nothing changes and the
+  next poll asks again, so G2 and G3 can start in any order.
   - A new article version withdraws the whole earlier set, even approved suggestions (D-5).
   - A suggestion missing from G2's current set is withdrawn.
   - An article that isn't classified + green keeps no open suggestions, whatever G2 sends (D-4).
+  - The same article again changes nothing, so after the demo an event listener can replace the
+    poll and hand each article to the same `ArticleStore.apply` (ADR 0004).
 - **Settings** (`rainmaker.publisher-control.articles.*`, in G3's `application.properties`): `base-url`
-  (`RAINMAKER_G2_URL` in Docker), `connect-timeout`, `read-timeout`, `max-attempts`, `backoff`,
-  `poll-interval`, and `polling=false` to turn the schedule off in tests.
+  (`RAINMAKER_G2_URL`; `http://test-site:8082` in Docker, where G2 shares the test site's network),
+  `connect-timeout`, `read-timeout`, `max-attempts`, `backoff`, `poll-interval`, `recent` (1–500,
+  default 100), and `polling=false` to turn the schedule off in tests.
 - **Not yet:** approving and rejecting with an audit log, the editor page, and the approved links API
   for G1 (contract 7.3).

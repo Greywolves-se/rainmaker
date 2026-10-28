@@ -1,15 +1,14 @@
 package se.rainmaker.publishercontrol.articles;
 
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import se.rainmaker.publishercontrol.articles.ArticleChanges.ChangedArticle;
-import se.rainmaker.publishercontrol.articles.ArticleChanges.SuggestedOffer;
+import se.rainmaker.publishercontrol.articles.ArticleList.G2Article;
+import se.rainmaker.publishercontrol.articles.ArticleList.SuggestedOffer;
 import se.rainmaker.publishercontrol.database.PublisherControlDatabaseConfiguration;
 
 /**
@@ -31,8 +30,6 @@ import se.rainmaker.publishercontrol.database.PublisherControlDatabaseConfigurat
 @Component
 class ArticleStore {
 
-  private static final String SOURCE = "g2-articles";
-
   private final JdbcClient database;
 
   ArticleStore(@Qualifier(PublisherControlDatabaseConfiguration.JDBC_CLIENT) JdbcClient database) {
@@ -41,7 +38,7 @@ class ArticleStore {
 
   /** Stores the article's latest version and its suggestion set. */
   @Transactional(PublisherControlDatabaseConfiguration.TRANSACTION_MANAGER)
-  public void apply(ChangedArticle article) {
+  public void apply(G2Article article) {
     insertIfNew(article);
     int stored = lockVersion(article.articleId());
     if (article.version() < stored) {
@@ -60,32 +57,14 @@ class ArticleStore {
     }
   }
 
-  /** Where the next poll starts: the {@code nextSince} of the last answer stored. */
-  Instant since() {
-    return database
-        .sql("SELECT since FROM sync_position WHERE source = ?")
-        .param(SOURCE)
-        .query(Timestamp.class)
-        .single()
-        .toInstant();
-  }
-
-  /** Moves the start of the next poll forward, never back. */
-  void moveSinceTo(Instant nextSince) {
-    database
-        .sql("UPDATE sync_position SET since = GREATEST(since, ?) WHERE source = ?")
-        .params(Timestamp.from(nextSince), SOURCE)
-        .update();
-  }
-
-  private void insertIfNew(ChangedArticle article) {
+  private void insertIfNew(G2Article article) {
     database
         .sql(
             """
-            INSERT INTO article (article_id, version, url, headline, published_at, status, zone,
-                                 reason_sv, reason_en, changed_at)
-            VALUES (:articleId, :version, :url, :headline, :publishedAt, :status, :zone,
-                    :reasonSv, :reasonEn, :changedAt)
+            INSERT INTO article (article_id, version, url, headline, published_at, updated_at,
+                                 status, zone, reason_sv, reason_en)
+            VALUES (:articleId, :version, :url, :headline, :publishedAt, :updatedAt,
+                    :status, :zone, :reasonSv, :reasonEn)
             ON CONFLICT (article_id) DO NOTHING
             """)
         .paramSource(columns(article))
@@ -100,14 +79,14 @@ class ArticleStore {
         .single();
   }
 
-  private void update(ChangedArticle article) {
+  private void update(G2Article article) {
     database
         .sql(
             """
             UPDATE article
             SET version = :version, url = :url, headline = :headline, published_at = :publishedAt,
-                status = :status, zone = :zone, reason_sv = :reasonSv, reason_en = :reasonEn,
-                changed_at = :changedAt
+                updated_at = :updatedAt, status = :status, zone = :zone, reason_sv = :reasonSv,
+                reason_en = :reasonEn
             WHERE article_id = :articleId
             """)
         .paramSource(columns(article))
@@ -130,7 +109,7 @@ class ArticleStore {
   }
 
   /** A suggestion seen before keeps its status; a withdrawn one is never opened again. */
-  private void insertSuggestionIfNew(ChangedArticle article, SuggestedOffer suggestion) {
+  private void insertSuggestionIfNew(G2Article article, SuggestedOffer suggestion) {
     database
         .sql(
             """
@@ -149,19 +128,19 @@ class ArticleStore {
         .update();
   }
 
-  private static ArticleColumns columns(ChangedArticle article) {
-    ArticleChanges.Reason reason = article.classification().reason();
+  private static ArticleColumns columns(G2Article article) {
+    ArticleList.Reason reason = article.classification().reason();
     return new ArticleColumns(
         article.articleId(),
         article.version(),
         article.url(),
         article.headline(),
-        article.publishedAt() == null ? null : Timestamp.from(article.publishedAt()),
+        Timestamp.from(article.publishedAt()),
+        article.updatedAt() == null ? null : Timestamp.from(article.updatedAt()),
         article.classification().status(),
         article.classification().zone(),
         reason == null ? null : reason.sv(),
-        reason == null ? null : reason.en(),
-        Timestamp.from(article.changedAt()));
+        reason == null ? null : reason.en());
   }
 
   /** The article's columns, as named parameters. */
@@ -171,9 +150,9 @@ class ArticleStore {
       String url,
       String headline,
       Timestamp publishedAt,
+      Timestamp updatedAt,
       String status,
       String zone,
       String reasonSv,
-      String reasonEn,
-      Timestamp changedAt) {}
+      String reasonEn) {}
 }
