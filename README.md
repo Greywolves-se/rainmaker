@@ -40,7 +40,8 @@ rainmaker/
 
 The apps assemble the services (#145, #155); G4 (`apps/g4-money-app`) is added later.
 Run one with `./mvnw -pl apps/g1-reader-app -am package -DskipTests`, then
-`java -jar apps/g1-reader-app/target/g1-reader-app-0.1.0-SNAPSHOT.jar` (see the app's README).
+`java -jar apps/g1-reader-app/target/g1-reader-app-0.1.0-SNAPSHOT.jar --spring.profiles.active=local`
+(see the app's README; G1 needs the `local` profile on a developer's machine).
 
 **Local database.** `docker compose up -d` starts PostgreSQL on `localhost:5432` with one
 database and one login per module (`docker/postgres/init/`); the apps' tests start the same

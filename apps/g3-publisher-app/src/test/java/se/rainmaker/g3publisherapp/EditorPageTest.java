@@ -4,8 +4,8 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static se.rainmaker.g3publisherapp.FakeG2Articles.CHANGED_AT;
 import static se.rainmaker.g3publisherapp.FakeG2Articles.HOME_OFFER;
+import static se.rainmaker.g3publisherapp.FakeG2Articles.PUBLISHED_AT;
 import static se.rainmaker.g3publisherapp.FakeG2Articles.TRAVEL_OFFER;
 import static se.rainmaker.g3publisherapp.FakeG2Articles.article;
 import static se.rainmaker.g3publisherapp.FakeG2Articles.notClassified;
@@ -198,14 +198,14 @@ class EditorPageTest {
   }
 
   /**
-   * The page lists the most recently changed articles, and the database is shared with the other
-   * test classes, so this test's articles changed later than theirs: they are always on the page.
+   * The page lists the most recently published articles, and the database is shared with the other
+   * test classes, so this test's articles are published later than theirs: always on the page.
    */
   private void g2Sends(String... articles) {
     String[] recent = new String[articles.length];
     for (int index = 0; index < articles.length; index++) {
       recent[index] =
-          articles[index].replace(CHANGED_AT, "\"changedAt\": \"2099-01-01T00:00:00Z\"");
+          articles[index].replace(PUBLISHED_AT, "\"publishedAt\": \"2099-01-01T00:00:00Z\"");
     }
     FakeG2Articles.g2Sends(g2, sync, recent);
   }

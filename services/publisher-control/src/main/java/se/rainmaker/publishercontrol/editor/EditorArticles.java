@@ -14,14 +14,14 @@ import org.springframework.stereotype.Component;
 import se.rainmaker.publishercontrol.database.PublisherControlDatabaseConfiguration;
 
 /**
- * What the editor page shows (#150, contract 7.6): the most recently changed articles, each with
- * its open suggestions. Only a classified, green article's latest version has any (D-4, D-5);
- * withdrawn suggestions are never shown.
+ * What the editor page shows (#150, contract 7.6): the most recently published or updated articles
+ * (the publisher's own times), each with its open suggestions. Only a classified, green article's
+ * latest version has any (D-4, D-5); withdrawn suggestions are never shown.
  */
 @Component
 class EditorArticles {
 
-  /** How many articles the page shows, newest change first. */
+  /** How many articles the page shows, the most recently published or updated first. */
   static final int RECENT = 100;
 
   private final JdbcClient database;
@@ -40,13 +40,14 @@ class EditorArticles {
             SELECT a.article_id, a.url, a.headline, a.status, a.zone, a.reason_sv, a.reason_en,
                    s.suggestion_id, s.offer_id, s.rank, s.matched_topics,
                    s.status AS suggestion_status
-            FROM (SELECT * FROM article ORDER BY changed_at DESC, article_id DESC LIMIT :recent) a
+            FROM (SELECT *, COALESCE(updated_at, published_at) AS latest FROM article
+                  ORDER BY latest DESC, article_id DESC LIMIT :recent) a
             LEFT JOIN suggestion s
                    ON s.article_id = a.article_id
                   AND s.article_version = a.version
                   AND s.status <> 'withdrawn'
                   AND a.status = 'classified' AND a.zone = 'green'
-            ORDER BY a.changed_at DESC, a.article_id DESC, s.rank
+            ORDER BY a.latest DESC, a.article_id DESC, s.rank
             """)
         .param("recent", RECENT)
         .query(

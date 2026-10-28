@@ -15,6 +15,11 @@
   <name>S5 Content Ingestion</name>
   <description>Reads new and edited articles from the publisher's feed (in the demo, the test site's RSS feed) and stores them.</description>
 
+  <properties>
+    <!-- Domain logic (#147): the 80 % line-coverage gate applies (CLAUDE.md, "Testing"). -->
+    <jacoco.check.skip>false</jacoco.check.skip>
+  </properties>
+
   <!-- Its own PostgreSQL database with Flyway migrations (#155, architecture D16). -->
   <dependencies>
     <!-- Connection pool (HikariCP), JdbcClient and transactions. -->
@@ -36,6 +41,28 @@
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
+    </dependency>
+    <!-- The body text of an article page (#147): the RSS feed only has the lead. -->
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+    </dependency>
+
+    <!-- The publisher's site is faked with WireMock, the database is a real PostgreSQL
+         (CLAUDE.md, "Testing"). -->
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

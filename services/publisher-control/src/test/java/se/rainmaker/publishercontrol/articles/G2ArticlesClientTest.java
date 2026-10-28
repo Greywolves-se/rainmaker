@@ -14,18 +14,16 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.net.URI;
 import java.time.Duration;
-import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-/** G3 reads G2's changed articles (#150, contract 7.1), with timeouts and retries. */
+/** G3 reads a snapshot of G2's recent articles (#150, contract 7.1), with timeouts and retries. */
 class G2ArticlesClientTest {
 
   private static final String ARTICLES = "/api/articles";
-  private static final Instant SINCE = Instant.parse("2026-10-30T09:00:00Z");
-  private static final String NO_CHANGES =
+  private static final String NO_ARTICLES =
       """
-      {"articles": [], "nextSince": "2026-10-30T09:15:05Z"}
+      {"articles": []}
       """;
 
   @RegisterExtension
@@ -41,20 +39,16 @@ class G2ArticlesClientTest {
             3,
             Duration.ofMillis(10),
             Duration.ofSeconds(5),
+            100,
             true));
   }
 
   @Test
-  void asksForChangesSinceAndReadsNextSince() {
-    g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(okJson(NO_CHANGES)));
+  void asksForTheRecentArticles() {
+    g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(okJson(NO_ARTICLES)));
 
-    ArticleChanges changes = client().changedSince(SINCE);
-
-    assertThat(changes.articles()).isEmpty();
-    assertThat(changes.nextSince()).isEqualTo(Instant.parse("2026-10-30T09:15:05Z"));
-    g2.verify(
-        getRequestedFor(urlPathEqualTo(ARTICLES))
-            .withQueryParam("since", equalTo("2026-10-30T09:00:00Z")));
+    assertThat(client().recent().articles()).isEmpty();
+    g2.verify(getRequestedFor(urlPathEqualTo(ARTICLES)).withQueryParam("recent", equalTo("100")));
   }
 
   @Test
@@ -69,9 +63,9 @@ class G2ArticlesClientTest {
         get(urlPathEqualTo(ARTICLES))
             .inScenario("restart")
             .whenScenarioStateIs("up")
-            .willReturn(okJson(NO_CHANGES)));
+            .willReturn(okJson(NO_ARTICLES)));
 
-    assertThat(client().changedSince(SINCE).articles()).isEmpty();
+    assertThat(client().recent().articles()).isEmpty();
     g2.verify(2, getRequestedFor(urlPathEqualTo(ARTICLES)));
   }
 
@@ -79,7 +73,7 @@ class G2ArticlesClientTest {
   void givesUpAfterTheLastAttempt() {
     g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(aResponse().withStatus(500)));
 
-    assertThatThrownBy(() -> client().changedSince(SINCE))
+    assertThatThrownBy(() -> client().recent())
         .isInstanceOf(ArticlesUnavailableException.class)
         .hasMessageContaining("500");
     g2.verify(3, getRequestedFor(urlPathEqualTo(ARTICLES)));
@@ -90,7 +84,7 @@ class G2ArticlesClientTest {
   void doesNotRetryClientError() {
     g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(aResponse().withStatus(400)));
 
-    assertThatThrownBy(() -> client().changedSince(SINCE))
+    assertThatThrownBy(() -> client().recent())
         .isInstanceOf(ArticlesUnavailableException.class)
         .hasMessageContaining("400");
     g2.verify(1, getRequestedFor(urlPathEqualTo(ARTICLES)));
@@ -107,12 +101,11 @@ class G2ArticlesClientTest {
                     {"articles": [{"articleId": "0192f3c2-0000-7000-8000-000000000001",
                       "version": 1, "url": "http://localhost:3000/artikel/x", "headline": "X",
                       "classification": {"status": "classified", "zone": "blue"},
-                      "suggestions": [], "changedAt": "2026-10-30T09:15:05Z",
-                      "correlationId": "c0a1"}],
-                     "nextSince": "2026-10-30T09:15:05Z"}
+                      "publishedAt": "2026-10-10T05:45:00Z", "suggestions": [],
+                      "correlationId": "c0a1"}]}
                     """)));
 
-    assertThatThrownBy(() -> client().changedSince(SINCE))
+    assertThatThrownBy(() -> client().recent())
         .isInstanceOf(ArticlesUnavailableException.class)
         .hasMessageContaining("classification.zone");
   }
@@ -121,7 +114,6 @@ class G2ArticlesClientTest {
   void refusesAnswerWithoutArticleList() {
     g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(okJson("{}")));
 
-    assertThatThrownBy(() -> client().changedSince(SINCE))
-        .isInstanceOf(ArticlesUnavailableException.class);
+    assertThatThrownBy(() -> client().recent()).isInstanceOf(ArticlesUnavailableException.class);
   }
 }
