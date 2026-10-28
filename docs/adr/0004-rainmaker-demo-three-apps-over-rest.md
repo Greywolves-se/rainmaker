@@ -23,7 +23,10 @@ rainmaker.js), G2 `g2-content-app` (8082: ingestion, classification, matching) a
 **Departure from `CLAUDE.md`: no events between the apps.** Everything between apps is REST:
 
 - G3 learns about new articles, classifications and suggestions by **polling** G2
-  (`GET /api/articles?since=…`), instead of receiving events through EventBridge + SQS.
+  (`GET /api/articles?recent=…`, a snapshot of the recent articles), instead of receiving events
+  through EventBridge + SQS. *Updated 28 Oct 2026 (#202): a snapshot instead of
+  `?since=…`, so no module has to record change times that events will make unnecessary. The
+  decision itself, polling for the demo, is unchanged.*
 - G2 reads the offers from G3 (`GET /api/offers`) when it matches.
 - G1 asks G3 for the approved links on every hover, and G3 asks G2 whether the article is still
   green (three hops).
