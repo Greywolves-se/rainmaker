@@ -15,8 +15,8 @@
   <name>S2 Tracking and Click</name>
   <description>The click redirect: stores each click once and sends the reader to the offer.</description>
 
-  <!-- The click links decide where money goes (#153), so their package must keep 80 % line
-       coverage (CLAUDE.md, "Testing"; README.md, "Coverage"). -->
+  <!-- The click links and the stored clicks decide where money goes (#153), so their package
+       must keep 80 % line coverage (CLAUDE.md, "Testing"; README.md, "Coverage"). -->
   <properties>
     <jacoco.check.skip>false</jacoco.check.skip>
     <jacoco.check.packages>se.rainmaker.trackingclick.click*</jacoco.check.packages>
@@ -43,6 +43,19 @@
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
+    </dependency>
+
+    <!-- A real PostgreSQL in the tests (CLAUDE.md, "Testing"): stored once, also concurrently,
+         and append-only are the database's job, so they are tested against the real thing. -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

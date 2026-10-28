@@ -4,14 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -27,11 +30,13 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.MountableFile;
+import se.rainmaker.trackingclick.api.ClickLinks;
 import se.rainmaker.trackingclick.database.TrackingClickDatabaseConfiguration;
 
 /**
  * The app starts against a real PostgreSQL set up exactly like the local one (#155), and serves
- * rainmaker.js (#152). It runs as on a developer's machine, with the local profile (#153).
+ * rainmaker.js (#152) and opens click links (#153). It runs as on a developer's machine, with the
+ * local profile.
  */
 @SpringBootTest
 @ActiveProfiles("local")
@@ -85,6 +90,8 @@ class G1ReaderApplicationTest {
 
   @Autowired private MockMvc mockMvc;
 
+  @Autowired private ClickLinks clickLinks;
+
   @Test
   void startsOnItsOwnPort() {
     assertThat(port).isEqualTo(8081);
@@ -96,6 +103,29 @@ class G1ReaderApplicationTest {
         .perform(get("/widget/rainmaker.js"))
         .andExpect(status().isOk())
         .andExpect(content().contentType("text/javascript;charset=UTF-8"));
+  }
+
+  @Test
+  void opensClickLinkAndStoresTheClickOnce() throws Exception {
+    UUID offer = UUID.randomUUID();
+    String destination = "http://localhost:8083/landing/" + offer;
+    String link = clickLinks.create(UUID.randomUUID(), offer, destination);
+
+    // A double-click: the same link opened twice.
+    for (int open = 0; open < 2; open++) {
+      mockMvc
+          .perform(get(URI.create(link).getPath()))
+          .andExpect(status().isFound())
+          .andExpect(header().string("Location", destination));
+    }
+
+    assertThat(
+            trackingClick
+                .sql("SELECT count(*) FROM click WHERE offer_id = :offer")
+                .param("offer", offer)
+                .query(Long.class)
+                .single())
+        .isEqualTo(1L);
   }
 
   @Test
