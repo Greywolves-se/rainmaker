@@ -5,23 +5,35 @@ publisher's site shows a small, labelled panel with relevant commercial links wh
 reader hovers a headline. AI suggests the links, an editor approves them, and every
 click is tracked for settlement.
 
-We start with **Mission Control**, the team's internal status app
-([apps/mission-control](apps/mission-control/README.md)). The other parts are added
-one at a time.
+The team is building the Rainmaker demo: three apps (G1–G3) that take an article from a
+fictional news site through classification, matching and editor approval to a panel and a
+stored click. The milestone "Rainmaker demo 30 Oct" on GitHub shows where it stands.
+**Mission Control**, the team's internal status app
+([apps/mission-control](apps/mission-control/README.md)), is on hold since 21 Oct 2026.
+
+**New here?** Start with the onboarding study guide, pinned at the top of the team's
+study-guide hub (the link is in [docs/study-guides.md](docs/study-guides.md)). Then read
+[CLAUDE.md](CLAUDE.md), the team's rules for people and Claude alike, and the contract
+between the apps, [docs/rainmaker/contract.md](docs/rainmaker/contract.md).
 
 ## Repository layout
 
 ```
 rainmaker/
 ├── pom.xml              parent POM, lists all Maven modules
-├── docs/                architecture, decisions, START HERE        (empty for now)
-├── services/            one Maven module per logical service; S1–S7 so far (empty, #155)
+├── CLAUDE.md            the team's rules (code, tests, Git, product rules), read by Claude too
+├── docs/                the contract (rainmaker/), decisions (adr/), study-guide rules
+├── services/            one Maven module per logical service; S1–S7 so far
 ├── apps/                deployable apps
 │   ├── g1-reader-app/       S1 + S2, port 8081
 │   ├── g2-content-app/      S5 + S6 + S7, port 8082
 │   ├── g3-publisher-app/    S3 + S4, port 8083
-│   └── mission-control/     internal status app – built first
+│   └── mission-control/     internal status app (on hold)
+├── widget/              rainmaker.js, the script on the publisher's page; TypeScript, not Maven
 ├── test-site/           fictional news site that plays an outside publisher (port 3000)
+├── docker-compose.yml   local PostgreSQL; its init script is in docker/postgres/
+├── infra/               AWS CDK app (Java): every AWS resource, created through the pipeline
+└── portals/             React apps for publishers and admins, not Maven (empty for now)
 ├── widget/              rainmaker.js, TypeScript, not Maven         (panel on headline hover, #152)
 └── portals/             React apps, not Maven                       (empty for now)
 ```
