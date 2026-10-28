@@ -18,7 +18,7 @@ sequenceDiagram
     Site->>G2: RSS item
     G2->>G2: store, classify (Claude), match
     G2->>G3: GET /api/offers (matching needs the offers)
-    G3->>G2: GET /api/articles?since=… (polls new articles and suggestions)
+    G3->>G2: GET /api/articles?recent=… (polls the recent articles and suggestions)
     G3->>G3: editor approves
     JS->>G1: GET /widget/v1/links?url=… (on headline hover)
     G1->>G3: GET /api/approved-links?url=…
@@ -359,25 +359,31 @@ Rules for every call between the apps:
 
 | Call | From → to | Section |
 |---|---|---|
-| `GET /api/articles?since=…` and `?url=…` | G3 → G2 | 7.1 |
+| `GET /api/articles?recent=…` and `?url=…` | G3 → G2 | 7.1 |
 | `GET /api/offers` | G2 → G3 | 7.2 |
 | `GET /api/approved-links?url=…` | G1 → G3 | 7.3 |
 | `GET /widget/v1/links?url=…` | rainmaker.js → G1 | 7.4 |
 | `GET /c/{token}` | reader's browser → G1 | 7.5 |
 
-### 7.1 Articles API (G2, #147–#149)
+### 7.1 Articles API (G2, #202)
 
 ```
-GET http://localhost:8082/api/articles?since=2026-10-30T09:00:00Z
+GET http://localhost:8082/api/articles?recent=100
 GET http://localhost:8082/api/articles?url=http%3A%2F%2Flocalhost%3A3000%2Fartikel%2Fbadrumsrenovering-experternas-rad
 ```
 
-- `since`: every article whose latest version, classification or suggestions changed at or
-  after that time, oldest change first. G3 polls it (every few seconds, a setting) and calls
-  again with `nextSince`. The same article may come twice; G3's update is idempotent.
+- `recent`: a snapshot of the latest version of the `recent` (1–500) most recently stored
+  articles, newest first, each with its current classification and suggestions. G3 polls it
+  (every few seconds, a setting) and applies the whole answer every time; applying the same
+  article again changes nothing.
 - `url`: the latest version of that one article, or an empty list. G3 uses it on every widget
   request to check the current zone (section 7.3).
-- Exactly one of `since` and `url` is required; otherwise `400`.
+- Exactly one of `recent` and `url` is required; otherwise `400`.
+- **Why a snapshot, not "changed since":** a snapshot needs no module to record when its part of
+  an article changed (a reclassification changes only content-intent, a new set only matching).
+  After the demo, events replace the polling (ADR 0004). Each event then carries one article
+  object exactly as below, so G3 handles both the same way, and `recent` stays for filling G3's
+  copy from scratch.
 
 `200 OK`:
 
@@ -408,11 +414,9 @@ GET http://localhost:8082/api/articles?url=http%3A%2F%2Flocalhost%3A3000%2Fartik
       "suggestions": [
         {"suggestionId": "0192f3e4-…", "offerId": "0192f3d0-…", "rank": 1, "matchedTopics": ["home"]}
       ],
-      "changedAt": "2026-10-30T09:15:05Z",
       "correlationId": "c0a1…"
     }
-  ],
-  "nextSince": "2026-10-30T09:15:05Z"
+  ]
 }
 ```
 
