@@ -372,13 +372,15 @@ GET http://localhost:8082/api/articles?recent=100
 GET http://localhost:8082/api/articles?url=http%3A%2F%2Flocalhost%3A3000%2Fartikel%2Fbadrumsrenovering-experternas-rad
 ```
 
-- `recent`: a snapshot of the latest version of the `recent` (1–500) most recently stored
-  articles, newest first, each with its current classification and suggestions. G3 polls it
-  (every few seconds, a setting) and applies the whole answer every time; applying the same
+- `recent`: a snapshot of the latest version of the `recent` (1–500) articles whose **latest
+  version was stored most recently** (content-ingestion's `stored_at`), newest first, each with
+  its current classification and suggestions. An edited article moves back to the top. G3 polls
+  it (every few seconds, a setting) and applies the whole answer every time; applying the same
   article again changes nothing.
 - `url`: the latest version of that one article, or an empty list. G3 uses it on every widget
   request to check the current zone (section 7.3).
-- Exactly one of `recent` and `url` is required; otherwise `400`.
+- Exactly one of `recent` and `url` is required, and `recent` must be a whole number from 1 to
+  500; otherwise `400`.
 - **Why a snapshot, not "changed since":** a snapshot needs no module to record when its part of
   an article changed (a reclassification changes only content-intent, a new set only matching).
   After the demo, events replace the polling (ADR 0004). Each event then carries one article
