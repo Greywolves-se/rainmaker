@@ -17,8 +17,9 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 ## Classification (#148)
 
 - **`api`:** the contract's types (`docs/rainmaker/contract.md`, section 3.2): `Classification`,
-  `ClassificationStatus`, `Zone`, `Topic`, `Reason`, `ArticleToClassify`, and the `ArticleClassifier`
-  interface. Only a classified green article may get suggestions (`mayGetSuggestions()`, D-4);
+  `ClassificationStatus`, `Zone`, `Topic`, `Reason`, `ArticleToClassify`, the `ArticleClassifier`
+  interface, and the `ArticleClassified` event (section 6.2), which matching listens to (#149).
+  `topics` keep Claude's order, most relevant first: matching ranks by it. Only a classified green article may get suggestions (`mayGetSuggestions()`, D-4);
   failed and unclassified are treated like red everywhere.
 - **`classification`** (internal):
   - `ClaudeAnswerParser` accepts Claude's answer only if it matches the contract's schema
