@@ -9,7 +9,6 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 import static se.rainmaker.g3publisherapp.FakeG2Articles.ARTICLES;
 import static se.rainmaker.g3publisherapp.FakeG2Articles.HOME_OFFER;
-import static se.rainmaker.g3publisherapp.FakeG2Articles.NEXT_SINCE;
 import static se.rainmaker.g3publisherapp.FakeG2Articles.TRAVEL_OFFER;
 import static se.rainmaker.g3publisherapp.FakeG2Articles.article;
 import static se.rainmaker.g3publisherapp.FakeG2Articles.suggestion;
@@ -131,13 +130,24 @@ class ArticleSyncTest {
   }
 
   @Test
-  void nextPollAsksForChangesSinceTheLastAnswer() {
+  void pollAsksForTheRecentArticles() {
     g2Sends();
 
-    sync.pollOnce();
+    g2.verify(getRequestedFor(urlPathEqualTo(ARTICLES)).withQueryParam("recent", equalTo("100")));
+  }
 
-    g2.verify(
-        getRequestedFor(urlPathEqualTo(ARTICLES)).withQueryParam("since", equalTo(NEXT_SINCE)));
+  /**
+   * No bookmark: a reclassification of the same version, which changes nothing but the zone, is
+   * caught by the next snapshot.
+   */
+  @Test
+  void reclassificationOfTheSameVersionIsCaughtByTheNextPoll() {
+    UUID article = UUID.randomUUID();
+    g2Sends(article(article, 1, "yellow"));
+
+    g2Sends(article(article, 1, "red"));
+
+    assertThat(column("zone", article)).isEqualTo("red");
   }
 
   @Test

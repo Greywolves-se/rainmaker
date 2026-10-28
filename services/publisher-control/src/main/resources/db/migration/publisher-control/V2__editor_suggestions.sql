@@ -1,17 +1,19 @@
 -- The editor's side of the suggestions (#150; contract 3.3, 5 and 7.1).
--- article: G3's copy of the latest version of each article G2 has, from G2's articles API.
+-- article: G3's copy of the latest version of each recent article, from the snapshots of G2's
+-- articles API. published_at and updated_at are the publisher's times; the editor page lists the
+-- articles by them.
 CREATE TABLE article (
     article_id   uuid PRIMARY KEY,
     version      integer NOT NULL CHECK (version >= 1),
     url          text NOT NULL CHECK (url <> ''),
     headline     text NOT NULL,
-    published_at timestamptz,
+    published_at timestamptz NOT NULL,
+    updated_at   timestamptz,
     status       text NOT NULL CHECK (status IN ('classified', 'unclassified', 'failed')),
     -- Only a classified article has a zone (D-4).
     zone         text CHECK (zone IN ('green', 'yellow', 'red')),
     reason_sv    text,
     reason_en    text,
-    changed_at   timestamptz NOT NULL,
     CHECK ((status = 'classified') = (zone IS NOT NULL))
 );
 
@@ -29,12 +31,3 @@ CREATE TABLE suggestion (
 );
 
 CREATE INDEX suggestion_by_article ON suggestion (article_id);
-
--- How far G3 has read G2's changes: the nextSince of the last answer (contract 7.1). One row; the
--- first poll asks for everything.
-CREATE TABLE sync_position (
-    source text PRIMARY KEY,
-    since  timestamptz NOT NULL
-);
-
-INSERT INTO sync_position (source, since) VALUES ('g2-articles', '1970-01-01T00:00:00Z');
