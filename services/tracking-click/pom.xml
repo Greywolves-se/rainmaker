@@ -15,6 +15,13 @@
   <name>S2 Tracking and Click</name>
   <description>The click redirect: stores each click once and sends the reader to the offer.</description>
 
+  <!-- The click links decide where money goes (#153), so their package must keep 80 % line
+       coverage (CLAUDE.md, "Testing"; README.md, "Coverage"). -->
+  <properties>
+    <jacoco.check.skip>false</jacoco.check.skip>
+    <jacoco.check.packages>se.rainmaker.trackingclick.click*</jacoco.check.packages>
+  </properties>
+
   <!-- Its own PostgreSQL database with Flyway migrations (#155, architecture D16). -->
   <dependencies>
     <!-- Connection pool (HikariCP), JdbcClient and transactions. -->
