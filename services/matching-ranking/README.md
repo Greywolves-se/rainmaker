@@ -13,6 +13,8 @@ Suggests offers for green articles, ranked by relevance; CPC only breaks ties.
   - inject the client with `@Qualifier(MatchingRankingDatabaseConfiguration.JDBC_CLIENT) JdbcClient`;
   - mark transactions with `@Transactional(MatchingRankingDatabaseConfiguration.TRANSACTION_MANAGER)`; an
     unnamed `@Transactional` is ambiguous, because an app holds several modules' databases.
+    The app's `ModuleBoundaryTest` fails the build on an unnamed one, another module's, or
+    `jakarta.transaction.Transactional` (#170).
 
 ## What it does (#149, part 2a)
 
