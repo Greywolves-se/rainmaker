@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,6 +32,9 @@ class SignedClickLinksTest {
   private static final UUID ARTICLE = UUID.fromString("0192f3c2-0000-7000-8000-000000000001");
   private static final UUID OFFER = UUID.fromString("0192f3d0-0000-7000-8000-000000000002");
   private static final String DESTINATION = "http://localhost:8083/landing/" + OFFER;
+  private static final String KEY = "the-signing-key-used-in-the-tests!";
+  private static final String BASE64URL =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
   private TestClock clock;
   private SignedClickLinks links;
@@ -37,7 +42,7 @@ class SignedClickLinksTest {
   @BeforeEach
   void setUp() {
     clock = new TestClock(NOW);
-    links = clickLinks(key("the-signing-key-used-in-the-tests!"));
+    links = clickLinks(key(KEY));
   }
 
   @Test
@@ -121,6 +126,30 @@ class SignedClickLinksTest {
     assertThat(links.check(token)).isInstanceOf(ClickLinkCheck.Invalid.class);
   }
 
+  /**
+   * One link has exactly one valid token: a padded signature, or one whose last character differs
+   * only in the unused bits, decodes to the same bytes but is refused (#189).
+   */
+  @Test
+  void refusesSignatureThatIsNotWrittenExactlyAsWeWriteIt() {
+    String token = token(links.create(ARTICLE, OFFER, DESTINATION));
+    char last = token.charAt(token.length() - 1);
+    String otherUnusedBits =
+        token.substring(0, token.length() - 1) + BASE64URL.charAt(BASE64URL.indexOf(last) ^ 1);
+
+    assertThat(links.check(token + "=")).isInstanceOf(ClickLinkCheck.Invalid.class);
+    assertThat(links.check(otherUnusedBits)).isInstanceOf(ClickLinkCheck.Invalid.class);
+  }
+
+  /** Only reachable with our key, but it must still be Invalid, not an error page (#189). */
+  @Test
+  void signedLinkWithExpiryOutsideTimeRangeIsInvalid() throws Exception {
+    ObjectNode payload = (ObjectNode) payload(links.create(ARTICLE, OFFER, DESTINATION));
+    payload.put("exp", Long.MAX_VALUE);
+
+    assertThat(links.check(signed(payload))).isInstanceOf(ClickLinkCheck.Invalid.class);
+  }
+
   @Test
   void stillValidJustBeforeItExpires() {
     String token = token(links.create(ARTICLE, OFFER, DESTINATION));
@@ -154,6 +183,26 @@ class SignedClickLinksTest {
         .isInstanceOf(IllegalArgumentException.class);
   }
 
+  @Test
+  void makesLinkToDestinationWithUpperCaseScheme() {
+    String link = links.create(ARTICLE, OFFER, "HTTPS://shop.example.se/landing");
+
+    assertThat(links.check(token(link))).isInstanceOf(ClickLinkCheck.Valid.class);
+  }
+
+  /**
+   * The redirect sends the destination as it is (part 2), so it must already be a valid URI: an
+   * advertiser's macro such as {@code {clickid}} has to be percent-encoded when the offer is
+   * stored.
+   */
+  @ParameterizedTest
+  @ValueSource(
+      strings = {"https://shop.example.se/?aff={clickid}", "https://shop.example.se/?q=a b"})
+  void refusesDestinationThatIsNotValidUri(String destination) {
+    assertThatThrownBy(() -> links.create(ARTICLE, OFFER, destination))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
   private SignedClickLinks clickLinks(byte[] key) {
     return new SignedClickLinks(
         BASE_URL, LIFETIME, key, clock, new UuidV7(clock, new SecureRandom()));
@@ -171,6 +220,14 @@ class SignedClickLinksTest {
     String token = token(link);
     byte[] json = Base64.getUrlDecoder().decode(token.substring(0, token.indexOf('.')));
     return JSON.readTree(json);
+  }
+
+  /** A token signed with the tests' key, for payloads {@code create} would never write. */
+  private static String signed(JsonNode payload) throws Exception {
+    String encoded = encode(JSON.writeValueAsBytes(payload));
+    Mac mac = Mac.getInstance("HmacSHA256");
+    mac.init(new SecretKeySpec(key(KEY), "HmacSHA256"));
+    return encoded + "." + encode(mac.doFinal(encoded.getBytes(StandardCharsets.US_ASCII)));
   }
 
   private static String encode(byte[] bytes) {
