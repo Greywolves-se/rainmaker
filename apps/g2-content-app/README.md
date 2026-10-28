@@ -13,7 +13,7 @@ Reads articles, classifies them with Claude on Amazon Bedrock and suggests offer
   needs, then start its jar:
 
   ```
-  docker compose up -d
+  docker compose up -d postgres
   ./mvnw -pl apps/g2-content-app -am package -DskipTests
   java -jar apps/g2-content-app/target/g2-content-app-0.1.0-SNAPSHOT.jar
   ```
