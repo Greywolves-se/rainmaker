@@ -1,7 +1,7 @@
 # Rainmaker's local demo stack (#146): one command starts everything.
 #
 #   docker compose up --build          PostgreSQL, the test site, G1, G2 and G3 (stop: Ctrl+C)
-#   docker compose up -d postgres      only the database, e.g. to run an app from your IDE
+#   docker compose up -d postgres      only the database, e.g. to run an app from your IDE (G1: local profile)
 #   docker compose down                stop; the data is kept for the next start
 #   docker compose down -v             stop and delete the data (the init script runs again)
 #
@@ -57,6 +57,9 @@ services:
       - "127.0.0.1:8081:8081"
     environment:
       RAINMAKER_DB_HOST: postgres
+      # Click links point at http://localhost:8081 and are signed with a random key for each run
+      # (#153). Without this profile G1 doesn't start. Local only, never in AWS.
+      SPRING_PROFILES_ACTIVE: local
     depends_on:
       postgres:
         condition: service_healthy
