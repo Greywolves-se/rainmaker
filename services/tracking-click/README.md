@@ -11,8 +11,14 @@ The click redirect: stores each click once and sends the reader to the offer.
   - the payload is base64url JSON with a new click id (UUIDv7), the article, the offer, the
     destination and an expiry (24 hours, `rainmaker.tracking-click.link.lifetime`);
   - the signature is HMAC-SHA256 with the key from `RAINMAKER_CLICK_SIGNING_KEY` (at least 32
-    characters; never in code or a settings file). Without it, on a developer's machine, G1 signs
-    with a random key for each run and logs a WARN: links served before a restart stop working;
+    characters, trimmed; never in code or a settings file). G1 doesn't start without it, nor
+    without `rainmaker.tracking-click.link.base-url` (`RAINMAKER_CLICK_BASE_URL`): a random key per
+    G1, or links to localhost, would lose clicks. Only G1's `local` profile sets the address and
+    allows a random key for each run, with a WARN;
+  - every address (G1's own and each destination) must be a valid absolute http(s) URI
+    (`click/HttpAddresses`). An advertiser's macro such as `{clickid}` must be percent-encoded when
+    the offer is stored. `ClickLinks.create` throws for a bad destination, so the widget API
+    (#151) drops that one link, not the panel;
   - `click/SignedClickLinks.check` reads a token back: valid, invalid (forged, changed, garbled) or
     expired. The signature is checked before anything in the payload is read, and the destination
     only ever comes from a signed link (no open redirect).

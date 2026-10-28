@@ -14,8 +14,9 @@ public interface ClickLinks {
    *
    * @param articleId the article the link is shown on
    * @param offerId the offer it leads to
-   * @param destinationUrl the offer's page; must be an absolute http(s) address
-   * @throws IllegalArgumentException if the destination is not an absolute http(s) address
+   * @param destinationUrl the offer's page; must be a valid absolute http(s) URI
+   * @throws IllegalArgumentException if the destination is not a valid absolute http(s) URI. A
+   *     caller building several links drops only that one, so one bad offer never costs the panel
    */
   String create(UUID articleId, UUID offerId, String destinationUrl);
 }

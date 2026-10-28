@@ -1,12 +1,11 @@
 package se.rainmaker.trackingclick.click;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
@@ -38,6 +37,7 @@ final class SignedClickLinks implements ClickLinks {
   private static final JsonMapper JSON = JsonMapper.builder().build();
   private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
   private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
+  private static final String DESTINATION = "The destination";
 
   private final String baseUrl;
   private final Duration lifetime;
@@ -58,7 +58,7 @@ final class SignedClickLinks implements ClickLinks {
   public String create(UUID articleId, UUID offerId, String destinationUrl) {
     Objects.requireNonNull(articleId, "articleId");
     Objects.requireNonNull(offerId, "offerId");
-    requireHttpUrl(destinationUrl);
+    HttpAddresses.requireAbsoluteHttp(destinationUrl, DESTINATION);
     ObjectNode payload = JSON.createObjectNode();
     payload.put("c", clickIds.next().toString());
     payload.put("a", articleId.toString());
@@ -72,6 +72,10 @@ final class SignedClickLinks implements ClickLinks {
   /**
    * Checks a token (the part after {@code /c/}). The signature is checked first, so nothing from an
    * unsigned or changed token is ever read; only then the contents and the expiry.
+   *
+   * <p>The signature must be written exactly as {@link #create} writes it. A decoder would also
+   * accept padding, or other values in the last character's unused bits, which would give one link
+   * several valid tokens.
    */
   ClickLinkCheck check(String token) {
     if (token == null) {
@@ -84,13 +88,15 @@ final class SignedClickLinks implements ClickLinks {
     String encoded = token.substring(0, dot);
     ClickLink link;
     try {
-      byte[] signature = DECODER.decode(token.substring(dot + 1));
-      if (!MessageDigest.isEqual(sign(encoded), signature)) {
+      byte[] expected = ENCODER.encodeToString(sign(encoded)).getBytes(StandardCharsets.US_ASCII);
+      byte[] signature = token.substring(dot + 1).getBytes(StandardCharsets.UTF_8);
+      if (!MessageDigest.isEqual(expected, signature)) {
         return new ClickLinkCheck.Invalid();
       }
       link = read(DECODER.decode(encoded));
-    } catch (IllegalArgumentException | JacksonException e) {
-      // Not base64url, or a payload we didn't write: the same answer as a forged link.
+    } catch (IllegalArgumentException | JacksonException | DateTimeException e) {
+      // Not base64url, or a payload we didn't write (an expiry outside Instant's range too): the
+      // same answer as a forged link.
       return new ClickLinkCheck.Invalid();
     }
     if (!clock.instant().isBefore(link.expiresAt())) {
@@ -106,7 +112,7 @@ final class SignedClickLinks implements ClickLinks {
       throw new IllegalArgumentException("exp is missing");
     }
     String destination = text(payload, "d");
-    requireHttpUrl(destination);
+    HttpAddresses.requireAbsoluteHttp(destination, DESTINATION);
     return new ClickLink(
         UUID.fromString(text(payload, "c")),
         UUID.fromString(text(payload, "a")),
@@ -132,21 +138,6 @@ final class SignedClickLinks implements ClickLinks {
     } catch (NoSuchAlgorithmException | InvalidKeyException e) {
       // Every Java runtime has HmacSHA256, and the key was checked at start-up.
       throw new IllegalStateException("Cannot sign click links", e);
-    }
-  }
-
-  private static void requireHttpUrl(String url) {
-    if (url == null) {
-      throw new IllegalArgumentException("The destination is missing");
-    }
-    try {
-      URI uri = new URI(url);
-      boolean http = "http".equals(uri.getScheme()) || "https".equals(uri.getScheme());
-      if (!http || uri.getHost() == null) {
-        throw new IllegalArgumentException("The destination must be an absolute http(s) address");
-      }
-    } catch (URISyntaxException e) {
-      throw new IllegalArgumentException("The destination is not a valid address", e);
     }
   }
 }

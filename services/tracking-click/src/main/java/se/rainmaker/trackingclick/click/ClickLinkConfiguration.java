@@ -11,9 +11,9 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Makes S2's click links (#153). The signing key comes from the environment ({@code
- * RAINMAKER_CLICK_SIGNING_KEY}), never from code or a settings file. Without one, on a developer's
- * machine, a random key is made for this run: links served before a restart then stop working,
- * which is fine locally. The key is never logged.
+ * RAINMAKER_CLICK_SIGNING_KEY}), never from code or a settings file, and G1 doesn't start without
+ * it. Only the {@code local} profile allows a random key for each run: links served before a
+ * restart then stop working, which is fine on a developer's machine. The key is never logged.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(ClickLinkProperties.class)
@@ -40,7 +40,7 @@ public class ClickLinkConfiguration {
     }
     LOG.warn(
         "RAINMAKER_CLICK_SIGNING_KEY is not set: click links are signed with a random key for this"
-            + " run and stop working when G1 restarts. Set it outside a developer's machine.");
+            + " run (local profile) and stop working when G1 restarts.");
     byte[] key = new byte[ClickLinkProperties.MINIMUM_KEY_LENGTH];
     random.nextBytes(key);
     return key;
