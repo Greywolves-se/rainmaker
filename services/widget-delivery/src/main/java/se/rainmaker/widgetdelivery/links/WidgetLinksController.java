@@ -20,8 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
  * stored or logged.
  *
  * <p>200 with the links, or an empty list for an article that may have none; 400 when {@code url}
- * isn't an absolute http(s) address; 503 when G3 can't answer, never the last known links (fail
- * closed). rainmaker.js shows no panel for anything but a 200 with links (fail open, #152).
+ * isn't an absolute http(s) address on one of the publisher sites, or is too long (#224); 503 when
+ * G3 can't answer, never the last known links (fail closed). rainmaker.js shows no panel for
+ * anything but a 200 with links (fail open, #152).
  */
 @RestController
 class WidgetLinksController {
@@ -29,21 +30,31 @@ class WidgetLinksController {
   /** The path, also used for its CORS rule ({@link WidgetApiConfiguration}). */
   static final String PATH = "/widget/v1/links";
 
+  /**
+   * The longest article address asked about. Longer ones are refused before G3 is called, so nobody
+   * can make G1, G3 and G2 pass huge values along (#224).
+   */
+  static final int MAX_URL_LENGTH = 2048;
+
   private static final Logger LOG = LoggerFactory.getLogger(WidgetLinksController.class);
 
   private static final String CORRELATION_ID = "correlation_id";
 
   private final WidgetLinksService links;
+  private final WidgetApiProperties settings;
 
-  WidgetLinksController(WidgetLinksService links) {
+  WidgetLinksController(WidgetLinksService links, WidgetApiProperties settings) {
     this.links = links;
+    this.settings = settings;
   }
 
   @GetMapping(PATH)
   ResponseEntity<WidgetLinks> links(@RequestParam(name = "url", required = false) String url) {
-    if (!isAbsoluteHttp(url)) {
+    if (!isPublisherArticle(url)) {
       // Never the value itself: it is whatever the request sent.
-      LOG.info("Widget links refused: url is missing or not an absolute http(s) address");
+      LOG.info(
+          "Widget links refused: url is missing, too long, or not an http(s) address on a"
+              + " publisher site");
       return ResponseEntity.badRequest().cacheControl(CacheControl.noStore()).build();
     }
     // G1 has no article correlation id yet, so each widget request starts its own (contract 7).
@@ -72,14 +83,19 @@ class WidgetLinksController {
     }
   }
 
-  private static boolean isAbsoluteHttp(String url) {
-    if (url == null) {
+  /**
+   * Only an article on a publisher site can have links, so anything else is refused without asking
+   * G3: random addresses could otherwise slow G3 and G2 and open the circuit for every reader.
+   */
+  private boolean isPublisherArticle(String url) {
+    if (url == null || url.length() > MAX_URL_LENGTH) {
       return false;
     }
     try {
       URI uri = new URI(url);
-      return ("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
-          && uri.getHost() != null;
+      boolean http =
+          "http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme());
+      return http && uri.getHost() != null && settings.isPublisherSite(uri);
     } catch (URISyntaxException notAddress) {
       return false;
     }
