@@ -29,12 +29,12 @@ sequenceDiagram
     G1-->>JS: 302 to the offer's page
 ```
 
-| Part                     | App                                | Issues           | Sections to read                 |
-| ------------------------ | ---------------------------------- | ---------------- | -------------------------------- |
-| Content                  | G2                                 | #147, #148       | 1, 2, 3, 6.1, 7.1, 8             |
-| Matching & editor        | G2 (matching), G3 (offers, editor) | #149, #150       | 1, 2, 3, 4, 5, 6.2, 7.1–7.3, 7.6 |
-| Reader & clicks          | G1                                 | #151, #152, #153 | 1, 2, 5, 7.3–7.5                 |
-| Skeleton, local run, E2E | all                                | #155, #146, #154 | 1, 7, 9                          |
+| Part | App | Issues | Sections to read |
+|---|---|---|---|
+| Content | G2 | #147, #148 | 1, 2, 3, 6.1, 7.1, 8 |
+| Matching & editor | G2 (matching), G3 (offers, editor) | #149, #150 | 1, 2, 3, 4, 5, 6.2, 7.1–7.3, 7.6 |
+| Reader & clicks | G1 | #151, #152, #153 | 1, 2, 5, 7.3–7.5 |
+| Skeleton, local run, E2E | all | #155, #146, #154 | 1, 7, 9 |
 
 ### Decisions
 
@@ -58,16 +58,16 @@ folders and packages follow `CLAUDE.md`. Each module owns its own database (Flyw
 only its `api` package. Inside an app, modules talk through `api` interfaces and Spring events
 (section 6); between apps, through REST (section 7).
 
-| App (`apps/…`)        | Port | Modules (`services/…`)          | Owns (its own database)                  | Filled by |
-| --------------------- | ---- | ------------------------------- | ---------------------------------------- | --------- |
-| G1 `g1-reader-app`    | 8081 | `widget-delivery` (S1)          | nothing                                  | #151      |
-|                       |      | `tracking-click` (S2)           | clicks (append-only)                     | #153      |
-|                       |      | serves `widget/` (rainmaker.js) | –                                        | #152      |
-| G2 `g2-content-app`   | 8082 | `content-ingestion` (S5)        | articles and their versions              | #147      |
-|                       |      | `content-intent` (S6)           | classifications                          | #148      |
-|                       |      | `matching-ranking` (S7)         | the latest suggestions per article       | #149      |
-| G3 `g3-publisher-app` | 8083 | `publisher-control` (S3)        | editor decisions, audit log, editor page | #150      |
-|                       |      | `advertiser-marketplace` (S4)   | offers, landing pages                    | #149      |
+| App (`apps/…`) | Port | Modules (`services/…`) | Owns (its own database) | Filled by |
+|---|---|---|---|---|
+| G1 `g1-reader-app` | 8081 | `widget-delivery` (S1) | nothing | #151 |
+| | | `tracking-click` (S2) | clicks (append-only) | #153 |
+| | | serves `widget/` (rainmaker.js) | – | #152 |
+| G2 `g2-content-app` | 8082 | `content-ingestion` (S5) | articles and their versions | #147 |
+| | | `content-intent` (S6) | classifications | #148 |
+| | | `matching-ranking` (S7) | the latest suggestions per article | #149 |
+| G3 `g3-publisher-app` | 8083 | `publisher-control` (S3) | editor decisions, audit log, editor page | #150 |
+| | | `advertiser-marketplace` (S4) | offers, landing pages | #149 |
 
 Packages: `se.rainmaker.<folder without dashes>`, e.g. `se.rainmaker.matchingranking`.
 
@@ -161,18 +161,18 @@ Shared rules for every object, event and API:
 Not the site's sections: a section says where an article sits, not what it is about. A story
 in "nyheter" can be about travel, and "nyheter" can't be matched to an offer.
 
-| Key                | Example on Vintrabladet                             |
-| ------------------ | --------------------------------------------------- |
-| `travel`           | Mallorca in autumn                                  |
-| `outdoor`          | Mountain hiking guide                               |
-| `sport`            | Football promotion, running race                    |
-| `culture`          | Theatre musical                                     |
-| `food`             | Chanterelles and a recipe                           |
-| `home`             | Bathroom renovation                                 |
-| `cars`             | Electric car test                                   |
-| `health`           | Young people sleeping too little                    |
-| `personal-finance` | Household savings                                   |
-| `other`            | Nothing commercial fits (the accident, the robbery) |
+| Key | Example on Vintrabladet |
+|---|---|
+| `travel` | Mallorca in autumn |
+| `outdoor` | Mountain hiking guide |
+| `sport` | Football promotion, running race |
+| `culture` | Theatre musical |
+| `food` | Chanterelles and a recipe |
+| `home` | Bathroom renovation |
+| `cars` | Electric car test |
+| `health` | Young people sleeping too little |
+| `personal-finance` | Household savings |
+| `other` | Nothing commercial fits (the accident, the robbery) |
 
 - The keys are code values, not text. They live in content-intent's `api` package; the offers
   in G3 use the same values. Display names come from the sv/en translation files (`CLAUDE.md`).
@@ -188,13 +188,13 @@ chosen language. An answer without both counts as `failed`.
 
 ### 3.3 Zone rules (D-4)
 
-| `status`       | `zone`   | Meaning                                           | Suggestions?     | Panel?              | Editor view shows        |
-| -------------- | -------- | ------------------------------------------------- | ---------------- | ------------------- | ------------------------ |
-| `classified`   | `green`  | Safe, with commercial intent                      | Yes (up to 3)    | Yes, after approval | The zone and suggestions |
-| `classified`   | `yellow` | Sensitive (health, personal finance)              | No, for the demo | No                  | Yellow                   |
-| `classified`   | `red`    | Never next to ads (crime, tragedy)                | No, never        | No, never           | Red                      |
-| `unclassified` | `null`   | Stored, not classified yet                        | No               | No                  | "Not classified yet"     |
-| `failed`       | `null`   | Timeout, refusal, invalid answer, retries used up | No               | No                  | "Couldn't be classified" |
+| `status` | `zone` | Meaning | Suggestions? | Panel? | Editor view shows |
+|---|---|---|---|---|---|
+| `classified` | `green` | Safe, with commercial intent | Yes (up to 3) | Yes, after approval | The zone and suggestions |
+| `classified` | `yellow` | Sensitive (health, personal finance) | No, for the demo | No | Yellow |
+| `classified` | `red` | Never next to ads (crime, tragedy) | No, never | No, never | Red |
+| `unclassified` | `null` | Stored, not classified yet | No | No | "Not classified yet" |
+| `failed` | `null` | Timeout, refusal, invalid answer, retries used up | No | No | "Couldn't be classified" |
 
 **Decision D-4:** `unclassified` and `failed` are stored as their own states, never as red,
 so the editor view tells the truth, the failure counts stay honest, and a later retry can
@@ -357,13 +357,13 @@ Rules for every call between the apps:
 - **Contract tests:** each JSON example in this section becomes a file in
   `docs/rainmaker/contract/` that both sides' tests read, so the two sides can't drift.
 
-| Call                                      | From → to             | Section |
-| ----------------------------------------- | --------------------- | ------- |
-| `GET /api/articles?recent=…` and `?url=…` | G3 → G2               | 7.1     |
-| `GET /api/offers`                         | G2 → G3               | 7.2     |
-| `GET /api/approved-links?url=…`           | G1 → G3               | 7.3     |
-| `GET /widget/v1/links?url=…`              | rainmaker.js → G1     | 7.4     |
-| `GET /c/{token}`                          | reader's browser → G1 | 7.5     |
+| Call | From → to | Section |
+|---|---|---|
+| `GET /api/articles?recent=…` and `?url=…` | G3 → G2 | 7.1 |
+| `GET /api/offers` | G2 → G3 | 7.2 |
+| `GET /api/approved-links?url=…` | G1 → G3 | 7.3 |
+| `GET /widget/v1/links?url=…` | rainmaker.js → G1 | 7.4 |
+| `GET /c/{token}` | reader's browser → G1 | 7.5 |
 
 ### 7.1 Articles API (G2, #202)
 
@@ -414,12 +414,7 @@ GET http://localhost:8082/api/articles?url=http%3A%2F%2Flocalhost%3A3000%2Fartik
         "classifiedAt": "2026-10-30T09:15:04Z"
       },
       "suggestions": [
-        {
-          "suggestionId": "0192f3e4-…",
-          "offerId": "0192f3d0-…",
-          "rank": 1,
-          "matchedTopics": ["home"]
-        }
+        {"suggestionId": "0192f3e4-…", "offerId": "0192f3d0-…", "rank": 1, "matchedTopics": ["home"]}
       ],
       "correlationId": "c0a1…"
     }
@@ -567,12 +562,12 @@ architecture's target is under 100 ms). `exp` limits how long a copied link can 
 
 Opening the link:
 
-| Case                          | Answer                                         | Stored?               |
-| ----------------------------- | ---------------------------------------------- | --------------------- |
-| Valid signature, not expired  | `302 Found`, `Location`: the `d` from the link | One row per `clickId` |
-| Same `clickId` again          | `302` to the same place                        | No new row            |
-| Bad, changed or garbled token | `400` error page                               | Nothing               |
-| Valid signature, expired      | `410 Gone` error page                          | Nothing               |
+| Case | Answer | Stored? |
+|---|---|---|
+| Valid signature, not expired | `302 Found`, `Location`: the `d` from the link | One row per `clickId` |
+| Same `clickId` again | `302` to the same place | No new row |
+| Bad, changed or garbled token | `400` error page | Nothing |
+| Valid signature, expired | `410 Gone` error page | Nothing |
 
 - The redirect target comes from the signed link, which only G1 can make, never from anything
   the request can change (no open redirect).
@@ -586,23 +581,17 @@ Opening the link:
 An internal UI, under `/publisher/` so the paths don't clash with the fake-news site's own
 `/editor` (#159):
 
-| Method | Path                                            | What                                                                                                      |
-| ------ | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| GET    | `/publisher/articles`                           | Recent articles: headline, zone (or "Not classified yet" / "Couldn't be classified"), reason, suggestions |
-| POST   | `/publisher/suggestions/{suggestionId}/approve` | Approve; writes an audit row                                                                              |
-| POST   | `/publisher/suggestions/{suggestionId}/reject`  | Reject; writes an audit row                                                                               |
+| Method | Path | What |
+|---|---|---|
+| GET | `/publisher/articles` | Recent articles: headline, zone (or "Not classified yet" / "Couldn't be classified"), reason, suggestions |
+| POST | `/publisher/suggestions/{suggestionId}/approve` | Approve; writes an audit row |
+| POST | `/publisher/suggestions/{suggestionId}/reject` | Reject; writes an audit row |
 
 The page states that there's no login (local demo only). An audit row (append-only) looks
 like this:
 
 ```json
-{
-  "auditId": "…",
-  "suggestionId": "0192f3e4-…",
-  "action": "approved",
-  "by": "demo-editor",
-  "at": "2026-10-30T09:20:00Z"
-}
+{"auditId": "…", "suggestionId": "0192f3e4-…", "action": "approved", "by": "demo-editor", "at": "2026-10-30T09:20:00Z"}
 ```
 
 ---
@@ -631,33 +620,20 @@ Answer format (structured output; anything else counts as `failed`):
   "required": ["zone", "topics", "reason"],
   "additionalProperties": false,
   "properties": {
-    "zone": { "enum": ["green", "yellow", "red"] },
+    "zone": {"enum": ["green", "yellow", "red"]},
     "topics": {
       "type": "array",
       "minItems": 1,
       "maxItems": 3,
-      "items": {
-        "enum": [
-          "travel",
-          "outdoor",
-          "sport",
-          "culture",
-          "food",
-          "home",
-          "cars",
-          "health",
-          "personal-finance",
-          "other"
-        ]
-      }
+      "items": {"enum": ["travel", "outdoor", "sport", "culture", "food", "home", "cars", "health", "personal-finance", "other"]}
     },
     "reason": {
       "type": "object",
       "required": ["sv", "en"],
       "additionalProperties": false,
       "properties": {
-        "sv": { "type": "string", "maxLength": 300 },
-        "en": { "type": "string", "maxLength": 300 }
+        "sv": {"type": "string", "maxLength": 300},
+        "en": {"type": "string", "maxLength": 300}
       }
     }
   }
@@ -675,13 +651,13 @@ sent. Nothing about readers is ever sent.
 
 ## 9. How the demo's "done means" map to this file (#154)
 
-| Done means (handledare, 20 Oct)                             | Covered by                          |
-| ----------------------------------------------------------- | ----------------------------------- |
-| A new fake article shows up in the editor view              | 6.1 → 6.2 → 7.1 → 7.6               |
-| A red article never shows a panel                           | 3.3, 5, 7.3, 7.4                    |
-| After approval, the panel shows the links                   | 5, 7.3, 7.4                         |
+| Done means (handledare, 20 Oct) | Covered by |
+|---|---|
+| A new fake article shows up in the editor view | 6.1 → 6.2 → 7.1 → 7.6 |
+| A red article never shows a panel | 3.3, 5, 7.3, 7.4 |
+| After approval, the panel shows the links | 5, 7.3, 7.4 |
 | If Rainmaker is down, the article page still loads normally | 7.4 (rainmaker.js fails open, #152) |
-| A click lands on the right page and is stored once          | 7.5                                 |
+| A click lands on the right page and is stored once | 7.5 |
 
 ## 10. Changing this file
 
