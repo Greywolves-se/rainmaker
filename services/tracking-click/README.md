@@ -46,3 +46,5 @@ The click redirect: stores each click once and sends the reader to the offer.
   - inject the client with `@Qualifier(TrackingClickDatabaseConfiguration.JDBC_CLIENT) JdbcClient`;
   - mark transactions with `@Transactional(TrackingClickDatabaseConfiguration.TRANSACTION_MANAGER)`; an
     unnamed `@Transactional` is ambiguous, because an app holds several modules' databases.
+    The app's `ModuleBoundaryTest` fails the build on an unnamed one, another module's, or
+    `jakarta.transaction.Transactional` (#170).
