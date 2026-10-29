@@ -22,7 +22,23 @@ The click redirect: stores each click once and sends the reader to the offer.
   - `click/SignedClickLinks.check` reads a token back: valid, invalid (forged, changed, garbled) or
     expired. The signature is checked before anything in the payload is read, and the destination
     only ever comes from a signed link (no open redirect).
-  - Opening a link (`GET /c/{token}`: store the click once, then redirect) is part 2.
+- **Opening a link** (#153 part 2, contract 7.5): `click/ClickRedirectController` answers
+  `GET /c/{token}`:
+  - valid: the click is stored (once per click id) and the reader is sent on with `302` to the
+    destination inside the signed link;
+  - forged, changed or garbled: a `400` page; expired: a `410` page. Neither stores anything;
+  - the click can't be stored (the database is down): a `503` page and no redirect (fail closed for
+    money). Opening the same link again retries with the same click id;
+  - the pages' text is in `tracking-click/messages*.properties`: Swedish, or English when the
+    browser asks for it;
+  - the log has the click, article and offer ids, never the reader's IP or the token.
+- **Stored clicks** (#153 part 2, contract 3.6): `click/ClickStore` writes one row per click id to
+  the `click` table (`V2__click.sql`): click id, article, offer and time; no IP, cookie or user id.
+  - The click id is the primary key and the insert is `ON CONFLICT DO NOTHING`, so a double-click,
+    a retry or two requests at the same time are one row.
+  - The table is append-only: the database refuses `UPDATE`, `DELETE` and `TRUNCATE` on it. A
+    mistake is corrected with a new compensating record (CLAUDE.md, product rules).
+  - `ClickStoreTest` runs against a real PostgreSQL (Testcontainers), so Docker must be running.
 - **Data:** its own PostgreSQL database `tracking_click` with its own login, never another module's
   (architecture D16). `database/TrackingClickDatabaseConfiguration` sets it up:
   - migrations go in `src/main/resources/db/migration/tracking-click/` (`V2__…sql` and up; never edit a
