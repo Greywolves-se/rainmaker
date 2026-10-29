@@ -17,6 +17,13 @@
 
   <!-- Its own PostgreSQL database with Flyway migrations (#155, architecture D16). -->
   <dependencies>
+    <!-- S5's api: the ArticleStored event this module classifies (#209, contract 6.1). Same app
+         (G2), so only the api package; the app's ArchUnit test checks it. -->
+    <dependency>
+      <groupId>se.rainmaker</groupId>
+      <artifactId>content-ingestion</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!-- Connection pool (HikariCP), JdbcClient and transactions. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

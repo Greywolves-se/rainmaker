@@ -30,6 +30,15 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
     prompt in `src/main/resources/content-intent/classification-prompt.txt` and the schema as a tool
     Claude must call. Only the headline and text are sent, as data.
   - `ClassifierConfiguration` picks one of them from the settings below.
+- **`pipeline`** (internal, #209): classifies every stored article (contract 6.1 → 3.2 → 6.2).
+  - `ArticleClassification` listens to content-ingestion's `ArticleStored`. It stores the version
+    as `unclassified` at once (a version stored already is a repeated event: nothing changes),
+    calls the classifier outside any database transaction, then has the result stored.
+  - `ClassificationResults` stores the result and publishes `ArticleClassified` in one transaction,
+    for every status, so matching withdraws suggestions for anything that isn't green.
+  - `ClassificationStore`: table `classification`, one row per article id and version
+    (`V2__classifications.sql`). Never the text. A database error is logged and doesn't stop
+    ingestion; that version stays `unclassified`, treated like red.
 
 ### Settings (`rainmaker.content-intent.classifier.*`, in G2's `application.properties`)
 
