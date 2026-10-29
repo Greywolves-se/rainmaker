@@ -13,11 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
-import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -34,7 +30,7 @@ class G3ApprovedLinksClientTest {
       "http://localhost:3000/artikel/badrumsrenovering-experternas-rad";
 
   /** G3's answer exactly as contract 7.3 shows it; G3's own tests can read the same file. */
-  private static final String CONTRACT_EXAMPLE = contractExample("7.3-approved-links.json");
+  private static final String CONTRACT_EXAMPLE = ContractExamples.read("7.3-approved-links.json");
 
   @RegisterExtension
   static WireMockExtension g3 =
@@ -235,21 +231,5 @@ class G3ApprovedLinksClientTest {
 
   private static UUID id(String text) {
     return UUID.fromString(text);
-  }
-
-  /** A contract example, found by walking up from the working directory (Maven, root or IDE). */
-  private static String contractExample(String name) {
-    Path file = Path.of("docs", "rainmaker", "contract", name);
-    for (Path folder = Path.of("").toAbsolutePath(); folder != null; folder = folder.getParent()) {
-      if (Files.isRegularFile(folder.resolve(file))) {
-        try {
-          return Files.readString(folder.resolve(file), StandardCharsets.UTF_8);
-        } catch (IOException unreadable) {
-          throw new IllegalStateException("Cannot read " + file, unreadable);
-        }
-      }
-    }
-    throw new IllegalStateException(
-        "Cannot find " + file + " above " + Path.of("").toAbsolutePath());
   }
 }

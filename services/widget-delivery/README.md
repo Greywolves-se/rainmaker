@@ -21,6 +21,21 @@ Gives rainmaker.js the approved links for an article.
     left out.
   - The tests read G3's answer from `docs/rainmaker/contract/7.3-approved-links.json`, the contract's
     own example, so G3's tests can use the same file.
-  - The widget API that uses it (`/widget/v1/links`, contract 7.4) is part 2.
+- **The widget API** (#151 part 2, contract 7.4): `GET /widget/v1/links?url=…`, which rainmaker.js
+  calls on a headline hover. `links/WidgetLinksController` checks the address, and
+  `links/WidgetLinksService` asks G3 and turns its approved links into the panel's: at most 3, in
+  rank order, each with a new signed click link from S2 (`ClickLinks`, contract 7.5) instead of the
+  offer's address.
+  - **200** with the links, or with `"links": []` for any article G3 gives none (red, yellow,
+    unclassified, unknown, nothing approved). Nothing is cached, so an article that turns red
+    loses its links on the next hover. A link S2 can't sign is left out, not the whole panel.
+  - **400** when `url` is missing or not an absolute http(s) address; G3 isn't asked. **503** when
+    G3 can't answer, never the last known links (fail closed).
+  - `Cache-Control: no-store`, no login and no cookies. CORS only for the sites in
+    `rainmaker.widget-delivery.widget-api.allowed-origins` (the demo: `http://localhost:3000`),
+    `GET` only, without credentials. Nothing about the reader is logged; each request gets its own
+    correlation id, sent to G3 and put in the log context.
+  - The tests check G1's answer against `docs/rainmaker/contract/7.4-widget-links.json`, and
+    rainmaker.js's tests read the same file, so the two sides can't drift.
 - **Data:** no database of its own for the demo: it asks G3 for the approved links on each
   request (contract, section 7.3). A Redis projection comes later (architecture S1).
