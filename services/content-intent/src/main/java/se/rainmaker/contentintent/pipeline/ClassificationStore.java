@@ -1,15 +1,25 @@
 package se.rainmaker.contentintent.pipeline;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
+import se.rainmaker.contentintent.api.ArticleVersion;
 import se.rainmaker.contentintent.api.Classification;
+import se.rainmaker.contentintent.api.ClassificationStatus;
+import se.rainmaker.contentintent.api.CurrentClassifications;
 import se.rainmaker.contentintent.api.Reason;
 import se.rainmaker.contentintent.api.Topic;
+import se.rainmaker.contentintent.api.Zone;
 import se.rainmaker.contentintent.database.ContentIntentDatabaseConfiguration;
 
 /**
@@ -17,7 +27,7 @@ import se.rainmaker.contentintent.database.ContentIntentDatabaseConfiguration;
  * 3.2). One row per article id and version; never the article's text.
  */
 @Component
-class ClassificationStore {
+class ClassificationStore implements CurrentClassifications {
 
   private final JdbcClient database;
 
@@ -68,6 +78,62 @@ class ClassificationStore {
         .param("model", classification.model())
         .param("classifiedAt", utc(classification.classifiedAt()))
         .update();
+  }
+
+  @Override
+  public Map<ArticleVersion, Classification> forVersions(Collection<ArticleVersion> versions) {
+    Map<ArticleVersion, Classification> answer = new LinkedHashMap<>();
+    versions.forEach(version -> answer.put(version, Classification.unclassified()));
+    if (answer.isEmpty()) {
+      return answer;
+    }
+    // One query for all of them: the versions asked for are joined as two parallel arrays.
+    database
+        .sql(
+            """
+            SELECT article_id, article_version, status, zone, topics, reason_sv, reason_en, model,
+                classified_at
+            FROM classification
+            JOIN unnest(CAST(:articleIds AS uuid[]), CAST(:versions AS integer[]))
+                AS asked (article_id, article_version) USING (article_id, article_version)
+            """)
+        .param(
+            "articleIds",
+            answer.keySet().stream().map(key -> key.articleId().toString()).toArray(String[]::new))
+        .param(
+            "versions",
+            answer.keySet().stream()
+                .map(key -> String.valueOf(key.version()))
+                .toArray(String[]::new))
+        .query(
+            (row, number) ->
+                Map.entry(
+                    new ArticleVersion(
+                        row.getObject("article_id", UUID.class), row.getInt("article_version")),
+                    classification(row)))
+        .list()
+        .forEach(stored -> answer.put(stored.getKey(), stored.getValue()));
+    return answer;
+  }
+
+  private static Classification classification(ResultSet row) throws SQLException {
+    String status = row.getString("status");
+    OffsetDateTime at = row.getObject("classified_at", OffsetDateTime.class);
+    Instant classifiedAt = at == null ? null : at.toInstant();
+    if (ClassificationStatus.CLASSIFIED.key().equals(status)) {
+      return Classification.classified(
+          Zone.fromKey(row.getString("zone")).orElseThrow(),
+          Arrays.stream((String[]) row.getArray("topics").getArray())
+              .map(key -> Topic.fromKey(key).orElseThrow())
+              .toList(),
+          new Reason(row.getString("reason_sv"), row.getString("reason_en")),
+          row.getString("model"),
+          classifiedAt);
+    }
+    if (ClassificationStatus.FAILED.key().equals(status)) {
+      return Classification.failed(row.getString("model"), classifiedAt);
+    }
+    return Classification.unclassified();
   }
 
   private static OffsetDateTime utc(Instant instant) {

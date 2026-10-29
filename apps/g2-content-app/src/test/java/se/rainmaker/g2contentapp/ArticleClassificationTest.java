@@ -3,31 +3,36 @@ package se.rainmaker.g2contentapp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import se.rainmaker.contentingestion.api.ArticleStored;
 import se.rainmaker.contentintent.api.ArticleClassified;
 import se.rainmaker.contentintent.api.ArticleClassifier;
+import se.rainmaker.contentintent.api.ArticleVersion;
 import se.rainmaker.contentintent.api.Classification;
 import se.rainmaker.contentintent.api.ClassificationStatus;
+import se.rainmaker.contentintent.api.CurrentClassifications;
 import se.rainmaker.contentintent.api.Reason;
 import se.rainmaker.contentintent.api.Topic;
 import se.rainmaker.contentintent.api.Zone;
@@ -57,9 +62,10 @@ class ArticleClassificationTest {
   @MockitoBean private ArticleClassifier classifier;
   @Autowired private ApplicationEventPublisher publisher;
   @Autowired private ApplicationEvents events;
+  @Autowired private CurrentClassifications current;
 
-  @Autowired
-  @Qualifier(ContentIntentDatabaseConfiguration.JDBC_CLIENT)
+  /** The module's own client, spied on so a test can count the queries the read API makes. */
+  @MockitoSpyBean(name = ContentIntentDatabaseConfiguration.JDBC_CLIENT)
   private JdbcClient database;
 
   @Test
@@ -95,6 +101,40 @@ class ArticleClassificationTest {
               assertThat(event.classification().zone()).isEqualTo(Zone.GREEN);
               assertThat(event.correlationId()).isEqualTo(article.correlationId());
             });
+    ArticleVersion version = new ArticleVersion(article.articleId(), 1);
+    assertThat(current.forVersions(List.of(version)))
+        .containsExactly(Map.entry(version, green(Topic.HOME, Topic.TRAVEL)));
+  }
+
+  /** #202 serves G3's poll of 100 articles every few seconds: one query for all of them. */
+  @Test
+  void readsHundredVersionsInOneQueryAndUnknownOnesAreUnclassified() {
+    UUID greenArticle = UUID.randomUUID();
+    UUID failedArticle = UUID.randomUUID();
+    when(classifier.classify(any()))
+        .thenReturn(green(Topic.HOME))
+        .thenReturn(Classification.failed(MODEL, AT));
+    publisher.publishEvent(stored(greenArticle, 1));
+    publisher.publishEvent(stored(failedArticle, 1));
+    List<ArticleVersion> asked = new ArrayList<>();
+    asked.add(new ArticleVersion(greenArticle, 1));
+    asked.add(new ArticleVersion(failedArticle, 1));
+    // A version the article doesn't have yet, then articles never stored.
+    asked.add(new ArticleVersion(greenArticle, 2));
+    while (asked.size() < 100) {
+      asked.add(new ArticleVersion(UUID.randomUUID(), 1));
+    }
+    clearInvocations(database);
+
+    Map<ArticleVersion, Classification> answer = current.forVersions(asked);
+
+    verify(database, times(1)).sql(anyString());
+    assertThat(answer.keySet()).containsExactlyElementsOf(asked);
+    assertThat(answer.get(asked.get(0))).isEqualTo(green(Topic.HOME));
+    assertThat(answer.get(asked.get(1))).isEqualTo(Classification.failed(MODEL, AT));
+    assertThat(asked.subList(2, 100))
+        .allSatisfy(
+            unknown -> assertThat(answer.get(unknown)).isEqualTo(Classification.unclassified()));
   }
 
   @Test

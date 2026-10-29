@@ -39,6 +39,9 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
   - `ClassificationStore`: table `classification`, one row per article id and version
     (`V2__classifications.sql`). Never the text. A database error is logged and doesn't stop
     ingestion; that version stays `unclassified`, treated like red.
+  - It also answers `api.CurrentClassifications`: the current classification of a list of
+    `ArticleVersion`s in one query, for the articles API (#202). A version with nothing stored is
+    `unclassified`.
 
 ### Settings (`rainmaker.content-intent.classifier.*`, in G2's `application.properties`)
 
