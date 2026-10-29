@@ -93,8 +93,9 @@ assumptions and open risks that remain. Never present code as finished or
 ### Study guides
 - After opening a draft PR that changes code (not for docs or config only), write a
   study guide for it, in English: one page that explains all the changed code, with
-  questions at the end that check the developer understood it. Publish it as a
-  private claude.ai page and add it to the team's hub. How, and what a guide
+  questions at the end that check the developer understood it. Keep it light: a main
+  path of about 15 minutes, with the full detail in closed "Go deeper" boxes. Publish
+  it as a private claude.ai page and add it to the team's hub. How, and what a guide
   contains: `docs/study-guides.md`.
 - Then remind the developer to share the guide with the team from its Share menu.
   Claude cannot change who has access to a page.

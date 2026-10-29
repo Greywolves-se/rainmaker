@@ -16,17 +16,24 @@ Suggests offers for green articles, ranked by relevance; CPC only breaks ties.
     The app's `ModuleBoundaryTest` fails the build on an unnamed one, another module's, or
     `jakarta.transaction.Transactional` (#170).
 
-## What it does (#149, part 2a)
+## What it does (#149)
 
-The building blocks of matching; part 2b stores the suggestions and listens for content-intent's
-`ArticleClassified` event (contract 6.2).
+Matching listens for content-intent's `ArticleClassified` event (contract 6.2) and keeps each article's
+current suggestion set (contract 3.5, section 4):
 
-- **Ranking** (`ranking/OfferRanking`, contract section 4): an offer fits when its category is one of the
-  article's topics, and the earlier the topic, the better the fit; CPC only breaks ties, then the offer id.
-  At most 3; `other` never matches; an offer with an unknown category is skipped and logged.
-- **G3's offers** (`offers/G3OffersClient`): reads `GET /api/offers` (contract 7.2), with a connect and a
-  read timeout and retries with back-off on no connection, a timeout or a 5xx. A 4xx or an unusable answer
-  is not retried.
+- **Not green** (yellow, red, failed, unclassified): the set is emptied at once, without asking G3 (D-4).
+- **Green:** the offers are read from G3's `GET /api/offers` (`offers/G3OffersClient`) and ranked
+  (`ranking/OfferRanking`):
+  - an offer fits when its category is one of the article's topics, and the earlier the topic, the
+    better the fit; CPC only breaks ties, then the offer id;
+  - at most 3; `other` never matches; an offer with an unknown category is skipped and logged.
+- **G3 down** after the retries: nothing new is stored and the error is logged; a new version still loses
+  its old set. The article is matched again the next time it is classified.
+- **Storage** (`matching/SuggestionStore`, migration `V2__suggestions.sql`): the newest version per
+  article and its set. An older version is ignored, a newer one replaces the set (D-5), and the same event
+  twice changes nothing. Suggestion ids are UUIDv7 (`matching/UuidV7`).
+- **`api.CurrentSuggestions`:** the current set per article, for modules inside G2 (e.g. the articles
+  API, contract 7.1).
 
 Settings, `rainmaker.matching-ranking.offers.*` (checked at start-up; values in the G2 app's
 `application.properties`):
