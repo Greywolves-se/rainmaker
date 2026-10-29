@@ -33,12 +33,14 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 - **`pipeline`** (internal, #209): classifies every stored article (contract 6.1 → 3.2 → 6.2).
   - `ArticleClassification` listens to content-ingestion's `ArticleStored`. It stores the version
     as `unclassified` at once (a version stored already is a repeated event: nothing changes),
-    calls the classifier outside any database transaction, then has the result stored.
+    calls the classifier outside any database transaction, then has the result stored. A
+    classifier that throws gives `failed`. The listener runs inside ingestion's feed poll, so any
+    other error is logged and the poll continues; that version stays `unclassified`, and nothing
+    classifies it again yet (#223).
   - `ClassificationResults` stores the result and publishes `ArticleClassified` in one transaction,
     for every status, so matching withdraws suggestions for anything that isn't green.
   - `ClassificationStore`: table `classification`, one row per article id and version
-    (`V2__classifications.sql`). Never the text. A database error is logged and doesn't stop
-    ingestion; that version stays `unclassified`, treated like red.
+    (`V2__classifications.sql`). Never the text.
   - It also answers `api.CurrentClassifications`: the current classification of a list of
     `ArticleVersion`s in one query, for the articles API (#202). A version with nothing stored is
     `unclassified`.
@@ -62,7 +64,7 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 
 | Situation | Result | Retried? |
 |---|---|---|
-| Calls per minute or daily token cap used | `unclassified` (no call made) | Later, by the next run |
+| Calls per minute or daily token cap used | `unclassified` (no call made) | Not yet; only an edited article is classified again (#223) |
 | Throttling, timeout, service error | `failed` once `max-attempts` are used | Yes, with back-off |
 | Other client error, e.g. an expired SSO login | `failed`, logged as ERROR (`failed-client-error`) | No |
 | `AccessDenied` (also the hard cost stop's SCP, #161) | `failed`, logged as ERROR (`failed-access-denied`) | No |

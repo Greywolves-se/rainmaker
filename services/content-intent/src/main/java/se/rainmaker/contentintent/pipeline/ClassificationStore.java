@@ -57,27 +57,38 @@ class ClassificationStore implements CurrentClassifications {
     return rows == 1;
   }
 
-  /** Makes {@code classification} the version's current result, replacing any earlier one. */
+  /**
+   * Makes {@code classification} the version's current result, replacing any earlier one.
+   *
+   * @throws IllegalStateException if the version wasn't stored as unclassified first
+   */
   void storeResult(UUID articleId, int version, Classification classification) {
     Reason reason = classification.reason();
-    database
-        .sql(
-            """
-            UPDATE classification
-            SET status = :status, zone = :zone, topics = :topics, reason_sv = :reasonSv,
-                reason_en = :reasonEn, model = :model, classified_at = :classifiedAt
-            WHERE article_id = :articleId AND article_version = :version
-            """)
-        .param("articleId", articleId)
-        .param("version", version)
-        .param("status", classification.status().key())
-        .param("zone", classification.zone() == null ? null : classification.zone().key())
-        .param("topics", classification.topics().stream().map(Topic::key).toArray(String[]::new))
-        .param("reasonSv", reason == null ? null : reason.sv())
-        .param("reasonEn", reason == null ? null : reason.en())
-        .param("model", classification.model())
-        .param("classifiedAt", utc(classification.classifiedAt()))
-        .update();
+    int rows =
+        database
+            .sql(
+                """
+                UPDATE classification
+                SET status = :status, zone = :zone, topics = :topics, reason_sv = :reasonSv,
+                    reason_en = :reasonEn, model = :model, classified_at = :classifiedAt
+                WHERE article_id = :articleId AND article_version = :version
+                """)
+            .param("articleId", articleId)
+            .param("version", version)
+            .param("status", classification.status().key())
+            .param("zone", classification.zone() == null ? null : classification.zone().key())
+            .param(
+                "topics", classification.topics().stream().map(Topic::key).toArray(String[]::new))
+            .param("reasonSv", reason == null ? null : reason.sv())
+            .param("reasonEn", reason == null ? null : reason.en())
+            .param("model", classification.model())
+            .param("classifiedAt", utc(classification.classifiedAt()))
+            .update();
+    if (rows != 1) {
+      // Rolls back the transaction, so ArticleClassified is never published for a missing row.
+      throw new IllegalStateException(
+          "Article " + articleId + " version " + version + " has no classification row");
+    }
   }
 
   @Override

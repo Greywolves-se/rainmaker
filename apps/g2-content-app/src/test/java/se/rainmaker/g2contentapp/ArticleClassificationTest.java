@@ -1,10 +1,13 @@
 package se.rainmaker.g2contentapp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,6 +29,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
+import org.springframework.transaction.TransactionSystemException;
 import se.rainmaker.contentingestion.api.ArticleStored;
 import se.rainmaker.contentintent.api.ArticleClassified;
 import se.rainmaker.contentintent.api.ArticleClassifier;
@@ -149,6 +153,42 @@ class ArticleClassificationTest {
         .singleElement()
         .extracting(event -> event.classification().status())
         .isEqualTo(ClassificationStatus.FAILED);
+  }
+
+  /** Anything the classifier throws must not leave the article unclassified for good. */
+  @Test
+  void classifierThatThrowsGivesFailedAndIsPublished() {
+    ArticleStored article = stored(UUID.randomUUID(), 1);
+    when(classifier.classify(any())).thenThrow(new IllegalStateException("Unexpected answer"));
+
+    assertThatCode(() -> publisher.publishEvent(article)).doesNotThrowAnyException();
+
+    assertThat(row(article)).containsEntry("status", "failed").containsEntry("zone", null);
+    assertThat(published(article))
+        .singleElement()
+        .extracting(event -> event.classification().status())
+        .isEqualTo(ClassificationStatus.FAILED);
+  }
+
+  /** The listener runs inside ingestion's feed poll: an error there must not stop the others. */
+  @Test
+  void errorWhileStoringTheResultLeavesItUnclassifiedAndIngestionContinues() {
+    ArticleStored broken = stored(UUID.randomUUID(), 1);
+    final ArticleStored next = stored(UUID.randomUUID(), 1);
+    when(classifier.classify(any())).thenReturn(green(Topic.HOME));
+    // Not a DataAccessException, like a failed commit.
+    doThrow(new TransactionSystemException("Could not commit"))
+        .doCallRealMethod()
+        .when(database)
+        .sql(argThat((String sql) -> sql.contains("UPDATE classification")));
+
+    assertThatCode(() -> publisher.publishEvent(broken)).doesNotThrowAnyException();
+    publisher.publishEvent(next);
+
+    assertThat(row(broken)).containsEntry("status", "unclassified");
+    assertThat(published(broken)).isEmpty();
+    assertThat(row(next)).containsEntry("status", "classified");
+    assertThat(published(next)).hasSize(1);
   }
 
   /** Moved from #148: an edited article is classified again, and red replaces the old green. */
