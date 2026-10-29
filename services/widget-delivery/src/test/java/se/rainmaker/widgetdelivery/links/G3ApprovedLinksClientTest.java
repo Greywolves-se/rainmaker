@@ -40,16 +40,30 @@ class G3ApprovedLinksClientTest {
   static WireMockExtension g3 =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
+  /**
+   * Generous, so the class's first request, which also warms up WireMock and the HTTP client, isn't
+   * cut off on a slow machine; {@link #timeoutMeansUnavailable} uses a short one.
+   */
+  private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
+
+  private static final ApprovedLinksProperties.CircuitBreaker NEVER_OPENS =
+      new ApprovedLinksProperties.CircuitBreaker(10, 10, 50, Duration.ofMinutes(1));
+
   private static G3ApprovedLinksClient client() {
-    return client(new ApprovedLinksProperties.CircuitBreaker(10, 10, 50, Duration.ofMinutes(1)));
+    return client(READ_TIMEOUT, NEVER_OPENS);
   }
 
   private static G3ApprovedLinksClient client(ApprovedLinksProperties.CircuitBreaker breaker) {
+    return client(READ_TIMEOUT, breaker);
+  }
+
+  private static G3ApprovedLinksClient client(
+      Duration readTimeout, ApprovedLinksProperties.CircuitBreaker breaker) {
     return new G3ApprovedLinksClient(
         new ApprovedLinksProperties(
             URI.create(g3.baseUrl()),
             Duration.ofSeconds(1),
-            Duration.ofMillis(300),
+            readTimeout,
             2,
             Duration.ofMillis(10),
             breaker));
@@ -150,7 +164,7 @@ class G3ApprovedLinksClientTest {
   void timeoutMeansUnavailable() {
     g3.stubFor(get(urlPathEqualTo(API)).willReturn(okJson(CONTRACT_EXAMPLE).withFixedDelay(1_000)));
 
-    assertThatThrownBy(() -> client().find(ARTICLE, null))
+    assertThatThrownBy(() -> client(Duration.ofMillis(300), NEVER_OPENS).find(ARTICLE, null))
         .isInstanceOf(ApprovedLinksUnavailableException.class);
     g3.verify(2, getRequestedFor(urlPathEqualTo(API)));
   }
