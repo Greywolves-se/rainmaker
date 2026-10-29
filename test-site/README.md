@@ -130,8 +130,8 @@ Remove the variables afterwards with
 | `/sektion/<id>` | All articles in a section, e.g. `/sektion/sport` | Readers |
 | `/rss.xml` | RSS 2.0 feed with every article | Content Ingestion (S5) |
 | `/sitemap.xml` | Google News-style sitemap | Content Ingestion (S5) |
-| `/robots.txt` | Points crawlers to the sitemap | Crawlers |
-| `/eval/labels.csv` | The *correct* zone for each article | AI evaluation (S6) |
+| `/robots.txt` | Points crawlers to the sitemap, keeps them out of `/eval/` | Crawlers |
+| `/eval/labels.csv` | The *correct* zone for each article. Not linked from any page: open the address directly | AI evaluation (S6) |
 | `/ads/creatives.json` | The fake ad server | The site's own `ads.js` |
 | `/tag-manager/container.json` | Which tags the tag manager loads | The site's own `tag-manager.js` |
 | `/health` | Returns `ok` | Uptime checks, load balancer |
@@ -326,7 +326,9 @@ quality"); this module's own notes are in `test-site/CLAUDE.md`.
 ## Design decisions worth knowing
 
 - **The expected zone is not in the page HTML.** Otherwise the AI classifier
-  (S6) could read the answer. It is only published in `/eval/labels.csv`.
+  (S6) could read the answer. It is only published in `/eval/labels.csv`, which
+  no page links to and `robots.txt` disallows, so a crawler that follows links
+  (like ingestion's planned "fetch the page" fallback) does not find it either.
 - **Markup made for ingestion.** Only the article itself is inside `<article>`,
   so selectors like `article h1` and `article p` get exactly the headline and
   body text. Ad slots and the paywall offer inside the article contain no `<p>`.
