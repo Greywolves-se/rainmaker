@@ -3,8 +3,6 @@ package se.rainmaker.g2contentapp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.UUID;
@@ -16,10 +14,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.MountableFile;
 import se.rainmaker.contentingestion.database.ContentIngestionDatabaseConfiguration;
 import se.rainmaker.contentintent.api.ArticleClassifier;
 import se.rainmaker.contentintent.api.ArticleToClassify;
@@ -33,41 +27,11 @@ import se.rainmaker.matchingranking.database.MatchingRankingDatabaseConfiguratio
  * is off, so the test never reads a real site (#147 tests ingestion against WireMock).
  */
 @SpringBootTest(properties = "rainmaker.content-ingestion.feed.polling=false")
-@Testcontainers
 class G2ContentApplicationTest {
-
-  /** The same script docker-compose.yml runs: one database and one login per module. */
-  private static final Path INIT_SCRIPT = initScript();
-
-  private static final String LOCAL_PASSWORD = "local-dev-only";
-
-  @Container
-  static final PostgreSQLContainer POSTGRES =
-      new PostgreSQLContainer("postgres:18")
-          .withCopyFileToContainer(
-              MountableFile.forHostPath(INIT_SCRIPT),
-              "/docker-entrypoint-initdb.d/01-rainmaker-databases.sql");
 
   @DynamicPropertySource
   static void databases(DynamicPropertyRegistry registry) {
-    database(registry, "content-ingestion");
-    database(registry, "content-intent");
-    database(registry, "matching-ranking");
-  }
-
-  private static void database(DynamicPropertyRegistry registry, String module) {
-    String prefix = "rainmaker." + module + ".datasource.";
-    registry.add(prefix + "jdbc-url", () -> url(module.replace('-', '_')));
-    registry.add(prefix + "password", () -> LOCAL_PASSWORD);
-  }
-
-  private static String url(String database) {
-    return "jdbc:postgresql://"
-        + POSTGRES.getHost()
-        + ":"
-        + POSTGRES.getMappedPort(5432)
-        + "/"
-        + database;
+    TestDatabases.register(registry);
   }
 
   @Value("${server.port}")
@@ -120,7 +84,9 @@ class G2ContentApplicationTest {
     assertThatThrownBy(
             () ->
                 DriverManager.getConnection(
-                    url("tracking_click"), "content_ingestion", LOCAL_PASSWORD))
+                    TestDatabases.url("tracking_click"),
+                    "content_ingestion",
+                    TestDatabases.LOCAL_PASSWORD))
         .isInstanceOf(SQLException.class)
         .hasMessageContaining("permission denied");
   }
@@ -131,20 +97,5 @@ class G2ContentApplicationTest {
         .sql("SELECT count(*) FROM flyway_schema_history WHERE version = '1' AND success")
         .query(Long.class)
         .single();
-  }
-
-  /**
-   * The init script, found by walking up from the working directory, so the test runs the same from
-   * Maven (the module folder), the repository root or an IDE.
-   */
-  private static Path initScript() {
-    Path script = Path.of("docker", "postgres", "init", "01-rainmaker-databases.sql");
-    for (Path folder = Path.of("").toAbsolutePath(); folder != null; folder = folder.getParent()) {
-      if (Files.isRegularFile(folder.resolve(script))) {
-        return folder.resolve(script);
-      }
-    }
-    throw new IllegalStateException(
-        "Cannot find " + script + " above " + Path.of("").toAbsolutePath());
   }
 }
