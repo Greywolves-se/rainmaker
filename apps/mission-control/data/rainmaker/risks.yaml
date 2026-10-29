@@ -12,10 +12,16 @@
   owner: Staffan
   mitigation: Confirm the publisher before development starts; keep the pilot scope fixed.
 - id: R-2
-  title: Mobile interaction is undecided (C3).
+  title: C3 direction decided; detailed design and user testing remain (desktop and mobile).
   level: yellow
   owner: Peter
-  mitigation: Decide C3; test the proposed behaviour-based flow (commercial step after confirmed reading) on desktop and mobile on the test site.
+  mitigation: >-
+    Follow decision B34 and https://github.com/Greywolves-se/rainmaker/issues/215.
+    Simon and the team propose and demonstrate the behaviour-based flow on the
+    test site for desktop and mobile, with commercial next steps after qualified
+    reading and a signal that the reader is leaving the article content.
+    Validate the configurable 60-second starting hypothesis, active-page and
+    scroll signals, and discreet placement with Peter before finalising.
 - id: R-3
   title: A short timeline for a new team.
   level: yellow
