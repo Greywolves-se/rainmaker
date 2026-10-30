@@ -18,7 +18,7 @@ sequenceDiagram
     Site->>G2: RSS item
     G2->>G2: store, classify (Claude), match
     G2->>G3: GET /api/offers (matching needs the offers)
-    G3->>G2: GET /api/articles?since=… (polls new articles and suggestions)
+    G3->>G2: GET /api/articles?recent=… (polls the recent articles and suggestions)
     G3->>G3: editor approves
     JS->>G1: GET /widget/v1/links?url=… (on headline hover)
     G1->>G3: GET /api/approved-links?url=…
@@ -178,6 +178,8 @@ in "nyheter" can be about travel, and "nyheter" can't be matched to an offer.
   in G3 use the same values. Display names come from the sv/en translation files (`CLAUDE.md`).
 - Claude picks 1–3 keys and never invents new ones: the JSON schema in section 8 only allows
   these values. No offer has the category `other`, so `other` never matches.
+- Claude lists the topics **most relevant first**, and `topics` keeps that order: matching
+  ranks by it (section 4).
 - Crime, politics and accidents are not topics; the zone handles them.
 
 **Decision D-9: `reason` in both languages.** The editor view runs in Swedish or English, so
@@ -260,12 +262,17 @@ Append-only. `clickId` is unique in the database (#153). No IP, no cookie, no us
 ## 4. Matching rules (G2: matching-ranking)
 
 - Only `classified` + `green` articles get suggestions. Everything else gets an empty set (D-4).
-- An offer fits when its `category` is in the article's `topics`. More shared topics means a
-  better fit.
-- At most 3 suggestions, ordered by fit. **CPC only breaks ties** (product rule).
-- Matching reads the offers from G3 (section 7.2). If G3 can't be reached, the article keeps
-  its classification and gets no suggestions for now. When to match it again is decided in
-  #149.
+- An offer fits when its `category` is one of the article's `topics`. The earlier the topic in
+  the list, the better the fit: an offer for the first topic beats one for the second, whatever
+  the CPC (decided in #149).
+- At most 3 suggestions, ordered by fit. **CPC only breaks ties** (product rule), then the offer
+  id, so the order never changes.
+- An offer whose `category` isn't a known topic key is skipped and logged, never an error: the
+  keys are kept in both G3 and G2.
+- Matching reads the offers from G3 (section 7.2), with timeouts and retries. If G3 still can't
+  be reached, nothing new is stored and the error is logged; a new version still loses its old
+  set (D-5). The article is matched again the next time it is classified (decided in #149).
+- Not green never waits for G3: the set is emptied at once.
 
 ---
 
@@ -352,25 +359,33 @@ Rules for every call between the apps:
 
 | Call | From → to | Section |
 |---|---|---|
-| `GET /api/articles?since=…` and `?url=…` | G3 → G2 | 7.1 |
+| `GET /api/articles?recent=…` and `?url=…` | G3 → G2 | 7.1 |
 | `GET /api/offers` | G2 → G3 | 7.2 |
 | `GET /api/approved-links?url=…` | G1 → G3 | 7.3 |
 | `GET /widget/v1/links?url=…` | rainmaker.js → G1 | 7.4 |
 | `GET /c/{token}` | reader's browser → G1 | 7.5 |
 
-### 7.1 Articles API (G2, #147–#149)
+### 7.1 Articles API (G2, #202)
 
 ```
-GET http://localhost:8082/api/articles?since=2026-10-30T09:00:00Z
+GET http://localhost:8082/api/articles?recent=100
 GET http://localhost:8082/api/articles?url=http%3A%2F%2Flocalhost%3A3000%2Fartikel%2Fbadrumsrenovering-experternas-rad
 ```
 
-- `since`: every article whose latest version, classification or suggestions changed at or
-  after that time, oldest change first. G3 polls it (every few seconds, a setting) and calls
-  again with `nextSince`. The same article may come twice; G3's update is idempotent.
+- `recent`: a snapshot of the latest version of the `recent` (1–500) articles whose **latest
+  version was stored most recently** (content-ingestion's `stored_at`), newest first, each with
+  its current classification and suggestions. An edited article moves back to the top. G3 polls
+  it (every few seconds, a setting) and applies the whole answer every time; applying the same
+  article again changes nothing.
 - `url`: the latest version of that one article, or an empty list. G3 uses it on every widget
   request to check the current zone (section 7.3).
-- Exactly one of `since` and `url` is required; otherwise `400`.
+- Exactly one of `recent` and `url` is required, and `recent` must be a whole number from 1 to
+  500; otherwise `400`.
+- **Why a snapshot, not "changed since":** a snapshot needs no module to record when its part of
+  an article changed (a reclassification changes only content-intent, a new set only matching).
+  After the demo, events replace the polling (ADR 0004). Each event then carries one article
+  object exactly as below, so G3 handles both the same way, and `recent` stays for filling G3's
+  copy from scratch.
 
 `200 OK`:
 
@@ -401,11 +416,9 @@ GET http://localhost:8082/api/articles?url=http%3A%2F%2Flocalhost%3A3000%2Fartik
       "suggestions": [
         {"suggestionId": "0192f3e4-…", "offerId": "0192f3d0-…", "rank": 1, "matchedTopics": ["home"]}
       ],
-      "changedAt": "2026-10-30T09:15:05Z",
       "correlationId": "c0a1…"
     }
-  ],
-  "nextSince": "2026-10-30T09:15:05Z"
+  ]
 }
 ```
 

@@ -83,6 +83,13 @@ class PagesTest {
         .contains("<meta name=\"robots\" content=\"noindex\">");
   }
 
+  @ParameterizedTest
+  @MethodSource("allPages")
+  void noPageLinksToTheEvaluationLabels(String path) throws Exception {
+    // A crawler following links must not find the answer key (#160).
+    assertThat(page(mockMvc, path)).doesNotContain("/eval/");
+  }
+
   @Test
   void sendsSecurityHeaders() throws Exception {
     MvcResult result = fetch(mockMvc, "/");

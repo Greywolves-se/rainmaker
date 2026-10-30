@@ -24,7 +24,7 @@ approves them, and every click is tracked for settlement.
 | `test-site/` | Fictional news site (Vintrabladet) to test the widget, ingestion and AI against; not part of the product | Maven module | Done; see its `README.md` |
 | `services/<name>/` | One logical service each (S1–S10, table below), grouped by `services/pom.xml` | Maven module | S1–S7 created empty (#155); S8–S10 later |
 | `apps/g1`–`g4-*-app/` | Deployable Spring Boot apps that assemble services (ports 8081–8083) | Maven module | G1–G3 created (#155); G4 later |
-| `widget/` | rainmaker.js (TypeScript, gts, Vite, Vitest; one script, max 15 KB gzipped) | npm | Set up empty (#155); panel in #152 |
+| `widget/` | rainmaker.js (TypeScript, gts, Vite, Vitest; one script, max 15 KB gzipped) | npm | Panel on headline hover (#152); G1 serves it at `/widget/rainmaker.js` |
 | `portals/` | React apps for publishers and admins | npm | Empty – later |
 | `infra/` | AWS CDK app (Java), one stack per environment; see `infra/README.md` | Maven module | **In progress** (#61–#63) |
 | `docs/` | START_HERE.md, architecture decision records | – | Empty – later |
@@ -93,8 +93,9 @@ assumptions and open risks that remain. Never present code as finished or
 ### Study guides
 - After opening a draft PR that changes code (not for docs or config only), write a
   study guide for it, in English: one page that explains all the changed code, with
-  questions at the end that check the developer understood it. Publish it as a
-  private claude.ai page and add it to the team's hub. How, and what a guide
+  questions at the end that check the developer understood it. Keep it light: a main
+  path of about 15 minutes, with the full detail in closed "Go deeper" boxes. Publish
+  it as a private claude.ai page and add it to the team's hub. How, and what a guide
   contains: `docs/study-guides.md`.
 - Then remind the developer to share the guide with the team from its Share menu.
   Claude cannot change who has access to a page.

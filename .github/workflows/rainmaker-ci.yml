@@ -12,6 +12,8 @@
 # - Each job has a timeout, so a hung build or container stops instead of running for 6 hours.
 # - The widget job runs when widget/ changes: lint (gts), tests, and the build, which typechecks,
 #   bundles dist/rainmaker.js and fails above the 15 KB gzipped budget (widget/README.md).
+# - The compose job runs when a docker-compose*.yml at the root changes: `docker compose config`
+#   checks the local demo stack and each override file on top of it (#204). It builds no images.
 # - Job names start with "Rainmaker", because mission-control-ci.yml already has a job named
 #   "Detect changes", and branch rules require checks by name.
 
@@ -27,6 +29,7 @@ on:
       - "widget/**"
       - "apps/g*-app/**"
       - "docker/postgres/**"
+      - "docker-compose*.yml"
       - ".github/workflows/rainmaker-ci.yml"
       - "pom.xml"
       - "mvnw"
@@ -47,6 +50,7 @@ jobs:
     outputs:
       java: ${{ steps.diff.outputs.java }}
       widget: ${{ steps.diff.outputs.widget }}
+      compose: ${{ steps.diff.outputs.compose }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,6 +67,7 @@ jobs:
             {
               echo "java=true"
               echo "widget=true"
+              echo "compose=true"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -78,6 +83,11 @@ jobs:
             echo "widget=true" >> "$GITHUB_OUTPUT"
           else
             echo "widget=false" >> "$GITHUB_OUTPUT"
+          fi
+          if echo "$changed" | grep -qE '^(docker-compose[^/]*\.yml$|\.github/workflows/rainmaker-ci\.yml$)'; then
+            echo "compose=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "compose=false" >> "$GITHUB_OUTPUT"
           fi
 
   java:
@@ -141,3 +151,27 @@ jobs:
       # Typecheck, build dist/rainmaker.js and check the 15 KB gzipped budget.
       - name: Build and size budget
         run: npm run build
+
+  compose:
+    name: Rainmaker validate docker-compose.yml
+    needs: changes
+    if: needs.changes.outputs.compose == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      # The local demo stack alone, then with each override file on top of it (e.g.
+      # docker-compose.bedrock.yml). config only parses and merges the files: no image is built,
+      # nothing starts, no AWS access. AWS_PROFILE is a dummy, because the Bedrock override
+      # requires one.
+      - name: Validate the compose files
+        env:
+          AWS_PROFILE: ci
+        run: |
+          docker compose config --quiet
+          for override in docker-compose.*.yml; do
+            [ -e "$override" ] || continue
+            echo "With $override"
+            docker compose -f docker-compose.yml -f "$override" config --quiet
+          done

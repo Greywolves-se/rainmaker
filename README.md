@@ -5,35 +5,82 @@ publisher's site shows a small, labelled panel with relevant commercial links wh
 reader hovers a headline. AI suggests the links, an editor approves them, and every
 click is tracked for settlement.
 
-We start with **Mission Control**, the team's internal status app
-([apps/mission-control](apps/mission-control/README.md)). The other parts are added
-one at a time.
+The team is building the Rainmaker demo: three apps (G1–G3) that take an article from a
+fictional news site through classification, matching and editor approval to a panel and a
+stored click. The milestone "Rainmaker demo 30 Oct" on GitHub shows where it stands.
+**Mission Control**, the team's internal status app
+([apps/mission-control](apps/mission-control/README.md)), is on hold since 21 Oct 2026.
+
+**New here?** Start with the onboarding study guide, pinned at the top of the team's
+study-guide hub (the link is in [docs/study-guides.md](docs/study-guides.md)). Then read
+[CLAUDE.md](CLAUDE.md), the team's rules for people and Claude alike, and the contract
+between the apps, [docs/rainmaker/contract.md](docs/rainmaker/contract.md).
 
 ## Repository layout
 
 ```
 rainmaker/
 ├── pom.xml              parent POM, lists all Maven modules
-├── docs/                architecture, decisions, START HERE        (empty for now)
-├── services/            one Maven module per logical service; S1–S7 so far (empty, #155)
+├── CLAUDE.md            the team's rules (code, tests, Git, product rules), read by Claude too
+├── docs/                the contract (rainmaker/), decisions (adr/), study-guide rules
+├── services/            one Maven module per logical service; S1–S7 so far
 ├── apps/                deployable apps
 │   ├── g1-reader-app/       S1 + S2, port 8081
 │   ├── g2-content-app/      S5 + S6 + S7, port 8082
 │   ├── g3-publisher-app/    S3 + S4, port 8083
-│   └── mission-control/     internal status app – built first
+│   └── mission-control/     internal status app (on hold)
+├── widget/              rainmaker.js, the script on the publisher's page; TypeScript, not Maven
 ├── test-site/           fictional news site that plays an outside publisher (port 3000)
-├── widget/              rainmaker.js, TypeScript, not Maven         (set up; panel in #152)
+├── docker-compose.yml   local PostgreSQL; its init script is in docker/postgres/
+├── infra/               AWS CDK app (Java): every AWS resource, created through the pipeline
+└── portals/             React apps for publishers and admins, not Maven (empty for now)
+├── widget/              rainmaker.js, TypeScript, not Maven         (panel on headline hover, #152)
 └── portals/             React apps, not Maven                       (empty for now)
 ```
 
 The apps assemble the services (#145, #155); G4 (`apps/g4-money-app`) is added later.
 Run one with `./mvnw -pl apps/g1-reader-app -am package -DskipTests`, then
-`java -jar apps/g1-reader-app/target/g1-reader-app-0.1.0-SNAPSHOT.jar` (see the app's README).
+`java -jar apps/g1-reader-app/target/g1-reader-app-0.1.0-SNAPSHOT.jar --spring.profiles.active=local`
+(see the app's README; G1 needs the `local` profile on a developer's machine).
 
-**Local database.** `docker compose up -d` starts PostgreSQL on `localhost:5432` with one
-database and one login per module (`docker/postgres/init/`); the apps' tests start the same
-setup with Testcontainers, so Docker must be running for `./mvnw verify`.
-`docker compose down -v` deletes the data, and the databases are created again on the next start.
+**Local database only.** `docker compose up -d postgres` starts PostgreSQL on `localhost:5432` with
+one database and one login per module (`docker/postgres/init/`), e.g. to run an app from your IDE;
+the apps' tests start the same setup with Testcontainers, so Docker must be running for
+`./mvnw verify`.
+
+## Run it
+
+The whole demo flow with **one command** (#146). Needs only Docker, from a fresh clone:
+
+```
+docker compose up --build        # stop with Ctrl+C, or add -d and stop with: docker compose down
+```
+
+| What | Address |
+|---|---|
+| The test site, Vintrabladet, with `rainmaker.js` loaded | http://localhost:3000 |
+| G1 Reader & clicks (serves `/widget/rainmaker.js`) | http://localhost:8081 |
+| G2 Content & AI | http://localhost:8082 |
+| G3 Publisher & marketplace (the editor view) | http://localhost:8083 |
+| PostgreSQL | `localhost:5432` |
+
+- **The first start** builds the images (a few minutes); later starts reuse them. Add `--build`
+  again after you change code.
+- **Data is kept** between `docker compose down` and the next `up`. To start from empty databases:
+  `docker compose down -v`.
+- **New articles:** add or edit a file in `test-site/content/articles/` while it runs; G2 reads the
+  feed every minute.
+- **Claude:** G2 uses the fake classifier by default, so no AWS access is needed. It gives every
+  article the same zone, **red** by default, so **no panel shows** without Claude: safe, never a
+  panel on a red article. For local work on matching or the widget, set `RAINMAKER_FAKE_ZONE=green`
+  in `.env`; then every article gets a panel, the red test articles too, so never for the demo.
+  For real Claude on Bedrock, log in with `aws sso login`, set `AWS_PROFILE` in `.env` (copy
+  `.env.example`) and start with
+  `docker compose -f docker-compose.yml -f docker-compose.bedrock.yml up --build`. Your SSO login is
+  mounted read-only; no keys go into any file.
+- **How it fits together:** every port is on `127.0.0.1` only. G2 shares the test site's network, so
+  it reads `http://localhost:3000/...`, the same article addresses the browser and the widget use
+  (contract D-2); other containers reach G2 at `test-site:8082`.
 
 **CI.** Each part has its own workflow in `.github/workflows/`: `rainmaker-ci.yml` builds and tests
 `services/`, the apps G1–G3 and `widget/` (#156), `mission-control-ci.yml` Mission Control and `infra/`,
