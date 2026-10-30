@@ -21,7 +21,7 @@
   status: open
   critical: true
 - id: C3
-  title: 'How should the widget and the commercial link work on mobile? (Needed by: Before start.)'
+  title: 'How should the widget and the commercial link work on mobile? Direction decided (B34): behaviour-based flow; detailed design and user testing remain (#222). (Needed by: Before start.)'
   owner: Customer
   status: open
   critical: true

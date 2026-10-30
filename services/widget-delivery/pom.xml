@@ -14,4 +14,32 @@
   <artifactId>widget-delivery</artifactId>
   <name>S1 Widget Delivery</name>
   <description>Gives rainmaker.js the approved links for an article.</description>
+
+  <dependencies>
+    <!-- S2's signed click links (contract 7.5), which the widget API gives instead of the offer's
+         address. Only its api package may be used (CLAUDE.md, "Architecture rules"). -->
+    <dependency>
+      <groupId>se.rainmaker</groupId>
+      <artifactId>tracking-click</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- Retries with back-off and a circuit breaker on the call to G3's approved links API
+         (CLAUDE.md, "External calls"; contract 7). Both managed in the root POM. -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-retry</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-circuitbreaker</artifactId>
+    </dependency>
+
+    <!-- A fake G3 in the tests: external APIs are never called from tests (CLAUDE.md). -->
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>

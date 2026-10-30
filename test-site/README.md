@@ -121,6 +121,44 @@ Open an article and look in the browser console for `[rainmaker stub]`.
 Remove the variables afterwards with
 `Remove-Item Env:RAINMAKER_SCRIPT_URL, Env:RAINMAKER_INSTALL_METHOD`.
 
+### Places for Rainmaker's next step (#217)
+
+Rainmaker shows an article's approved links as a next step once the reader has
+read it: beside the article on desktop, after it on mobile
+([ADR 0005](../docs/adr/0005-behaviour-based-reader-flow.md)). Every article
+page has three empty markers for that, which a publisher can copy:
+
+```html
+<article>
+  <div class="article__body">
+    <!-- the article text -->
+    <div data-rainmaker-article-end aria-hidden="true"></div>
+  </div>
+  <div data-rainmaker-next-step="after-article"></div>
+</article>
+<aside class="article-sidebar">
+  <!-- "Läs också", ads -->
+  <div data-rainmaker-next-step="sidebar"></div>
+</aside>
+```
+
+- **`data-rainmaker-next-step="sidebar"`:** beside the article, last in the
+  right-hand column. **`"after-article"`:** directly after the article text.
+  Both are on every page at every width; the widget picks the one that fits the
+  layout (#220).
+- **`data-rainmaker-article-end`:** the end of the article content, which the
+  widget can watch to know the reader got there (#219). On a PLUS article it
+  comes after the paywall offer, so a reader can reach it without unlocking.
+  Whether the next step should show on a locked article at all is open until
+  #222.
+- **Empty, they change nothing:** the page looks the same without the widget.
+  They contain no `<p>`, so ingestion's `article p` text is unchanged.
+- **"Beside the article" only works if the place is in view when the reader
+  reaches the end.** The sidebar is usually shorter than the article and
+  scrolls away, so here it stretches to the article's height
+  (`align-self: stretch`) and the place sticks just below the menu
+  (`position: sticky`). A publisher whose sidebar ends early needs the same.
+
 ## What is on the site
 
 | Address | What it is | Who uses it |
@@ -130,8 +168,8 @@ Remove the variables afterwards with
 | `/sektion/<id>` | All articles in a section, e.g. `/sektion/sport` | Readers |
 | `/rss.xml` | RSS 2.0 feed with every article | Content Ingestion (S5) |
 | `/sitemap.xml` | Google News-style sitemap | Content Ingestion (S5) |
-| `/robots.txt` | Points crawlers to the sitemap | Crawlers |
-| `/eval/labels.csv` | The *correct* zone for each article | AI evaluation (S6) |
+| `/robots.txt` | Points crawlers to the sitemap, keeps them out of `/eval/` | Crawlers |
+| `/eval/labels.csv` | The *correct* zone for each article. Not linked from any page: open the address directly | AI evaluation (S6) |
 | `/ads/creatives.json` | The fake ad server | The site's own `ads.js` |
 | `/tag-manager/container.json` | Which tags the tag manager loads | The site's own `tag-manager.js` |
 | `/health` | Returns `ok` | Uptime checks, load balancer |
@@ -326,11 +364,16 @@ quality"); this module's own notes are in `test-site/CLAUDE.md`.
 ## Design decisions worth knowing
 
 - **The expected zone is not in the page HTML.** Otherwise the AI classifier
-  (S6) could read the answer. It is only published in `/eval/labels.csv`.
+  (S6) could read the answer. It is only published in `/eval/labels.csv`, which
+  no page links to and `robots.txt` disallows, so a crawler that follows links
+  (like ingestion's planned "fetch the page" fallback) does not find it either.
 - **Markup made for ingestion.** Only the article itself is inside `<article>`,
   so selectors like `article h1` and `article p` get exactly the headline and
   body text. Ad slots and the paywall offer inside the article contain no `<p>`.
-  The headline has `data-rainmaker-headline` for the widget's hover (UC-06).
+  The headline has `data-rainmaker-headline`, which today's widget opens its
+  panel on when the reader hovers it (#152) until #220 replaces the hover; the
+  places for the next step are described under "Places for Rainmaker's next
+  step".
 - **Paywalled text stays in the HTML** (hidden by CSS), so ingestion reads the
   whole article. Some real publishers instead cut the text on the server –
   worth asking the pilot publisher (C2/P3).
@@ -368,9 +411,10 @@ quality"); this module's own notes are in `test-site/CLAUDE.md`.
 
 1. **Plug in the real widget** with `RAINMAKER_SCRIPT_URL` – the stub shows
    what it needs to find.
-2. **Playwright end-to-end tests** (architecture 7.3): "hover headline →
-   panel appears", "red article → no panel", "panel adds no layout shift",
-   "panel works after *Endast nödvändiga*".
+2. **Playwright end-to-end tests** (architecture 7.3, #154): "read the
+   article → the next step appears" (hover until #220, ADR 0005), "red article →
+   no panel", "panel adds no layout shift", "panel works after *Endast
+   nödvändiga*".
 3. **More articles** towards the ~200 labelled articles for the AI evaluation
    set, including tricky yellow/red borderline cases.
 4. **A client-side-routed variant** (articles change without a page reload),

@@ -12,7 +12,7 @@ Serves rainmaker.js its links and handles clicks. The hot path: it must stay fas
   needs, then start its jar:
 
   ```
-  docker compose up -d
+  docker compose up -d postgres
   (cd widget && npm ci && npm run build)
   ./mvnw -pl apps/g1-reader-app -am package -DskipTests
   java -jar apps/g1-reader-app/target/g1-reader-app-0.1.0-SNAPSHOT.jar --spring.profiles.active=local
