@@ -23,12 +23,17 @@ import se.rainmaker.publishercontrol.database.PublisherControlDatabaseConfigurat
  *       nothing.
  *   <li>An article that isn't classified + green keeps no open suggestions, whatever G2 sends
  *       (D-4).
+ *   <li>Each withdrawal writes an audit row by {@value #WITHDRAWN_BY}, like the editor's decisions,
+ *       so an approved link leaving the widget is logged too.
  * </ul>
  *
  * <p>The article's row is locked while it changes, so an editor's decision waits for it.
  */
 @Component
 class ArticleStore {
+
+  /** Who withdraws in the audit log: G3 does it because of G2's data (contract 5). */
+  static final String WITHDRAWN_BY = "g2";
 
   private final JdbcClient database;
 
@@ -105,6 +110,12 @@ class ArticleStore {
     database
         .sql("UPDATE suggestion SET status = 'withdrawn' WHERE suggestion_id = ?")
         .param(suggestionId)
+        .update();
+    database
+        .sql(
+            "INSERT INTO suggestion_audit (suggestion_id, action, decided_by)"
+                + " VALUES (?, 'withdrawn', ?)")
+        .params(suggestionId, WITHDRAWN_BY)
         .update();
   }
 

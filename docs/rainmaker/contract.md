@@ -583,6 +583,9 @@ like this:
 {"auditId": "…", "suggestionId": "0192f3e4-…", "action": "approved", "by": "demo-editor", "at": "2026-10-30T09:20:00Z"}
 ```
 
+`action` is `approved` or `rejected` by the editor, or `withdrawn` by `g2` when G3 withdraws a
+suggestion because of G2's data (section 5), so an approved link leaving the widget is logged too.
+
 ---
 
 ## 8. Reaching Claude (G2, #148) (D-8)
