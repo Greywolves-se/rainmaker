@@ -51,6 +51,12 @@
       <artifactId>testcontainers-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- A fake G2 articles API for the editor's tests (#150): never the real G2 (CLAUDE.md). -->
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+      <scope>test</scope>
+    </dependency>
     <!-- Module boundaries (README.md, "Code quality"). -->
     <dependency>
       <groupId>com.tngtech.archunit</groupId>
