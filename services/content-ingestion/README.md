@@ -48,3 +48,5 @@ own. An `ArticleStored` lost in a crash is not sent again (no outbox yet, contra
   - inject the client with `@Qualifier(ContentIngestionDatabaseConfiguration.JDBC_CLIENT) JdbcClient`;
   - mark transactions with `@Transactional(ContentIngestionDatabaseConfiguration.TRANSACTION_MANAGER)`; an
     unnamed `@Transactional` is ambiguous, because an app holds several modules' databases.
+    The app's `ModuleBoundaryTest` fails the build on an unnamed one, another module's, or
+    `jakarta.transaction.Transactional` (#170).

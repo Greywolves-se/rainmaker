@@ -40,6 +40,9 @@
   --reading-width: 680px;
   --gutter: 16px;
   --radius: 6px;
+  /* The sticky section menu with its small logo: 2 x 12px padding, the logo's 1.1rem x 1.5 line
+     and a 3px border. Things that stick below it start here. */
+  --section-nav-height: 54px;
 }
 
 /* 2. Base ----------------------------------------------------------------- */
@@ -735,6 +738,23 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+/* Rainmaker's next step beside the article (#217): the sidebar is as tall as the article, and the
+   place sticks below the menu, so it is in view when the reader reaches the end of the article.
+   Empty, it takes no space. */
+.article-sidebar {
+  align-self: stretch;
+}
+
+[data-rainmaker-next-step="sidebar"] {
+  position: sticky;
+  top: calc(var(--section-nav-height) + var(--gutter));
+}
+
+/* Empty, it would still get the sidebar's 20px gap. */
+[data-rainmaker-next-step="sidebar"]:empty {
+  display: none;
 }
 
 .sidebar-box {

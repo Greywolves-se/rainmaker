@@ -60,6 +60,9 @@ services:
       # Click links point at http://localhost:8081 and are signed with a random key for each run
       # (#153). Without this profile G1 doesn't start. Local only, never in AWS.
       SPRING_PROFILES_ACTIVE: local
+      # G1 asks G3 for the approved links on every widget request (#151, contract 7.3);
+      # localhost:8083 here would be G1 itself.
+      RAINMAKER_G3_URL: http://g3:8083
     depends_on:
       postgres:
         condition: service_healthy
