@@ -8,6 +8,9 @@ The editor page with approvals, and the advertisers' offers and landing pages. O
 | S4 Advertiser Marketplace | [`services/advertiser-marketplace`](../../services/advertiser-marketplace) | #149 |
 
 - **Port:** 8083 (`server.port` in `src/main/resources/application.properties`).
+- **Editor page:** <http://localhost:8083/publisher/articles> (#150). **No login:** it is for the
+  local demo only, and every decision is saved as `demo-editor`. It shows articles once G3 can reach
+  G2's articles API (`RAINMAKER_G2_URL`, default `http://localhost:8082`).
 - **Run** (from the repository root): start PostgreSQL, build the app with the services it
   needs, then start its jar:
 

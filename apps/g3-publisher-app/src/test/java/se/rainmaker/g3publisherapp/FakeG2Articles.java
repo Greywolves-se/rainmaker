@@ -17,6 +17,7 @@ import se.rainmaker.publishercontrol.articles.ArticleSync;
 final class FakeG2Articles {
 
   static final String ARTICLES = "/api/articles";
+  static final String PUBLISHED_AT = "\"publishedAt\": \"2026-10-10T05:45:00Z\"";
   static final UUID HOME_OFFER = UUID.fromString("01a1629f-c407-7538-b453-538453d70007");
   static final UUID TRAVEL_OFFER = UUID.fromString("01a1629f-c401-79e3-9779-9e3779b10001");
 
@@ -36,7 +37,7 @@ final class FakeG2Articles {
         """
         {"articleId": "%s", "externalId": "vb-0006", "version": %d,
          "url": "http://localhost:3000/artikel/%s", "headline": "Badrummet som håller i 40 år",
-         "section": "bostad", "language": "sv", "publishedAt": "2026-10-10T05:45:00Z",
+         "section": "bostad", "language": "sv", %s,
          "updatedAt": null,
          "classification": {"status": "classified", "zone": "%s", "topics": ["home"],
            "reason": {"sv": "Praktiska råd.", "en": "Practical advice."},
@@ -44,7 +45,19 @@ final class FakeG2Articles {
          "suggestions": [%s],
          "correlationId": "c0a1"}
         """;
-    return json.formatted(articleId, version, articleId, zone, String.join(",", suggestions));
+    return json.formatted(
+        articleId, version, articleId, PUBLISHED_AT, zone, String.join(",", suggestions));
+  }
+
+  /**
+   * An article G2 hasn't classified yet, or couldn't: status {@code unclassified} or {@code
+   * failed}.
+   */
+  static String notClassified(UUID articleId, String status) {
+    return article(articleId, 1, "green")
+        .replace(
+            "\"status\": \"classified\", \"zone\": \"green\"",
+            "\"status\": \"" + status + "\", \"zone\": null");
   }
 
   /** One suggestion of an article's set. */
