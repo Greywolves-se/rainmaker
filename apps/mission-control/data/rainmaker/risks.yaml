@@ -16,7 +16,7 @@
   level: yellow
   owner: Peter
   mitigation: >-
-    Follow decision B34 and https://github.com/Greywolves-se/rainmaker/issues/215.
+    Follow decision B34 and https://github.com/Greywolves-se/rainmaker/issues/215; the work is #217–#222.
     Simon and the team propose and demonstrate the behaviour-based flow on the
     test site for desktop and mobile, with commercial next steps after qualified
     reading and a signal that the reader is leaving the article content.
