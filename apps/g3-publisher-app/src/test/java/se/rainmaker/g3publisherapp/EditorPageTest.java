@@ -183,7 +183,8 @@ class EditorPageTest {
     assertThat(response.getContentAsString(StandardCharsets.UTF_8))
         .contains("kan inte längre")
         .contains("href=\"/publisher/articles\"");
-    assertThat(audit(home)).isEmpty();
+    // Only the sync's withdrawal (#198); the refused approval writes no row.
+    assertThat(audit(home)).isEqualTo("withdrawn by g2");
   }
 
   @Test

@@ -123,10 +123,14 @@ public class FeedWriter {
 
   /**
    * The robots.txt file. Crawling is allowed so Rainmaker can read the site; the pages themselves
-   * say "noindex" to stay out of search results.
+   * say "noindex" to stay out of search results. {@code /eval/} is disallowed so a crawler cannot
+   * find the answer key for the AI evaluation (#160). It comes before {@code Allow: /} for crawlers
+   * that use the first matching rule instead of the longest.
    */
   public String robotsTxt() {
-    return "User-agent: *\nAllow: /\n\nSitemap: " + site.absoluteUrl("/sitemap.xml") + "\n";
+    return "User-agent: *\nDisallow: /eval/\nAllow: /\n\nSitemap: "
+        + site.absoluteUrl("/sitemap.xml")
+        + "\n";
   }
 
   /** CSV with one row per article: id, expected zone, section and URL. */

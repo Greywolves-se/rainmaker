@@ -1,4 +1,5 @@
 import {describe, expect, it} from 'vitest';
+import contractExample from '../../docs/rainmaker/contract/7.4-widget-links.json';
 import {parseLinks} from './links-api';
 
 const API_ORIGIN = 'http://localhost:8081';
@@ -24,6 +25,18 @@ describe('parseLinks', () => {
         title: 'Gratis hembesök',
         text: 'Fast pris inom en vecka.',
         clickUrl: 'http://localhost:8081/c/first',
+      },
+    ]);
+  });
+
+  it("reads G1's answer exactly as contract 7.4 shows it", () => {
+    // The same file G1's tests check its answer against, so the two sides can't drift (#151).
+    expect(parseLinks(contractExample, API_ORIGIN)).toEqual([
+      {
+        advertiser: 'Vintra Kakel & Bad',
+        title: 'Gratis hembesök för badrumsoffert',
+        text: 'Vi mäter upp och ger fast pris inom en vecka.',
+        clickUrl: 'http://localhost:8081/c/eyJjIjoiMDE5MmYzZTQifQ.c2lnbmF0dXJl',
       },
     ]);
   });

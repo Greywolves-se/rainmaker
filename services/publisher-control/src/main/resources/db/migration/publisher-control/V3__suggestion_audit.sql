@@ -1,9 +1,11 @@
--- suggestion_audit: one row per approval or rejection: who, when and what (#150, contract 7.6).
+-- suggestion_audit: one row per change of a suggestion's status: who, when and what (#150,
+-- contract 7.6). The editor approves or rejects; G3's sync withdraws, by 'g2', when G2's data says
+-- so (contract 5), so an approved link leaving the widget is logged too.
 -- audit_id is a UUIDv7 from PostgreSQL 18 itself (contract 3: ids are UUIDv7).
 CREATE TABLE suggestion_audit (
     audit_id      uuid PRIMARY KEY DEFAULT uuidv7(),
     suggestion_id uuid NOT NULL REFERENCES suggestion (suggestion_id),
-    action        text NOT NULL CHECK (action IN ('approved', 'rejected')),
+    action        text NOT NULL CHECK (action IN ('approved', 'rejected', 'withdrawn')),
     decided_by    text NOT NULL CHECK (decided_by <> ''),
     decided_at    timestamptz NOT NULL DEFAULT now()
 );

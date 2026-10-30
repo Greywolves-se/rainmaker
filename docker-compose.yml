@@ -1,8 +1,14 @@
-# Rainmaker's local stack (#155). For now only PostgreSQL, with one database and one login per
-# module (docker/postgres/init). #146 adds the apps and the test site, so one command starts it all.
+# Rainmaker's local demo stack (#146): one command starts everything.
 #
-#   docker compose up -d        start PostgreSQL on localhost:5432
-#   docker compose down -v      stop it and delete the data (the init script runs again next time)
+#   docker compose up --build          PostgreSQL, the test site, G1, G2 and G3 (stop: Ctrl+C)
+#   docker compose up -d postgres      only the database, e.g. to run an app from your IDE (G1: local profile)
+#   docker compose down                stop; the data is kept for the next start
+#   docker compose down -v             stop and delete the data (the init script runs again)
+#
+# Real Claude on Bedrock instead of the fake classifier: see docker-compose.bedrock.yml.
+# Optional settings go in a git-ignored .env file next to this one; see .env.example.
+# Every port is published on 127.0.0.1 only: the local passwords are in the repository and the
+# apps' internal APIs have no login in the demo (contract section 7).
 services:
   postgres:
     image: postgres:18
@@ -11,9 +17,9 @@ services:
       # Local only: the server's admin password on a developer's machine.
       POSTGRES_PASSWORD: ${RAINMAKER_LOCAL_POSTGRES_PASSWORD:-local-dev-only}
     ports:
-      # Only on this machine: the local passwords are in the repository.
       - "127.0.0.1:5432:5432"
     volumes:
+      # One database and one login per module (#155).
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
       - rainmaker-postgres:/var/lib/postgresql
     healthcheck:
@@ -21,6 +27,94 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Vintrabladet, the fictional news site (test-site/, #157), with rainmaker.js from G1.
+  test-site:
+    build:
+      context: .
+      dockerfile: test-site/Dockerfile
+    volumes:
+      # Articles change without a restart (#159): edit test-site/content/ while the stack runs.
+      - ./test-site/content:/app/content:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+      # G2's port: G2 shares this container's network (see g2 below), so it is published here.
+      - "127.0.0.1:8082:8082"
+    environment:
+      BASE_URL: http://localhost:3000
+      # The browser loads the widget from G1 (contract D-7).
+      RAINMAKER_SCRIPT_URL: ${RAINMAKER_SCRIPT_URL:-http://localhost:8081/widget/rainmaker.js}
+
+  # G1 Reader & clicks: serves rainmaker.js and the widget API, stores clicks.
+  g1:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile
+      target: g1
+      args:
+        APP: g1-reader-app
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      RAINMAKER_DB_HOST: postgres
+      # Click links point at http://localhost:8081 and are signed with a random key for each run
+      # (#153). Without this profile G1 doesn't start. Local only, never in AWS.
+      SPRING_PROFILES_ACTIVE: local
+      # G1 asks G3 for the approved links on every widget request (#151, contract 7.3);
+      # localhost:8083 here would be G1 itself.
+      RAINMAKER_G3_URL: http://g3:8083
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # G2 Content & AI: reads the test site's feed, classifies and matches.
+  g2:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile
+      target: app
+      args:
+        APP: g2-content-app
+    # The feed's links and the widget both use http://localhost:3000/... as the article's address
+    # (contract D-2). Sharing the test site's network makes that address work inside G2 too, so G2
+    # reads http://localhost:3000/rss.xml and the article pages exactly as a browser would. Other
+    # containers reach G2 at test-site:8082.
+    network_mode: service:test-site
+    environment:
+      RAINMAKER_DB_HOST: postgres
+      # fake: no AWS needed (default). bedrock: see docker-compose.bedrock.yml.
+      RAINMAKER_CLASSIFIER_MODE: ${RAINMAKER_CLASSIFIER_MODE:-fake}
+      # The fake classifier gives every article the same zone. red (default) fails closed: no
+      # article gets a panel. green only for local work on matching or the widget; then red
+      # articles get a panel too (#148).
+      RAINMAKER_FAKE_ZONE: ${RAINMAKER_FAKE_ZONE:-red}
+      # G2 fetches the offers from G3 (#149, #190). G2 shares the test site's network, where
+      # localhost:8083 isn't G3, so it uses G3's service name.
+      RAINMAKER_G3_URL: http://g3:8083
+    depends_on:
+      postgres:
+        condition: service_healthy
+      test-site:
+        condition: service_started
+
+  # G3 Publisher & marketplace: offers, the editor view and the approved links.
+  g3:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile
+      target: app
+      args:
+        APP: g3-publisher-app
+    ports:
+      - "127.0.0.1:8083:8083"
+    environment:
+      RAINMAKER_DB_HOST: postgres
+      # G3 polls G2's articles (#150, #197). G2 shares the test site's network (see g2 above), so
+      # it is reached at test-site:8082; localhost:8082 here would be G3 itself.
+      RAINMAKER_G2_URL: http://test-site:8082
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   rainmaker-postgres:

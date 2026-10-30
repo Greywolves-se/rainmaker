@@ -13,7 +13,8 @@ See `README.md`, and `docs/DEVELOPER_GUIDE.md` for a class-by-class walkthrough.
 - Everything is fictional: invented people, companies, advertisers and the town of Vintra.
   Real places only as travel destinations. Every page keeps the fiction banner and `noindex`.
 - The expected brand-safety zone (`expectedZone`) never appears in the page HTML, only in
-  `/eval/labels.csv`, so the classifier cannot read the answer.
+  `/eval/labels.csv`, so the classifier cannot read the answer. No page links to `/eval/`
+  and `robots.txt` disallows it, so a crawler cannot find it either (#160).
 - Only the article itself is inside `<article>`. Kicker, byline, ad slots and the paywall
   offer contain no `<p>`, so ingestion's `article p` gets only body text.
 - PLUS articles keep their full text in the HTML; CSS hides the locked part.

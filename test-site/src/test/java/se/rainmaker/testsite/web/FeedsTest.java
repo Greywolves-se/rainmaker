@@ -101,6 +101,21 @@ class FeedsTest {
   }
 
   @Test
+  void robotsTxtKeepsCrawlersAwayFromTheEvaluationLabels() throws Exception {
+    // The labels are the answer key for the AI evaluation (#160).
+    assertThat(text("/robots.txt").lines()).contains("Disallow: /eval/");
+  }
+
+  @Test
+  void evaluationLabelsAnswerWhenCalledDirectlyButAreNotIndexed() throws Exception {
+    MvcResult result = fetch(mockMvc, "/eval/labels.csv");
+
+    assertThat(result.getResponse().getStatus()).isEqualTo(200);
+    assertThat(result.getResponse().getContentType()).isEqualTo("text/csv;charset=UTF-8");
+    assertThat(result.getResponse().getHeader("X-Robots-Tag")).isEqualTo("noindex");
+  }
+
+  @Test
   void evaluationLabelsHaveOneRowPerArticle() throws Exception {
     List<String> lines = text("/eval/labels.csv").lines().toList();
 

@@ -26,8 +26,9 @@ import se.rainmaker.publishercontrol.decision.SuggestionNotDecidableException;
 import se.rainmaker.publishercontrol.decision.SuggestionNotFoundException;
 
 /**
- * The editor approves or rejects G2's suggestions, with an audit row each (#150, contract 5 and
- * 7.6). The articles come from a fake G2; the database is real (Testcontainers).
+ * The editor approves or rejects G2's suggestions, with an audit row each, and a withdrawal is
+ * logged too (#150, contract 5 and 7.6). The articles come from a fake G2; the database is real
+ * (Testcontainers).
  */
 @SpringBootTest(properties = "rainmaker.publisher-control.articles.polling=false")
 class SuggestionDecisionsTest {
@@ -97,7 +98,29 @@ class SuggestionDecisionsTest {
     assertThat(statuses(article)).isEqualTo(home + "=withdrawn");
     assertThatThrownBy(() -> decisions.approve(home, EDITOR))
         .isInstanceOf(SuggestionNotDecidableException.class);
-    assertThat(audit(home)).containsExactly("approved by demo-editor");
+    assertThat(audit(home)).containsExactly("approved by demo-editor", "withdrawn by g2");
+  }
+
+  /** The approved link leaves the widget, so the withdrawal is logged, once (#198 review). */
+  @Test
+  void withdrawalWritesOneAuditRowByG2() {
+    UUID article = UUID.randomUUID();
+    UUID home = UUID.randomUUID();
+    UUID travel = UUID.randomUUID();
+    g2Sends(
+        article(
+            article,
+            1,
+            "green",
+            suggestion(home, HOME_OFFER, 1),
+            suggestion(travel, TRAVEL_OFFER, 2)));
+    decisions.approve(home, EDITOR);
+
+    g2Sends(article(article, 1, "red"));
+    g2Sends(article(article, 1, "red"));
+
+    assertThat(audit(home)).containsExactly("approved by demo-editor", "withdrawn by g2");
+    assertThat(audit(travel)).containsExactly("withdrawn by g2");
   }
 
   /** D-5: the old approval doesn't cover the new text, so the editor approves again. */
@@ -114,6 +137,8 @@ class SuggestionDecisionsTest {
     assertThat(statuses(article)).isEqualTo(first + "=withdrawn," + second + "=suggested");
     assertThatThrownBy(() -> decisions.reject(first, EDITOR))
         .isInstanceOf(SuggestionNotDecidableException.class);
+    assertThat(audit(first)).containsExactly("approved by demo-editor", "withdrawn by g2");
+    assertThat(audit(second)).isEmpty();
   }
 
   /** G2 may send the same article twice (contract 7.1); the editor's decision stays. */

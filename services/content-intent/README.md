@@ -13,6 +13,8 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
   - inject the client with `@Qualifier(ContentIntentDatabaseConfiguration.JDBC_CLIENT) JdbcClient`;
   - mark transactions with `@Transactional(ContentIntentDatabaseConfiguration.TRANSACTION_MANAGER)`; an
     unnamed `@Transactional` is ambiguous, because an app holds several modules' databases.
+    The app's `ModuleBoundaryTest` fails the build on an unnamed one, another module's, or
+    `jakarta.transaction.Transactional` (#170).
 
 ## Classification (#148)
 
@@ -30,6 +32,20 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
     prompt in `src/main/resources/content-intent/classification-prompt.txt` and the schema as a tool
     Claude must call. Only the headline and text are sent, as data.
   - `ClassifierConfiguration` picks one of them from the settings below.
+- **`pipeline`** (internal, #209): classifies every stored article (contract 6.1 → 3.2 → 6.2).
+  - `ArticleClassification` listens to content-ingestion's `ArticleStored`. It stores the version
+    as `unclassified` at once (a version stored already is a repeated event: nothing changes),
+    calls the classifier outside any database transaction, then has the result stored. A
+    classifier that throws gives `failed`. The listener runs inside ingestion's feed poll, so any
+    other error is logged and the poll continues; that version stays `unclassified`, and nothing
+    classifies it again yet (#223).
+  - `ClassificationResults` stores the result and publishes `ArticleClassified` in one transaction,
+    for every status, so matching withdraws suggestions for anything that isn't green.
+  - `ClassificationStore`: table `classification`, one row per article id and version
+    (`V2__classifications.sql`). Never the text.
+  - It also answers `api.CurrentClassifications`: the current classification of a list of
+    `ArticleVersion`s in one query, for the articles API (#202). A version with nothing stored is
+    `unclassified`.
 
 ### Settings (`rainmaker.content-intent.classifier.*`, in G2's `application.properties`)
 
@@ -44,14 +60,16 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 | `max-attempts` / `backoff` | `3` / `1s` | Tries for temporary errors only; the wait roughly doubles each time, with jitter |
 | `calls-per-minute` | `20` | More calls in any minute leave the article `unclassified` |
 | `daily-token-cap` | `200000` | When used, articles stay `unclassified` until the next UTC day |
+| `circuit-breaker.*` | `50` %, `10`, `5`, `1m` | Opens when at least `failure-rate-percent` of the last `window-size` articles (at least `minimum-calls` seen) still failed after their retries; then no call for `open-for`, and one trial call decides (#185) |
 | `fake.*` | **red** (`RAINMAKER_FAKE_ZONE`), `home` | The fake classifier's answer for every article. Red by default, so nothing gets a panel without Claude; set `RAINMAKER_FAKE_ZONE=green` only for local work on matching or the widget. G2 logs a WARN at start-up while the fake is active |
 
 ### What happens when something goes wrong
 
 | Situation | Result | Retried? |
 |---|---|---|
-| Calls per minute or daily token cap used | `unclassified` (no call made) | Later, by the next run |
-| Throttling, timeout, service error | `failed` once `max-attempts` are used | Yes, with back-off |
+| Calls per minute or daily token cap used | `unclassified` (no call made) | Not yet; only an edited article is classified again (#223) |
+| Circuit breaker open (Bedrock kept failing) | `unclassified` (no call made); one WARN when it opens and one when it closes | Not yet; only an edited article is classified again (#223) |
+| Throttling, timeout, service error, network error (e.g. a reset connection) | `failed` once `max-attempts` are used; counts toward the circuit breaker | Yes, with back-off and jitter |
 | Other client error, e.g. an expired SSO login | `failed`, logged as ERROR (`failed-client-error`) | No |
 | `AccessDenied` (also the hard cost stop's SCP, #161) | `failed`, logged as ERROR (`failed-access-denied`) | No |
 | Validation error, unknown model | `failed` | No |

@@ -1,0 +1,16 @@
+# Adds real Claude on Amazon Bedrock to the demo stack (#146, #148, #161). Without this file G2
+# uses the fake classifier and needs no AWS access.
+#
+#   aws sso login --profile <your profile>          on your own machine, first
+#   docker compose -f docker-compose.yml -f docker-compose.bedrock.yml up --build
+#
+# Set AWS_PROFILE in .env (see .env.example). G2 reads your SSO login from ~/.aws, mounted
+# read-only: no keys are copied into the image or written to any file in the repository. When the
+# login expires, run aws sso login again and restart g2.
+services:
+  g2:
+    environment:
+      RAINMAKER_CLASSIFIER_MODE: bedrock
+      AWS_PROFILE: ${AWS_PROFILE:?Set AWS_PROFILE in .env to your AWS SSO profile}
+    volumes:
+      - ${AWS_CONFIG_DIR:-~/.aws}:/home/app/.aws:ro
