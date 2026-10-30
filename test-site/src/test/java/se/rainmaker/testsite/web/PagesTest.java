@@ -185,6 +185,24 @@ class PagesTest {
 
   @ParameterizedTest
   @MethodSource("allSlugs")
+  void articlePageHasPlacesForTheNextStepAndEndOfArticleMarker(String slug) throws Exception {
+    String html = page(mockMvc, "/artikel/" + slug);
+
+    // #217: empty, so the page looks the same without the widget. The end marker is the last
+    // thing in the article body (after the paywall offer on PLUS articles), followed directly by
+    // the place after the article.
+    assertThat(articleElement(html))
+        .containsPattern(
+            "<div data-rainmaker-article-end aria-hidden=\"true\"></div>\\s*</div>\\s*"
+                + "<div data-rainmaker-next-step=\"after-article\"></div>\\s*$");
+    // The place beside the article is the last thing in the sidebar, after the skyscraper ad.
+    assertThat(html)
+        .containsPattern(
+            "</aside>\\s*<div data-rainmaker-next-step=\"sidebar\"></div>\\s*</aside>\\s*</div>");
+  }
+
+  @ParameterizedTest
+  @MethodSource("allSlugs")
   void articlePageNeverRevealsTheExpectedZone(String slug) throws Exception {
     String html = page(mockMvc, "/artikel/" + slug);
 

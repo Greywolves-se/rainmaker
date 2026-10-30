@@ -11,6 +11,11 @@ with the links the editor approved for that article (#152). It closes when the p
 both the headline and the panel. An article without approved links gets nothing: no panel, no
 marker.
 
+> **Being replaced:** the hover is what the demo uses. A behaviour-based reader flow replaces it
+> ([ADR 0005](../docs/adr/0005-behaviour-based-reader-flow.md)): the links appear after qualified
+> reading, beside the article on desktop and after it on mobile (#217–#220). This README describes
+> the code as it is until #220 lands.
+
 How it works:
 1. It reads its settings from its own `<script>` tag: the widget API is on the origin the script
    was loaded from (contract, D-7), and the headline is `[data-rainmaker-headline]`. A publisher
