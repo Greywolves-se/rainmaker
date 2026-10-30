@@ -32,6 +32,9 @@ The editor page: approve or reject suggested offers, with an audit log.
   (`RAINMAKER_G2_URL`; `http://test-site:8082` in Docker, where G2 shares the test site's network),
   `connect-timeout`, `read-timeout`, `max-attempts`, `backoff`, `poll-interval`, `recent` (1–500,
   default 100), and `polling=false` to turn the schedule off in tests.
-- **Not yet:** approving and rejecting with an audit log, the editor page, and the approved links API
-  for G1 (contract 7.3).
-  
+- **`decision/SuggestionDecisions`** approves or rejects one suggestion and writes an audit row (who,
+  when, what) in `suggestion_audit`. A withdrawn suggestion, or one of an article that isn't green,
+  can't be decided. The same decision twice writes one row; a changed decision writes a new one. A
+  withdrawal by the sync writes a row too (`withdrawn` by `g2`), so an approved link leaving the
+  widget is logged. The database refuses any change to an audit row (append-only).
+- **Not yet:** the editor page, and the approved links API for G1 (contract 7.3).
