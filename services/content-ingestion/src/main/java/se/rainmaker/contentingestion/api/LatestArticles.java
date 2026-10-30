@@ -12,6 +12,8 @@ public interface LatestArticles {
   /**
    * The latest version of the {@code count} articles whose latest version was stored most recently,
    * newest first, so an edited article comes back to the top. Read in one query.
+   *
+   * @throws IllegalArgumentException if {@code count} is less than 1
    */
   List<StoredArticle> recent(int count);
 

@@ -1,6 +1,7 @@
 package se.rainmaker.contentingestion.ingestion;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.groups.Tuple.tuple;
 
 import java.time.Instant;
@@ -69,6 +70,16 @@ class JdbcLatestArticlesTest {
     store(elbil, 1, ELBIL, "Elbilen", "2026-10-30T09:01:00Z");
 
     assertThat(latest.recent(1)).extracting(StoredArticle::articleId).containsExactly(elbil);
+  }
+
+  @Test
+  void recentRefusesCountBelowOne() {
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> latest.recent(0))
+        .withMessage("count must be at least 1: 0");
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> latest.recent(-1))
+        .withMessage("count must be at least 1: -1");
   }
 
   @Test
