@@ -26,9 +26,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Asks G3's approved links API, {@code GET /api/approved-links?url=…} (#151, contract 7.3), which
- * links an article may have right now. It runs on every headline hover, so the timeouts are short
+ * links an article may have right now. It runs on every widget request, so the timeouts are short
  * and there is one retry at most; while G3 keeps failing, a circuit breaker stops calling it, and
- * hovers get "unavailable" at once instead of waiting.
+ * requests get "unavailable" at once instead of waiting.
  *
  * <p>Only a problem that may go away is retried and counted by the circuit breaker: no connection,
  * a timeout or a 5xx (G3 answers 503 when G2 can't say whether the article is green). A 4xx or an
@@ -158,8 +158,8 @@ class G3ApprovedLinksClient {
   }
 
   /**
-   * One call per hover, around the retries. Each change of state is logged once, never once per
-   * hover.
+   * One call per widget request, around the retries. Each change of state is logged once, never
+   * once per request.
    */
   private static CircuitBreaker circuitBreaker(ApprovedLinksProperties.CircuitBreaker settings) {
     CircuitBreaker breaker =
