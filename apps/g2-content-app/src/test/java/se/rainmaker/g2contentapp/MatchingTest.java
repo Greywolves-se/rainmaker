@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -216,6 +217,25 @@ class MatchingTest {
 
     assertThat(suggestions.forArticle(article)).isEmpty();
     assertThat(output).contains("No suggestions for article " + article);
+  }
+
+  /** #202: the articles API reads the sets of 100 articles at once. */
+  @Test
+  void setsOfSeveralArticlesInOneCall() {
+    UUID travel = UUID.randomUUID();
+    UUID red = UUID.randomUUID();
+    UUID unknown = UUID.randomUUID();
+    events.publishEvent(classified(travel, 1, green(Topic.TRAVEL)));
+    events.publishEvent(
+        classified(
+            red, 1, Classification.classified(Zone.RED, List.of(Topic.OTHER), REASON, "m", AT)));
+
+    Map<UUID, List<Suggestion>> current = suggestions.forArticles(List.of(unknown, travel, red));
+
+    assertThat(current.keySet()).containsExactly(unknown, travel, red);
+    assertThat(current.get(travel)).isEqualTo(suggestions.forArticle(travel)).hasSize(2);
+    assertThat(current.get(red)).isEmpty();
+    assertThat(current.get(unknown)).isEmpty();
   }
 
   private static ArticleClassified classified(
