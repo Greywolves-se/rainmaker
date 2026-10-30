@@ -19,8 +19,9 @@ import se.rainmaker.matchingranking.api.Suggestion;
 /**
  * Puts each article together from G2's three modules (#202): the latest version from
  * content-ingestion, its classification from content-intent and its suggestions from matching. It
- * lives in the app because matching already depends on content-intent, which depends on
- * content-ingestion: in any of them it would be a cycle.
+ * lives in the app, as #202 asks: in content-ingestion or content-intent it would need matching,
+ * which already depends on them (a cycle), and matching shouldn't own an API about the other
+ * modules' data.
  *
  * <p>Each module is read once for the whole list, never once per article.
  */
