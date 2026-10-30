@@ -27,6 +27,28 @@ How it works:
 3. It shows at most 3 links. Each one is G1's click link; a link pointing anywhere else is
    dropped, so an advertiser's address never reaches the page directly.
 
+## Qualified reading (#218)
+
+The new reader flow (ADR 0005) shows the next step only after **qualified reading**: the reader
+has read long enough for the interest to count as confirmed. `src/qualified-reading.ts` reports
+it once per page view. #220 connects it to the panel; until then the hover above is unchanged.
+
+- **Active time:** 60 seconds by default. Time counts only while the page is **visible** (the
+  Page Visibility API: another tab or a locked phone doesn't count) and the reader has been
+  **active** within the last 30 seconds: scrolling, a key, a tap or moving the pointer. Opening
+  the page counts as activity, so the first seconds of reading count too.
+- **And some scrolling:** without at least one scroll, the reader never qualifies, however long
+  the page is open. A page left on the table stops adding time after 30 seconds and never
+  scrolls.
+- **The threshold is a setting:** `data-qualified-reading-seconds="90"` on the script tag. A whole
+  number from 1 to 3600; anything else, or no attribute, means 60. Later it can come from the
+  publisher's settings in S3.
+- **Nothing leaves the browser:** no cookie, no `localStorage`, no network call. The counts live
+  in the page view and are gone when it ends (no reader profiles; consent).
+- **Open for #222:** the 30 seconds before the reader counts as idle, and whether a part of the
+  article (for example `data-rainmaker-article-end`, #217) must also be reached. Both are
+  constants or settings, so changing them is a small change.
+
 ## Rules it must keep
 
 - **Fail open** (CLAUDE.md, product rules): if anything in Rainmaker fails, the publisher's page
@@ -77,6 +99,7 @@ page. See G1's README for how to start it.
 | `src/links-api.ts` | Calls the widget API and checks its answer |
 | `src/hover-panel.ts` | Opens the panel after a deliberate hover and closes it again |
 | `src/panel.ts` | Builds the panel in a Shadow DOM |
+| `src/qualified-reading.ts` | Reports once when the reader has read long and actively enough (#218) |
 | `src/fail-open.ts` | Keeps errors in event handlers and timers away from the page |
 | `src/translations.ts`, `src/translations/` | The panel's texts, Swedish and English |
 | `vite.config.ts` | Builds the single script, and configures Vitest |
