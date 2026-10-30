@@ -3,7 +3,9 @@
 AWS CDK app (Java) that defines Rainmaker's AWS resources. CLAUDE.md: all AWS resources
 are created with CDK through the pipeline, never by hand in the console.
 
-- One stack per environment. Today only **staging** (account `659947636280`, `eu-north-1`).
+- One stack per environment: **staging** (account `659947636280`) and **dev** (the member account
+  `rainmaker-dev`, #161), both in `eu-north-1` (Stockholm). Accounts and regions are context in
+  `cdk.json`; the dev account id is not committed (see "Dev account and Bedrock" below).
 - Package `se.rainmaker.infra`. The module inherits Spotless, Checkstyle and JaCoCo from the
   root POM (#39).
 
@@ -12,6 +14,8 @@ are created with CDK through the pipeline, never by hand in the console.
 | Stack | What | Issue |
 |---|---|---|
 | `GithubDeployAccess-staging` | GitHub OIDC provider and the `github-actions-rainmaker` role with three inline policies: `ecr-push-mission-control` (push the images), `ecs-deploy-mission-control-web` (roll out the web service) and `read-mission-control-secrets` (read the collector's OpenAI key, see below). Only jobs in the GitHub environment `staging` of `Greywolves-se/rainmaker` can assume the role. `docker.yml` uses it. | #61, #82, #112 |
+
+| `BedrockAccess-dev` | The `rainmaker-g2-content-app` role: ECS tasks in the dev account may call Claude Haiku 5.5 through the EU inference profile, and nothing else. See "Dev account and Bedrock" below. | #161 |
 
 ECR repositories and the ECS service follow in #62.
 
@@ -144,3 +148,90 @@ organisation rule that blocks service-account keys.
   the flag the collector refuses the login (#120), since a plain user login cannot be limited to
   the read-only scope. Needs the role "Service Account Token Creator" on the service account;
   documented in #120.
+
+## Dev account and Bedrock (#161)
+
+Rainmaker reaches Claude through **Amazon Bedrock** in the dev account (contract D-8). Nobody
+uses an API key: the app gets credentials from its IAM role, and developers from their own SSO
+login.
+
+The dev account is the member account `rainmaker-dev` in the GreyWolves AWS Organization, one
+account per project and environment. The organisation's management account holds only the
+organisation, billing and IAM Identity Center, never workloads (decided 22 Oct 2026, #161).
+
+### Settings for the code (#148)
+
+| Setting | Value |
+|---|---|
+| Region | `eu-north-1` (Stockholm) |
+| Model id to call | `eu.anthropic.claude-haiku-5-5` (the EU cross-region inference profile) |
+| Credentials | Locally: `AWS_PROFILE` of your SSO profile. In AWS: the task role |
+
+Call the **profile id**, not the base model id `anthropic.claude-haiku-5-5`. The role only
+allows the model *through* the profile, which may route a request to any of the six EU regions
+in `cdk.json` (`rainmaker:bedrock`). Changing the model is a change to that context block.
+
+### What the G2 role may do
+
+`bedrock:InvokeModel` (which also covers the Converse API) on two kinds of resource:
+
+1. the inference profile
+   `arn:aws:bedrock:eu-north-1:<dev account>:inference-profile/eu.anthropic.claude-haiku-5-5`;
+2. `arn:aws:bedrock:<region>::foundation-model/anthropic.claude-haiku-5-5` in each of the six EU
+   destination regions, **only** when the request comes through that profile (condition
+   `bedrock:InferenceProfileArn`). Calling the base model directly is denied.
+
+Only ECS tasks in the same account (`aws:SourceAccount`) can assume the role.
+`BedrockAccessStackTest` pins the exact policy.
+
+### Local access for developers
+
+Each developer signs in with their own IAM Identity Center user; no access keys in files. The
+permission set with the same narrow access follows in the second #161 PR. Then:
+
+```
+aws configure sso                       # once: SSO start URL, region eu-north-1, the permission set
+aws sso login --profile rainmaker-dev   # each day; opens the browser
+```
+
+Set `AWS_PROFILE=rainmaker-dev` (or pass the profile to the SDK); the AWS SDK picks up the login.
+
+### Synth, diff and deploy for dev
+
+The dev account id is passed on the command line, never committed (the repository is public):
+
+```
+cdk diff   -c rainmaker:dev-account=<dev account id> --profile <admin profile> BedrockAccess-dev
+cdk deploy -c rainmaker:dev-account=<dev account id> --profile <admin profile> BedrockAccess-dev
+```
+
+Without `-c rainmaker:dev-account=...` the dev stacks are left out, and the staging commands
+work as before. Before the first deploy the dev account must be bootstrapped once
+(`cdk bootstrap aws://<dev account id>/eu-north-1`); see the change log, C-3 and C-4.
+
+### Cost
+
+- **Nothing here costs money by itself.** IAM roles and policies are free. Bedrock is billed per
+  call (input and output tokens), and nothing calls it until #148 runs with this role or an SSO
+  login. The CDK bootstrap adds an S3 bucket and an ECR repository that cost fractions of a cent
+  a month while nearly empty.
+- **Quota:** the quota for Claude Haiku 5.5 cross-region tokens per minute is **0** in the dev
+  account (21 Oct 2026). Every call is rejected until an increase is requested in Service Quotas.
+- **Where to see the cost:** Billing and Cost Management, Cost Explorer, filter *Service* =
+  *Amazon Bedrock*. A Cost Anomaly Detection alert follows in the second #161 PR; a Bedrock-only
+  budget can be added once Bedrock has billing history.
+- **The budget and the hard stop (change log C-9):** the budget **"rainmaker-dev - Monthly
+  Budget"**, 100 USD a month of actual cost, filtered on the rainmaker-dev account. It lives in the
+  management account's AWS Budgets, **not** in rainmaker-dev, so it can't be seen from there. It
+  mails at 80 % and 100 %. At 100 % an automatically approved budget action attaches an SCP to
+  rainmaker-dev that blocks API calls there. **If calls in rainmaker-dev suddenly get
+  `AccessDenied`, check this budget first.** Check it from the management account:
+
+  ```
+  aws budgets describe-budgets --account-id <management account id>
+  aws budgets describe-budget-actions-for-budget --account-id <management account id> \
+    --budget-name "rainmaker-dev - Monthly Budget"
+  ```
+
+  The management account has its own, separate budget of 50 USD a month; it doesn't cover
+  rainmaker-dev.
