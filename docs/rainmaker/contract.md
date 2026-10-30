@@ -513,7 +513,8 @@ GET http://localhost:8081/widget/v1/links?url=http%3A%2F%2Flocalhost%3A3000%2Far
 
 - **Empty, not an error:** for a red, yellow, failed, unclassified or unknown article, or one
   with no approved links, the API returns 200 with `"links": []`.
-- `400` when `url` is missing or not an http(s) URL. `503` when G3 can't answer.
+- `400` when `url` is missing, longer than 2048 characters, not an http(s) URL, or not on one of
+  the publisher sites allowed for CORS (#224). `503` when G3 can't answer.
 - rainmaker.js shows a panel only for a 200 with links. Anything else, including a timeout,
   means no panel, and the page works as before (fail open for the reader, #152).
 - At most 3 links, in rank order. No `destinationUrl`, ever.
@@ -544,6 +545,16 @@ GET http://localhost:8081/c/{payload}.{signature}
 **Decision D-6:** G1 makes a new link, with a new `clickId`, each time it answers the widget.
 So a double-click or a retry of the same link carries the same `clickId` and is stored once. A
 page reload gives a new link, and that is a new click (the 30-minute dedupe is "not now").
+
+**Known risk, to decide before anything real is billed (#224):** the widget API is public, has no
+rate limit, and mints a new valid `clickId` on every answer. So a script that calls it in a loop and
+opens each `clickUrl` stores as many distinct clicks as it likes, each one paid for by the
+advertiser. Options include a rate limit at the edge, or a dedupe per article, offer and coarse
+client key within a time window.
+
+The links must be on the origin rainmaker.js is loaded from: the widget drops any other
+`clickUrl` (#152). G1 makes them from its own setting (`RAINMAKER_CLICK_BASE_URL`), so the two
+must name the same origin.
 
 The destination is inside the signed link, so G1 redirects and stores the click on its own:
 the money path doesn't depend on G3, and the redirect needs no network call (the
