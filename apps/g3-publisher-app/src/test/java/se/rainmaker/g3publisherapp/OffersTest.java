@@ -22,7 +22,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** S4's fictional offers, the offers API and the landing pages (#149, contract 3.4 and 7.2). */
-@SpringBootTest
+@SpringBootTest(properties = "rainmaker.publisher-control.articles.polling=false")
 @AutoConfigureMockMvc
 class OffersTest {
 
