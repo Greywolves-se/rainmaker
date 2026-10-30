@@ -27,6 +27,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import se.rainmaker.contentingestion.api.ArticleStored;
 import se.rainmaker.contentintent.api.ArticleClassified;
 import se.rainmaker.contentintent.api.Classification;
 import se.rainmaker.contentintent.api.Reason;
@@ -40,7 +41,12 @@ import se.rainmaker.matchingranking.api.Suggestion;
  * and loses them when it is no longer green. The database is real (Testcontainers). Feed polling is
  * off, so the test never reads a real site.
  */
-@SpringBootTest(properties = "rainmaker.content-ingestion.feed.polling=false")
+@SpringBootTest(
+    properties = {
+      "rainmaker.content-ingestion.feed.polling=false",
+      // The fake classifier's answer for a stored article (#209): green, topic "home".
+      "rainmaker.content-intent.classifier.fake.zone=green"
+    })
 @ExtendWith(OutputCaptureExtension.class)
 class MatchingTest {
 
@@ -80,6 +86,29 @@ class MatchingTest {
   @BeforeEach
   void g3HasOffers() {
     g3.stubFor(get(urlPathEqualTo(OFFERS)).willReturn(okJson(G3_OFFERS)));
+  }
+
+  /** End to end in G2 (#209): a stored article is classified (the fake: green home) and matched. */
+  @Test
+  void storedArticleIsClassifiedAndGetsSuggestions() {
+    UUID article = UUID.randomUUID();
+
+    events.publishEvent(
+        new ArticleStored(
+            article,
+            1,
+            "http://localhost:3000/artikel/" + article,
+            "Badrummet som håller i 40 år",
+            "Experterna ger sina bästa råd om badrumsrenovering.",
+            "bostad",
+            "sv",
+            AT,
+            null,
+            "correlation-" + article));
+
+    assertThat(suggestions.forArticle(article))
+        .extracting(Suggestion::offerId)
+        .containsExactly(HOME_450);
   }
 
   @Test
