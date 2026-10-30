@@ -20,5 +20,10 @@ Reads articles, classifies them with Claude on Amazon Bedrock and suggests offer
 
   `spring-boot:run` together with `-am` doesn't work: Maven then runs it on every module it
   builds, and the root POM and the services have no main class.
+- **Articles API (#202, contract 7.1):** `GET /api/articles?recent=N` (1–500) and `?url=…`, for G3.
+  `articles/CurrentArticles` combines the three services' `api` packages: the latest version
+  (content-ingestion), its classification (content-intent) and its suggestions (matching), each
+  read once for the whole list. Suggestions are only shown for a classified green version, and
+  only that version's own set. Try it: `curl "http://localhost:8082/api/articles?recent=5"`.
 - **Talks to the other apps** only through REST queries (#145). Services never depend on apps,
   and other code may only use a service's `api` package; `ModuleBoundaryTest` enforces both.
