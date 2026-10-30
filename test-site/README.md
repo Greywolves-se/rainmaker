@@ -370,9 +370,10 @@ quality"); this module's own notes are in `test-site/CLAUDE.md`.
 
 1. **Plug in the real widget** with `RAINMAKER_SCRIPT_URL` – the stub shows
    what it needs to find.
-2. **Playwright end-to-end tests** (architecture 7.3): "hover headline →
-   panel appears", "red article → no panel", "panel adds no layout shift",
-   "panel works after *Endast nödvändiga*".
+2. **Playwright end-to-end tests** (architecture 7.3, #154): "read the
+   article → the next step appears" (hover until #220, ADR 0005), "red article →
+   no panel", "panel adds no layout shift", "panel works after *Endast
+   nödvändiga*".
 3. **More articles** towards the ~200 labelled articles for the AI evaluation
    set, including tricky yellow/red borderline cases.
 4. **A client-side-routed variant** (articles change without a page reload),

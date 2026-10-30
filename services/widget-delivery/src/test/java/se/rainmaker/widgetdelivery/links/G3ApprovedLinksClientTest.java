@@ -193,7 +193,7 @@ class G3ApprovedLinksClientTest {
   }
 
   /**
-   * While G3 keeps failing, hovers stop waiting for its timeouts: the circuit opens and the next
+   * While G3 keeps failing, requests stop waiting for its timeouts: the circuit opens and the next
    * request is unavailable at once, without calling G3.
    */
   @Test
