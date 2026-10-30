@@ -36,6 +36,9 @@ class JdbcLatestArticles implements LatestArticles {
 
   @Override
   public List<StoredArticle> recent(int count) {
+    if (count < 1) {
+      throw new IllegalArgumentException("count must be at least 1: " + count);
+    }
     // The latest version per article first, then the most recently stored of those. The article
     // id breaks a tie in stored_at (UUIDv7, so the newer article wins).
     return database

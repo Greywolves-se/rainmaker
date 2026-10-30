@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/** A wrong setting stops G1 at start-up, not on the first hover (#151). */
+/** A wrong setting stops G1 at start-up, not on the first request (#151). */
 class ApprovedLinksPropertiesTest {
 
   private static final ApprovedLinksProperties.CircuitBreaker BREAKER =

@@ -607,8 +607,11 @@ conditional fragments:
 - The kicker, byline, ad slots and paywall offer contain **no `<p>`**.
   Content Ingestion reads `article p` as body text, so a `<p>` there would
   leak into it.
-- `<h1 data-rainmaker-headline>` marks the headline the widget hooks on
-  (UC-06).
+- `<h1 data-rainmaker-headline>` marks the headline today's widget hooks on
+  (UC-06, hover until #220).
+- Three empty markers for Rainmaker's next step (#217): `data-rainmaker-article-end`
+  last in `.article__body`, `data-rainmaker-next-step="after-article"` directly after
+  it, and `data-rainmaker-next-step="sidebar"` last in the sidebar. See the README.
 - `<article data-article-id="vb-0001">` gives the article id.
 - The `expectedZone` is **never** in the HTML. Otherwise the AI classifier
   could "cheat".
