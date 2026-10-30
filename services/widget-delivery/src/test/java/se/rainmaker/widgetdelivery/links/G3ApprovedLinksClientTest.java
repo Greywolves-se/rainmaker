@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.net.URI;
@@ -156,6 +157,10 @@ class G3ApprovedLinksClientTest {
     g3.verify(2, getRequestedFor(urlPathEqualTo(API)));
   }
 
+  /**
+   * The only test that waits on real time: nothing but a slow answer proves the read timeout is
+   * set. The margin is wide (a 1 s delay against 300 ms), so it doesn't flake (#224).
+   */
   @Test
   void timeoutMeansUnavailable() {
     g3.stubFor(get(urlPathEqualTo(API)).willReturn(okJson(CONTRACT_EXAMPLE).withFixedDelay(1_000)));
@@ -163,6 +168,34 @@ class G3ApprovedLinksClientTest {
     assertThatThrownBy(() -> client(Duration.ofMillis(300), NEVER_OPENS).find(ARTICLE, null))
         .isInstanceOf(ApprovedLinksUnavailableException.class);
     g3.verify(2, getRequestedFor(urlPathEqualTo(API)));
+  }
+
+  /** A dropped connection may go away, so it is retried once like a timeout, without waiting. */
+  @Test
+  void droppedConnectionIsRetriedThenUnavailable() {
+    g3.stubFor(
+        get(urlPathEqualTo(API)).willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
+
+    assertThatThrownBy(() -> client().find(ARTICLE, null))
+        .isInstanceOf(ApprovedLinksUnavailableException.class);
+    g3.verify(2, getRequestedFor(urlPathEqualTo(API)));
+  }
+
+  /** G3 not running at all: port 1 refuses every connection. */
+  @Test
+  void g3NotRunningMeansUnavailable() {
+    G3ApprovedLinksClient down =
+        new G3ApprovedLinksClient(
+            new ApprovedLinksProperties(
+                URI.create("http://127.0.0.1:1"),
+                Duration.ofMillis(250),
+                READ_TIMEOUT,
+                2,
+                Duration.ofMillis(10),
+                NEVER_OPENS));
+
+    assertThatThrownBy(() -> down.find(ARTICLE, null))
+        .isInstanceOf(ApprovedLinksUnavailableException.class);
   }
 
   /** A client error won't go away by asking again. */
