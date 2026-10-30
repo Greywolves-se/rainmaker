@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * {@code GET /widget/v1/links?url=…}: the widget API rainmaker.js calls on a headline hover (#151,
- * contract 7.4, D-7). Public and read-only: no login, no cookies, and nothing about the reader is
- * stored or logged.
+ * {@code GET /widget/v1/links?url=…}: the widget API rainmaker.js calls to show an article's links
+ * (#151, contract 7.4, D-7). Public and read-only: no login, no cookies, and nothing about the
+ * reader is stored or logged.
  *
  * <p>200 with the links, or an empty list for an article that may have none; 400 when {@code url}
  * isn't an absolute http(s) address on one of the publisher sites, or is too long (#224); 503 when
@@ -74,7 +74,9 @@ class WidgetLinksController {
     }
   }
 
-  /** While the circuit is open, the breaker has already said so once; not again on every hover. */
+  /**
+   * While the circuit is open, the breaker has already said so once; not again on every request.
+   */
   private static void logUnavailable(ApprovedLinksUnavailableException unavailable) {
     if (unavailable.getCause() instanceof CallNotPermittedException) {
       LOG.debug("No widget links: {}", unavailable.getMessage());

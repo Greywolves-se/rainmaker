@@ -11,7 +11,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * A wrong setting stops G1 at start-up, not on the first hover (#151), including timeouts the
+ * A wrong setting stops G1 at start-up, not on the first request (#151), including timeouts the
  * reader would never wait for (#224).
  */
 class ApprovedLinksPropertiesTest {

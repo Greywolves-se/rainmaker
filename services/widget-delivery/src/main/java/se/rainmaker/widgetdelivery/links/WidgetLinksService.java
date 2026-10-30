@@ -12,7 +12,7 @@ import se.rainmaker.trackingclick.api.ClickLinks;
  * Turns G3's approved links for an article into the panel's links (#151, contract 7.4): at most
  * three, in rank order, each with a new signed click link (contract 7.5, D-6) in place of the
  * offer's address. Nothing is cached, so an article that turns red loses its links on the next
- * hover.
+ * request.
  */
 @Service
 class WidgetLinksService {
