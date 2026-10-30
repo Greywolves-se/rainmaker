@@ -27,7 +27,9 @@ import se.rainmaker.publishercontrol.database.PublisherControlDatabaseConfigurat
  *       so an approved link leaving the widget is logged too.
  * </ul>
  *
- * <p>The article's row is locked while it changes, so an editor's decision waits for it.
+ * <p>The article's row is locked while it changes, so an editor's decision waits for it. Lock
+ * order: the article first, then its suggestions. {@code SuggestionDecisions} locks in the same
+ * order; keep both that way, or a poll and a decision for the same article can deadlock.
  */
 @Component
 class ArticleStore {
