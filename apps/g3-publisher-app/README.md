@@ -15,7 +15,7 @@ The editor page with approvals, and the advertisers' offers and landing pages. O
   needs, then start its jar:
 
   ```
-  docker compose up -d
+  docker compose up -d postgres
   ./mvnw -pl apps/g3-publisher-app -am package -DskipTests
   java -jar apps/g3-publisher-app/target/g3-publisher-app-0.1.0-SNAPSHOT.jar
   ```

@@ -19,7 +19,9 @@ import se.rainmaker.publishercontrol.database.PublisherControlDatabaseConfigurat
  * </ul>
  *
  * <p>The suggestion and its article are locked while deciding, so a new version from G2 can't
- * withdraw the suggestion halfway through.
+ * withdraw the suggestion halfway through. The article is locked first, then the suggestion: the
+ * same order as {@code ArticleStore.apply}, so a decision and a poll for the same article wait for
+ * each other instead of deadlocking.
  */
 @Component
 public class SuggestionDecisions {
@@ -54,6 +56,7 @@ public class SuggestionDecisions {
   }
 
   private void decide(UUID suggestionId, String decision, String editor) {
+    lockArticle(suggestionId);
     String current =
         database
             .sql(
@@ -81,6 +84,26 @@ public class SuggestionDecisions {
         .sql("INSERT INTO suggestion_audit (suggestion_id, action, decided_by) VALUES (?, ?, ?)")
         .params(suggestionId, decision, editor)
         .update();
+  }
+
+  /**
+   * Locks the suggestion's article before the suggestion. The query in {@link #decide} locks the
+   * rows of its join in {@code FROM} order, suggestion first; if a poll held the article and waited
+   * for the suggestion, PostgreSQL would abort one of them. Nothing is locked for an unknown
+   * suggestion; {@link #decide} then reports it.
+   */
+  private void lockArticle(UUID suggestionId) {
+    database
+        .sql(
+            """
+            SELECT a.article_id FROM article a
+            JOIN suggestion s ON s.article_id = a.article_id
+            WHERE s.suggestion_id = ?
+            FOR UPDATE OF a
+            """)
+        .param(suggestionId)
+        .query(UUID.class)
+        .optional();
   }
 
   /** Tells an unknown suggestion apart from one that can't be decided (any more). */

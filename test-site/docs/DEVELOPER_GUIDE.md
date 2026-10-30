@@ -507,8 +507,8 @@ Throw it from a controller to show the 404 page.
 |---|---|---|
 | `/rss.xml` | RSS 2.0, all articles | Content Ingestion (S5) |
 | `/sitemap.xml` | Google News sitemap, all articles | S5 |
-| `/robots.txt` | Allows everything, points to the sitemap | Crawlers |
-| `/eval/labels.csv` | `article_id,expected_zone,section,url` | AI evaluation (S6) |
+| `/robots.txt` | Allows everything except `/eval/`, points to the sitemap | Crawlers |
+| `/eval/labels.csv` | `article_id,expected_zone,section,url`; not linked from any page | AI evaluation (S6) |
 | `/ads/creatives.json` | All ads (Jackson serialises the records) | `static/js/ads.js` |
 | `/tag-manager/container.json` | `TagContainer` | `static/js/tag-manager.js` |
 | `/health` | `ok` | Uptime checks |
@@ -607,8 +607,11 @@ conditional fragments:
 - The kicker, byline, ad slots and paywall offer contain **no `<p>`**.
   Content Ingestion reads `article p` as body text, so a `<p>` there would
   leak into it.
-- `<h1 data-rainmaker-headline>` marks the headline the widget hooks on
-  (UC-06).
+- `<h1 data-rainmaker-headline>` marks the headline today's widget hooks on
+  (UC-06, hover until #220).
+- Three empty markers for Rainmaker's next step (#217): `data-rainmaker-article-end`
+  last in `.article__body`, `data-rainmaker-next-step="after-article"` directly after
+  it, and `data-rainmaker-next-step="sidebar"` last in the sidebar. See the README.
 - `<article data-article-id="vb-0001">` gives the article id.
 - The `expectedZone` is **never** in the HTML. Otherwise the AI classifier
   could "cheat".
@@ -940,7 +943,8 @@ them are checked by tests:
 
 1. **Everything is fictional and labelled.** Every page has the fiction
    banner and `noindex`. No real people, companies or news.
-2. **`expectedZone` never appears in the HTML.** Only in `/eval/labels.csv`.
+2. **`expectedZone` never appears in the HTML.** Only in `/eval/labels.csv`,
+   which no page links to and `robots.txt` disallows.
 3. **Fail open.** Any browser feature (and the Rainmaker widget) may fail
    without breaking the article.
 4. **Respect consent.** Consent-gated tags load only after "Godkänn alla".

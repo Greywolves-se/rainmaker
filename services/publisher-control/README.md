@@ -13,6 +13,8 @@ The editor page: approve or reject suggested offers, with an audit log.
   - inject the client with `@Qualifier(PublisherControlDatabaseConfiguration.JDBC_CLIENT) JdbcClient`;
   - mark transactions with `@Transactional(PublisherControlDatabaseConfiguration.TRANSACTION_MANAGER)`; an
     unnamed `@Transactional` is ambiguous, because an app holds several modules' databases.
+    The app's `ModuleBoundaryTest` fails the build on an unnamed one, another module's, or
+    `jakarta.transaction.Transactional` (#170).
 
 ## What it does so far (#150)
 
@@ -48,6 +50,7 @@ The editor page: approve or reject suggested offers, with an audit log.
   default 100), and `polling=false` to turn the schedule off in tests.
 - **`decision/SuggestionDecisions`** approves or rejects one suggestion and writes an audit row (who,
   when, what) in `suggestion_audit`. A withdrawn suggestion, or one of an article that isn't green,
-  can't be decided. The same decision twice writes one row; a changed decision writes a new one. The
-  database refuses any change to an audit row (append-only).
+  can't be decided. The same decision twice writes one row; a changed decision writes a new one. A
+  withdrawal by the sync writes a row too (`withdrawn` by `g2`), so an approved link leaving the
+  widget is logged. The database refuses any change to an audit row (append-only).
 - **Not yet:** the approved links API for G1 (contract 7.3).

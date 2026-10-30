@@ -20,7 +20,7 @@ sequenceDiagram
     G2->>G3: GET /api/offers (matching needs the offers)
     G3->>G2: GET /api/articles?recent=… (polls the recent articles and suggestions)
     G3->>G3: editor approves
-    JS->>G1: GET /widget/v1/links?url=… (on headline hover)
+    JS->>G1: GET /widget/v1/links?url=… (after qualified reading; hover in the demo, ADR 0005)
     G1->>G3: GET /api/approved-links?url=…
     G3->>G2: GET /api/articles?url=… (is it still green?)
     G1-->>JS: links with signed click URLs
@@ -485,8 +485,8 @@ GET http://localhost:8083/api/approved-links?url=http%3A%2F%2Flocalhost%3A3000%2
 - `destinationUrl` is for G1 to put into the signed click link (section 7.5). It never goes to
   the browser as a field.
 
-**Known limit:** each hover is G1 → G3 → G2, three hops. Fine for the demo; caching is out of
-scope.
+**Known limit:** each call from rainmaker.js is G1 → G3 → G2, three hops. Fine for the demo;
+caching is out of scope.
 
 ### 7.4 Widget API (G1, #151) (D-7)
 
@@ -582,6 +582,9 @@ like this:
 ```json
 {"auditId": "…", "suggestionId": "0192f3e4-…", "action": "approved", "by": "demo-editor", "at": "2026-10-30T09:20:00Z"}
 ```
+
+`action` is `approved` or `rejected` by the editor, or `withdrawn` by `g2` when G3 withdraws a
+suggestion because of G2's data (section 5), so an approved link leaving the widget is logged too.
 
 ---
 

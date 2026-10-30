@@ -9,7 +9,11 @@
     so only the article itself is inside <article>. The kicker, byline, ad slot and paywall
     offer contain no <p>, so they never end up in the body text. Menus and "Läs också" are
     outside <article>.
-  - data-rainmaker-headline marks the headline the reader hovers over (UC-06).
+  - Places for Rainmaker's next step (#217, ADR 0005): data-rainmaker-next-step="sidebar" beside
+    the article and "after-article" after it, both empty until the widget fills one, and
+    data-rainmaker-article-end, last in the article body. See README.md.
+  - data-rainmaker-headline marks the headline; today's widget opens its panel when the reader
+    hovers it (#152), until #220 replaces the hover.
   - The expected brand-safety zone is NOT in the HTML, so the AI classifier cannot "cheat".
   - PLUS articles keep their full text in the HTML; CSS fades out the locked part.
 */-->
@@ -64,7 +68,9 @@
             <span class="paywall__test-note" th:text="#{paywall.testNote}"></span>
           </div>
         </th:block>
+        <div data-rainmaker-article-end aria-hidden="true"></div>
       </div>
+      <div data-rainmaker-next-step="after-article"></div>
     </article>
 
     <aside class="article-sidebar">
@@ -79,6 +85,7 @@
            th:text="#{article.moreInSection(${sectionName})} + ' →'"></a>
       </section>
       <th:block th:replace="~{fragments :: adSlot(${skyscraperAd})}"></th:block>
+      <div data-rainmaker-next-step="sidebar"></div>
     </aside>
   </div>
 </th:block>
