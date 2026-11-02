@@ -171,6 +171,20 @@ class ApprovedLinksTest {
   void urlThatIsMissingOrNotWebAddressIsBadRequest() throws Exception {
     assertThat(mockMvc.perform(get(API)).andReturn().getResponse().getStatus()).isEqualTo(400);
     assertThat(request("javascript:alert(1)", null).getStatus()).isEqualTo(400);
+    assertThat(request("/artikel/badrummet", null).getStatus()).isEqualTo(400);
+  }
+
+  /** The scheme is read in any case, as G1 reads it, so G1 and G3 agree on what is an address. */
+  @Test
+  void addressWithSchemeInCapitalsIsAsked() throws Exception {
+    String url = "HTTP://localhost:3000/artikel/" + UUID.randomUUID();
+    g2.stubFor(
+        WireMock.get(urlPathEqualTo(ARTICLES))
+            .withQueryParam("url", equalTo(url))
+            .willReturn(okJson("{\"articles\": []}")));
+
+    assertThat(request(url, null).getStatus()).isEqualTo(200);
+    g2.verify(getRequestedFor(urlPathEqualTo(ARTICLES)).withQueryParam("url", equalTo(url)));
   }
 
   /** Makes the fake G2 answer {@code ?url=} for this article with this version of it. */

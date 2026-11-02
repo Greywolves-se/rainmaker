@@ -1,5 +1,7 @@
 package se.rainmaker.publishercontrol.links;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -19,7 +21,7 @@ import se.rainmaker.publishercontrol.articles.ArticlesUnavailableException;
  *
  * <ul>
  *   <li>{@code 200}: the article's approved links, or {@code "links": []}.
- *   <li>{@code 400}: {@code url} is missing or not an http(s) address.
+ *   <li>{@code 400}: {@code url} is missing or not an absolute http(s) address.
  *   <li>{@code 503}: G2 can't say whether the article is still green, so there are no links.
  * </ul>
  */
@@ -38,11 +40,23 @@ class ApprovedLinksController {
   ApprovedLinksAnswer approvedLinks(
       @RequestParam String url,
       @RequestHeader(name = "X-Correlation-Id", required = false) String correlationId) {
-    if (!url.startsWith("https://") && !url.startsWith("http://")) {
+    if (!isWebAddress(url)) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "url must be an http(s) address");
     }
     try (MDC.MDCCloseable correlation = MDC.putCloseable("correlation_id", correlationId)) {
       return approvedLinks.forArticle(url, correlationId);
+    }
+  }
+
+  /** An absolute http(s) address with a host, the scheme in any case: the same check as G1's. */
+  private static boolean isWebAddress(String url) {
+    try {
+      URI uri = new URI(url);
+      boolean http =
+          "http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme());
+      return http && uri.getHost() != null;
+    } catch (URISyntaxException notAddress) {
+      return false;
     }
   }
 
