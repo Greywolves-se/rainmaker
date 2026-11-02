@@ -6,7 +6,7 @@
  * nothing to the reader's console either: the page is the publisher's, not ours. (The browser
  * itself still logs a request that fails, e.g. when the API is down; a script can't stop that.)
  *
- * This file only covers what runs while the script loads. The hover handlers and the API call
+ * This file only covers what runs while the script loads. The reading signals and the API call
  * run later and catch their own errors (fail-open.ts).
  *
  * Export nothing from here: with the IIFE build, an export becomes a global variable on the

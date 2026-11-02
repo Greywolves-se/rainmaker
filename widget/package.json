@@ -2,7 +2,7 @@
   "name": "rainmaker-widget",
   "version": "0.1.0",
   "private": true,
-  "description": "rainmaker.js: the script on the publisher's page that shows the approved links on headline hover.",
+  "description": "rainmaker.js: the script on the publisher's page that shows the approved links as a next step once the reader has read the article.",
   "type": "module",
   "engines": {
     "node": ">=22"
