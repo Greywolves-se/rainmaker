@@ -37,8 +37,17 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
     as `unclassified` at once (a version stored already is a repeated event: nothing changes),
     calls the classifier outside any database transaction, then has the result stored. A
     classifier that throws gives `failed`. The listener runs inside ingestion's feed poll, so any
-    other error is logged and the poll continues; that version stays `unclassified`, and nothing
-    classifies it again yet (#223).
+    other error is logged and the poll continues; that version stays `unclassified` until the
+    retry takes it.
+  - `ClassificationRetry` (#223) classifies `failed` and `unclassified` versions again, on a
+    schedule (settings below). Each run takes at most `batch-size` of them that weren't tried for
+    `interval`, oldest attempt first, and marks them as tried (column `attempted_at`,
+    `V3__attempted_at.sql`), so a version being classified right now is left alone and a long
+    outage is worked through in turn. It reads their text from content-ingestion
+    (`api.LatestArticleTexts`) and classifies them as the first time, through the same classifier
+    and its limits: the result replaces the old one and `ArticleClassified` is published. A
+    version replaced by a newer one is skipped; if content-ingestion has a newer version
+    content-intent never got, that one is classified instead.
   - `ClassificationResults` stores the result and publishes `ArticleClassified` in one transaction,
     for every status, so matching withdraws suggestions for anything that isn't green.
   - `ClassificationStore`: table `classification`, one row per article id and version
@@ -63,17 +72,26 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 | `circuit-breaker.*` | `50` %, `10`, `5`, `1m` | Opens when at least `failure-rate-percent` of the last `window-size` articles (at least `minimum-calls` seen) still failed after their retries; then no call for `open-for`, and one trial call decides (#185) |
 | `fake.*` | **red** (`RAINMAKER_FAKE_ZONE`), `home` | The fake classifier's answer for every article. Red by default, so nothing gets a panel without Claude; set `RAINMAKER_FAKE_ZONE=green` only for local work on matching or the widget. G2 logs a WARN at start-up while the fake is active |
 
+### Retry settings (`rainmaker.content-intent.retry.*`, #223)
+
+| Setting | Default | What it does |
+|---|---|---|
+| `interval` | `5m` | Time between runs, and how long a version must go untried before a run takes it. At least `1m`, longer than one classification with its retries |
+| `batch-size` | `10` | Most versions per run (1–100), so a long outage can't spend the daily token cap at once |
+| `enabled` | `true` | `false` turns the schedule off (tests) |
+
 ### What happens when something goes wrong
 
 | Situation | Result | Retried? |
 |---|---|---|
-| Calls per minute or daily token cap used | `unclassified` (no call made) | Not yet; only an edited article is classified again (#223) |
-| Circuit breaker open (Bedrock kept failing) | `unclassified` (no call made); one WARN when it opens and one when it closes | Not yet; only an edited article is classified again (#223) |
-| Throttling, timeout, service error, network error (e.g. a reset connection) | `failed` once `max-attempts` are used; counts toward the circuit breaker | Yes, with back-off and jitter |
-| Other client error, e.g. an expired SSO login | `failed`, logged as ERROR (`failed-client-error`) | No |
-| `AccessDenied` (also the hard cost stop's SCP, #161) | `failed`, logged as ERROR (`failed-access-denied`) | No |
-| Validation error, unknown model | `failed` | No |
-| Refusal, cut-off answer, text instead of the tool, invalid answer | `failed` | No |
+| Calls per minute or daily token cap used | `unclassified` (no call made) | By the retry, after `interval` (#223) |
+| Circuit breaker open (Bedrock kept failing) | `unclassified` (no call made); one WARN when it opens and one when it closes | By the retry, after `interval` |
+| Throttling, timeout, service error, network error (e.g. a reset connection) | `failed` once `max-attempts` are used; counts toward the circuit breaker | Yes, with back-off and jitter; then by the retry |
+| Other client error, e.g. an expired SSO login | `failed`, logged as ERROR (`failed-client-error`) | By the retry, once the login works again |
+| `AccessDenied` (also the hard cost stop's SCP, #161) | `failed`, logged as ERROR (`failed-access-denied`) | By the retry, which fails again until access is back |
+| Validation error, unknown model | `failed` | By the retry |
+| Refusal, cut-off answer, text instead of the tool, invalid answer | `failed` | By the retry: a call each `interval`, within the limits, until the article is edited |
+| A database error while storing the result | stays `unclassified` | By the retry |
 
 Never green by default. Logs carry the article id, version, outcome and tokens, never the text.
 
