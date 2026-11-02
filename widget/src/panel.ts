@@ -1,23 +1,19 @@
 import type {ApprovedLink} from './links-api';
 import type {Texts} from './translations';
 
-/** Space between the headline and the panel, in pixels. */
-const GAP_PX = 8;
-
 /**
  * The panel's look. It lives in the panel's Shadow DOM, so the page's CSS can't reach it and it
  * can't reach the page. `all: initial` stops the page's inherited styles (font, colour) too.
+ * It fills the width of its place, which the publisher's layout decides (#220).
  */
 const PANEL_CSS = `
-  :host { all: initial; }
+  :host { all: initial; display: block; }
   aside {
     box-sizing: border-box;
-    max-width: 320px;
     padding: 12px;
     border: 1px solid #c8c8c8;
     border-radius: 6px;
     background: #ffffff;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     color: #1a1a1a;
     font: 14px/1.4 system-ui, sans-serif;
   }
@@ -39,18 +35,13 @@ const PANEL_CSS = `
 const HOST_TAG = 'rainmaker-panel';
 
 /**
- * Builds the panel for the approved links, placed just below the headline. The returned element
- * is not on the page yet. It is positioned absolutely, so adding it moves nothing (no layout
- * shift). All text goes in as text, never as HTML.
+ * Builds the next step for the approved links (#220, ADR 0005): a labelled box that goes in the
+ * place the publisher marked, in the page's flow, so it never covers the article. The returned
+ * element is not on the page yet. All text goes in as text, never as HTML.
  */
-export function createPanel(
-  links: ApprovedLink[],
-  texts: Texts,
-  headline: Element
-): HTMLElement {
+export function createPanel(links: ApprovedLink[], texts: Texts): HTMLElement {
   const host = document.createElement(HOST_TAG);
   host.setAttribute('data-rainmaker-panel', '');
-  placeBelow(host, headline);
 
   const shadow = host.attachShadow({mode: 'open'});
   addStyles(shadow);
@@ -85,18 +76,6 @@ function element(tag: string, className: string, text: string): HTMLElement {
   created.className = className;
   created.textContent = text;
   return created;
-}
-
-/**
- * Positions the panel through element.style, which a Content-Security-Policy with
- * `style-src 'self'` (like the fake-news site's) still allows; a style attribute would be blocked.
- */
-function placeBelow(host: HTMLElement, headline: Element): void {
-  const box = headline.getBoundingClientRect();
-  host.style.position = 'absolute';
-  host.style.top = `${box.bottom + window.scrollY + GAP_PX}px`;
-  host.style.left = `${box.left + window.scrollX}px`;
-  host.style.zIndex = '2147483647';
 }
 
 /**

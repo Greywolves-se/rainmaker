@@ -370,10 +370,9 @@ quality"); this module's own notes are in `test-site/CLAUDE.md`.
 - **Markup made for ingestion.** Only the article itself is inside `<article>`,
   so selectors like `article h1` and `article p` get exactly the headline and
   body text. Ad slots and the paywall offer inside the article contain no `<p>`.
-  The headline has `data-rainmaker-headline`, which today's widget opens its
-  panel on when the reader hovers it (#152) until #220 replaces the hover; the
-  places for the next step are described under "Places for Rainmaker's next
-  step".
+  The headline has `data-rainmaker-headline`, which the widget stub looks for;
+  the real widget uses the places for the next step, described under "Places
+  for Rainmaker's next step" (#220).
 - **Paywalled text stays in the HTML** (hidden by CSS), so ingestion reads the
   whole article. Some real publishers instead cut the text on the server –
   worth asking the pilot publisher (C2/P3).
@@ -412,9 +411,9 @@ quality"); this module's own notes are in `test-site/CLAUDE.md`.
 1. **Plug in the real widget** with `RAINMAKER_SCRIPT_URL` – the stub shows
    what it needs to find.
 2. **Playwright end-to-end tests** (architecture 7.3, #154): "read the
-   article → the next step appears" (hover until #220, ADR 0005), "red article →
-   no panel", "panel adds no layout shift", "panel works after *Endast
-   nödvändiga*".
+   article → the next step appears" (ADR 0005), "red article → no next step",
+   "the next step never covers the article text", "the next step works after
+   *Endast nödvändiga*".
 3. **More articles** towards the ~200 labelled articles for the AI evaluation
    set, including tricky yellow/red borderline cases.
 4. **A client-side-routed variant** (articles change without a page reload),
