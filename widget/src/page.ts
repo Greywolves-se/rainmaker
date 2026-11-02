@@ -1,10 +1,17 @@
+import {DEFAULT_QUALIFIED_READING_SECONDS} from './qualified-reading';
+
 /** What rainmaker.js reads from the publisher's page before it starts. */
 export interface Settings {
   /** Where the widget API is: the origin rainmaker.js itself was loaded from (contract, D-7). */
   apiOrigin: string;
   /** Which element is the headline the reader hovers. */
   headlineSelector: string;
+  /** Active reading time before the interest counts as confirmed (#218). */
+  qualifiedReadingSeconds: number;
 }
+
+/** The largest threshold accepted: an hour of active reading would never be reached anyway. */
+const MAX_QUALIFIED_READING_SECONDS = 3600;
 
 /**
  * The headline on the fake-news site's article pages. A publisher with other markup sets
@@ -28,7 +35,21 @@ export function readSettings(script: Element | null): Settings | null {
     apiOrigin: source.origin,
     headlineSelector:
       script.dataset.headlineSelector || DEFAULT_HEADLINE_SELECTOR,
+    qualifiedReadingSeconds: readSeconds(
+      script.dataset.qualifiedReadingSeconds
+    ),
   };
+}
+
+/**
+ * `data-qualified-reading-seconds`: a whole number of seconds from 1 to an hour. Anything else
+ * falls back to the default, so a typo on the publisher's page never stops the widget.
+ */
+function readSeconds(value: string | undefined): number {
+  const seconds = /^\d+$/.test(value ?? '') ? Number(value) : NaN;
+  return seconds >= 1 && seconds <= MAX_QUALIFIED_READING_SECONDS
+    ? seconds
+    : DEFAULT_QUALIFIED_READING_SECONDS;
 }
 
 /**
