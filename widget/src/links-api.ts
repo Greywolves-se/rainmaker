@@ -9,7 +9,11 @@ export interface ApprovedLink {
   clickUrl: string;
 }
 
-/** How long the reader may wait for the links before the widget gives up. */
+/**
+ * How long the widget waits for the links before it gives up. G1 refuses to start if its own wait
+ * for G3 could reach this (`READER_WAIT` in widget-delivery's `ApprovedLinksProperties`, #224):
+ * change both together.
+ */
 export const API_TIMEOUT_MS = 2000;
 
 const MAX_LINKS = 3;
@@ -18,8 +22,7 @@ const MAX_LINKS = 3;
  * Asks G1's widget API for the article's approved links. Never rejects (fail open).
  *
  * @returns the links (empty when the article has none), or null when there was no usable answer:
- *     an error, a timeout or a status other than 200. Null means "try again later"; either way
- *     there is no panel this time.
+ *     an error, a timeout or a status other than 200. Either way there is no next step.
  */
 export async function fetchApprovedLinks(
   apiOrigin: string,

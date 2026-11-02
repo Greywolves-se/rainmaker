@@ -20,7 +20,7 @@ sequenceDiagram
     G2->>G3: GET /api/offers (matching needs the offers)
     G3->>G2: GET /api/articles?recent=… (polls the recent articles and suggestions)
     G3->>G3: editor approves
-    JS->>G1: GET /widget/v1/links?url=… (after qualified reading; hover in the demo, ADR 0005)
+    JS->>G1: GET /widget/v1/links?url=… (when the reader leaves the article after qualified reading, ADR 0005)
     G1->>G3: GET /api/approved-links?url=…
     G3->>G2: GET /api/articles?url=… (is it still green?)
     G1-->>JS: links with signed click URLs

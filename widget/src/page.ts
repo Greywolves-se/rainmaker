@@ -4,20 +4,33 @@ import {DEFAULT_QUALIFIED_READING_SECONDS} from './qualified-reading';
 export interface Settings {
   /** Where the widget API is: the origin rainmaker.js itself was loaded from (contract, D-7). */
   apiOrigin: string;
-  /** Which element is the headline the reader hovers. */
-  headlineSelector: string;
   /** Active reading time before the interest counts as confirmed (#218). */
   qualifiedReadingSeconds: number;
+  /** Which element is the end of the article content, for the leaving signal (#219). */
+  articleEndSelector: string;
+  /** The place for the next step beside the article, used on desktop (#220). */
+  sidebarPlaceSelector: string;
+  /** The place for the next step after the article text, used on mobile (#220). */
+  afterArticlePlaceSelector: string;
 }
 
 /** The largest threshold accepted: an hour of active reading would never be reached anyway. */
 const MAX_QUALIFIED_READING_SECONDS = 3600;
 
 /**
- * The headline on the fake-news site's article pages. A publisher with other markup sets
- * `data-headline-selector` on the script tag.
+ * The end-of-article marker on the fake-news site (#217). A publisher with other markup sets
+ * `data-article-end-selector` on the script tag.
  */
-export const DEFAULT_HEADLINE_SELECTOR = '[data-rainmaker-headline]';
+export const DEFAULT_ARTICLE_END_SELECTOR = '[data-rainmaker-article-end]';
+
+/**
+ * The places for the next step on the fake-news site (#217). A publisher with other markup sets
+ * `data-sidebar-place-selector` and `data-after-article-place-selector` on the script tag.
+ */
+export const DEFAULT_SIDEBAR_PLACE_SELECTOR =
+  '[data-rainmaker-next-step="sidebar"]';
+export const DEFAULT_AFTER_ARTICLE_PLACE_SELECTOR =
+  '[data-rainmaker-next-step="after-article"]';
 
 /**
  * Reads the settings from rainmaker.js's own `<script>` tag. Returns null when the widget can't
@@ -33,11 +46,16 @@ export function readSettings(script: Element | null): Settings | null {
   }
   return {
     apiOrigin: source.origin,
-    headlineSelector:
-      script.dataset.headlineSelector || DEFAULT_HEADLINE_SELECTOR,
     qualifiedReadingSeconds: readSeconds(
       script.dataset.qualifiedReadingSeconds
     ),
+    articleEndSelector:
+      script.dataset.articleEndSelector || DEFAULT_ARTICLE_END_SELECTOR,
+    sidebarPlaceSelector:
+      script.dataset.sidebarPlaceSelector || DEFAULT_SIDEBAR_PLACE_SELECTOR,
+    afterArticlePlaceSelector:
+      script.dataset.afterArticlePlaceSelector ||
+      DEFAULT_AFTER_ARTICLE_PLACE_SELECTOR,
   };
 }
 

@@ -221,7 +221,7 @@ class WidgetLinksControllerTest {
     verify(clickLinks, never()).create(any(), any(), any());
   }
 
-  /** Links from one hover are never served again once G3 fails on the next. */
+  /** Links from one request are never served again once G3 fails on the next. */
   @Test
   void g3FailingAfterGivingLinksMeansServiceUnavailable() throws Exception {
     g3.stubFor(
