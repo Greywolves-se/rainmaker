@@ -37,6 +37,13 @@
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <!-- S4's api: the offers' advertiser and title for the editor page (#150). Same app (G3), so
+         only the api package; the app's ArchUnit test checks it. -->
+    <dependency>
+      <groupId>se.rainmaker</groupId>
+      <artifactId>advertiser-marketplace</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!-- Retries with back-off on the call to G2's articles API (CLAUDE.md, "External calls");
          managed in the root POM, as in content-intent and the collector. -->
     <dependency>
