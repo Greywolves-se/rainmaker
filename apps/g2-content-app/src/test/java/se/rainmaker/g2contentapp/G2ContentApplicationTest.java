@@ -67,6 +67,20 @@ class G2ContentApplicationTest {
     assertThat(classification.mayGetSuggestions()).isFalse();
   }
 
+  /**
+   * The green marker is for the end-to-end test only (#154): unless RAINMAKER_FAKE_GREEN_MARKER is
+   * set, a headline with the test's marker is red like every other.
+   */
+  @Test
+  void defaultFakeHasNoGreenMarker() {
+    Classification classification =
+        classifier.classify(
+            new ArticleToClassify(
+                UUID.randomUUID(), 1, "Nytt badrum [e2e-green]", "Råd om kakel och golvvärme."));
+
+    assertThat(classification.zone()).isEqualTo(Zone.RED);
+  }
+
   @Test
   void startsOnItsOwnPort() {
     assertThat(port).isEqualTo(8082);

@@ -62,6 +62,7 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 | `daily-token-cap` | `200000` | When used, articles stay `unclassified` until the next UTC day |
 | `circuit-breaker.*` | `50` %, `10`, `5`, `1m` | Opens when at least `failure-rate-percent` of the last `window-size` articles (at least `minimum-calls` seen) still failed after their retries; then no call for `open-for`, and one trial call decides (#185) |
 | `fake.*` | **red** (`RAINMAKER_FAKE_ZONE`), `home` | The fake classifier's answer for every article. Red by default, so nothing gets a panel without Claude; set `RAINMAKER_FAKE_ZONE=green` only for local work on matching or the widget. G2 logs a WARN at start-up while the fake is active |
+| `fake.green-marker` | *(empty)* (`RAINMAKER_FAKE_GREEN_MARKER`) | Only for the end-to-end test (#154): a headline containing it is green, every other article keeps `fake.zone`. Empty: no headline is |
 
 ### What happens when something goes wrong
 
