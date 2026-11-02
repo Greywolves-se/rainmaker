@@ -37,16 +37,26 @@ class G3OffersClientTest {
       }]}
       """;
 
+  /**
+   * Generous, so the class's first request, which also warms up WireMock and the HTTP client, isn't
+   * cut off on a slow machine (#211); {@link #retriesTimeoutThenGivesUp} uses a short one.
+   */
+  private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
+
   @RegisterExtension
   static WireMockExtension g3 =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
   private G3OffersClient client() {
+    return client(READ_TIMEOUT);
+  }
+
+  private G3OffersClient client(Duration readTimeout) {
     return new G3OffersClient(
         new OffersProperties(
             URI.create(g3.baseUrl()),
             Duration.ofSeconds(1),
-            Duration.ofMillis(300),
+            readTimeout,
             3,
             Duration.ofMillis(10)));
   }
@@ -93,7 +103,8 @@ class G3OffersClientTest {
   void retriesTimeoutThenGivesUp() {
     g3.stubFor(get(urlPathEqualTo(OFFERS)).willReturn(okJson(ONE_OFFER).withFixedDelay(1_000)));
 
-    assertThatThrownBy(() -> client().offers()).isInstanceOf(OffersUnavailableException.class);
+    assertThatThrownBy(() -> client(Duration.ofMillis(300)).offers())
+        .isInstanceOf(OffersUnavailableException.class);
     g3.verify(3, getRequestedFor(urlPathEqualTo(OFFERS)));
   }
 
