@@ -6,6 +6,7 @@ import static org.assertj.core.groups.Tuple.tuple;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import se.rainmaker.contentingestion.api.ArticleStored;
 import se.rainmaker.contentingestion.api.StoredArticle;
 
 /**
@@ -108,6 +110,45 @@ class JdbcLatestArticlesTest {
 
     assertThat(latest.byUrl(ELBIL)).isEmpty();
     assertThat(latest.byUrl(BADRUM + "/")).isEmpty();
+  }
+
+  @Test
+  void latestOfGivesLatestVersionOfEachArticleWithItsText() {
+    store(badrum, 1, BADRUM, "Badrummet", "2026-10-30T09:00:00Z");
+    store(badrum, 2, BADRUM, "Badrummet, uppdaterad", "2026-10-30T09:02:00Z");
+    store(elbil, 1, ELBIL, "Elbilen", "2026-10-30T09:01:00Z");
+
+    assertThat(latest.latestOf(List.of(badrum, elbil, UUID.randomUUID())))
+        .containsExactlyInAnyOrder(
+            new ArticleStored(
+                badrum,
+                2,
+                BADRUM,
+                "Badrummet, uppdaterad",
+                "Brödtext.",
+                "bostad",
+                "sv",
+                PUBLISHED,
+                Instant.parse("2026-10-30T09:02:00Z"),
+                "correlation-2"),
+            new ArticleStored(
+                elbil,
+                1,
+                ELBIL,
+                "Elbilen",
+                "Brödtext.",
+                "bostad",
+                "sv",
+                PUBLISHED,
+                null,
+                "correlation-1"));
+  }
+
+  @Test
+  void latestOfNothingGivesNothing() {
+    store(badrum, 1, BADRUM, "Badrummet", "2026-10-30T09:00:00Z");
+
+    assertThat(latest.latestOf(List.of())).isEmpty();
   }
 
   /** Version 1 was never updated; later versions were updated when they were stored. */
