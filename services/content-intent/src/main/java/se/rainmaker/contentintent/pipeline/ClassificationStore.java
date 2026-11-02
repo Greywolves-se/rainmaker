@@ -8,6 +8,7 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,22 +40,60 @@ class ClassificationStore implements CurrentClassifications {
   /**
    * Stores the version as unclassified, unless it is stored already.
    *
+   * @param attemptedAt now: the first try starts, so the retry leaves it alone for an interval
    * @return false when this version was stored before, so the event is a repeat
    */
-  boolean storeUnclassified(UUID articleId, int version, String correlationId) {
+  boolean storeUnclassified(
+      UUID articleId, int version, String correlationId, Instant attemptedAt) {
     int rows =
         database
             .sql(
                 """
-                INSERT INTO classification (article_id, article_version, status, correlation_id)
-                VALUES (:articleId, :version, 'unclassified', :correlationId)
+                INSERT INTO classification (article_id, article_version, status, correlation_id,
+                    attempted_at)
+                VALUES (:articleId, :version, 'unclassified', :correlationId, :attemptedAt)
                 ON CONFLICT DO NOTHING
                 """)
             .param("articleId", articleId)
             .param("version", version)
             .param("correlationId", correlationId)
+            .param("attemptedAt", utc(attemptedAt))
             .update();
     return rows == 1;
+  }
+
+  /**
+   * Picks up to {@code batchSize} failed or unclassified versions to classify again (#223), the
+   * ones tried longest ago first, and marks them as tried {@code now}. Only versions last tried at
+   * or before {@code triedBefore}, and only the newest version this module has of each article.
+   * Rows another G2 is picking up at the same moment are skipped, so no version is tried twice at
+   * once.
+   */
+  List<ArticleVersion> pickForRetry(Instant triedBefore, Instant now, int batchSize) {
+    return database
+        .sql(
+            """
+            UPDATE classification SET attempted_at = :now
+            WHERE (article_id, article_version) IN (
+                SELECT article_id, article_version FROM classification tried
+                WHERE status IN ('failed', 'unclassified') AND attempted_at <= :triedBefore
+                    AND NOT EXISTS (
+                        SELECT 1 FROM classification newer
+                        WHERE newer.article_id = tried.article_id
+                            AND newer.article_version > tried.article_version)
+                ORDER BY attempted_at, article_id, article_version
+                LIMIT :batchSize
+                FOR UPDATE SKIP LOCKED)
+            RETURNING article_id, article_version
+            """)
+        .param("now", utc(now))
+        .param("triedBefore", utc(triedBefore))
+        .param("batchSize", batchSize)
+        .query(
+            (row, number) ->
+                new ArticleVersion(
+                    row.getObject("article_id", UUID.class), row.getInt("article_version")))
+        .list();
   }
 
   /**

@@ -53,21 +53,19 @@ class ArticleClassification {
     try (MDC.MDCCloseable correlation =
         MDC.putCloseable("correlation_id", article.correlationId())) {
       if (!store.storeUnclassified(
-          article.articleId(), article.version(), article.correlationId())) {
+          article.articleId(), article.version(), article.correlationId(), clock.instant())) {
         LOG.info(
             "Article {} version {} is stored already; ignored",
             article.articleId(),
             article.version());
         return;
       }
-      Classification classification = classify(article);
-      results.record(article, classification);
+      Classification classification = classifyAndRecord(article);
       LOG.info(
-          "Article {} version {}: {}{}",
+          "Article {} version {}: {}",
           article.articleId(),
           article.version(),
-          classification.status().key(),
-          classification.zone() == null ? "" : " " + classification.zone().key());
+          outcome(classification));
     } catch (RuntimeException error) {
       // Runs inside ingestion's feed poll: whatever fails here must not stop the other articles.
       LOG.error(
@@ -76,6 +74,22 @@ class ArticleClassification {
           article.version(),
           error);
     }
+  }
+
+  /**
+   * Classifies a version that is stored already, then stores the result and publishes {@code
+   * ArticleClassified}. Used for the first try and by the retry (#223).
+   */
+  Classification classifyAndRecord(ArticleStored article) {
+    Classification classification = classify(article);
+    results.record(article, classification);
+    return classification;
+  }
+
+  /** The outcome for a log line, e.g. {@code classified green} or {@code failed}; never text. */
+  static String outcome(Classification classification) {
+    return classification.status().key()
+        + (classification.zone() == null ? "" : " " + classification.zone().key());
   }
 
   private Classification classify(ArticleStored article) {

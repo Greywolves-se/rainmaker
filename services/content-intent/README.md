@@ -37,12 +37,15 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
     as `unclassified` at once (a version stored already is a repeated event: nothing changes),
     calls the classifier outside any database transaction, then has the result stored. A
     classifier that throws gives `failed`. The listener runs inside ingestion's feed poll, so any
-    other error is logged and the poll continues; that version stays `unclassified`, and nothing
-    classifies it again yet (#223).
+    other error is logged and the poll continues; that version stays `unclassified` until the
+    retry picks it up.
   - `ClassificationResults` stores the result and publishes `ArticleClassified` in one transaction,
     for every status, so matching withdraws suggestions for anything that isn't green.
+  - `ClassificationRetry` (#223) classifies `failed` and `unclassified` versions again, on a
+    schedule: see "Classifying again" below.
   - `ClassificationStore`: table `classification`, one row per article id and version
-    (`V2__classifications.sql`). Never the text.
+    (`V2__classifications.sql`; `V3` adds `attempted_at`, when the version was last tried). Never
+    the text.
   - It also answers `api.CurrentClassifications`: the current classification of a list of
     `ArticleVersion`s in one query, for the articles API (#202). A version with nothing stored is
     `unclassified`.
@@ -65,10 +68,10 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 
 ### What happens when something goes wrong
 
-| Situation | Result | Retried? |
+| Situation | Result | Retried within the call? |
 |---|---|---|
-| Calls per minute or daily token cap used | `unclassified` (no call made) | Not yet; only an edited article is classified again (#223) |
-| Circuit breaker open (Bedrock kept failing) | `unclassified` (no call made); one WARN when it opens and one when it closes | Not yet; only an edited article is classified again (#223) |
+| Calls per minute or daily token cap used | `unclassified` (no call made) | No |
+| Circuit breaker open (Bedrock kept failing) | `unclassified` (no call made); one WARN when it opens and one when it closes | No |
 | Throttling, timeout, service error, network error (e.g. a reset connection) | `failed` once `max-attempts` are used; counts toward the circuit breaker | Yes, with back-off and jitter |
 | Other client error, e.g. an expired SSO login | `failed`, logged as ERROR (`failed-client-error`) | No |
 | `AccessDenied` (also the hard cost stop's SCP, #161) | `failed`, logged as ERROR (`failed-access-denied`) | No |
@@ -76,6 +79,32 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 | Refusal, cut-off answer, text instead of the tool, invalid answer | `failed` | No |
 
 Never green by default. Logs carry the article id, version, outcome and tokens, never the text.
+Every `failed` or `unclassified` version is classified again later by the retry below.
+
+### Classifying again (#223)
+
+Every `retry.interval` (5 minutes), `ClassificationRetry` picks at most `retry.batch-size` (10)
+versions that are `failed` or `unclassified`, were last tried at least an interval ago, and are the
+newest version this module has of their article. Oldest try first. For each one:
+
+1. It asks content-ingestion for the article's latest version with its text
+   (`api.ArticleTexts`), since this module never stores the text. If ingestion has a newer
+   version, this one is skipped: the newer one gets its own classification.
+2. It classifies it with the same classifier as the first try, so the call limit, the token cap
+   and the circuit breaker all apply, then stores the result and publishes `ArticleClassified`,
+   so matching runs again for a version that is now green.
+
+Picking marks each version as tried now (`attempted_at`) in the same statement, with
+`FOR UPDATE SKIP LOCKED`, so a version being classified for the first time, or picked by another G2
+at the same moment, is never tried twice at once. A version that fails again waits another
+interval, so a lasting error (an expired login, the cost stop) costs at most `batch-size` calls
+per run. The first run is one interval after start-up.
+
+| Setting (`rainmaker.content-intent.retry.*`) | Default | What it does |
+|---|---|---|
+| `interval` | `5m` | How often the retry runs, and how long a version waits after a try |
+| `batch-size` | `10` | Most versions per run (1–100), so a long outage can't use the whole daily token cap at once |
+| `enabled` | `true` | `false` turns the schedule off, e.g. in tests |
 
 ### Running against Bedrock locally
 
