@@ -45,6 +45,7 @@ describe('readSettings', () => {
       apiOrigin: 'http://localhost:8081',
       headlineSelector: '[data-rainmaker-headline]',
       qualifiedReadingSeconds: 60,
+      articleEndSelector: '[data-rainmaker-article-end]',
     });
   });
 
@@ -71,6 +72,15 @@ describe('readSettings', () => {
         script('http://localhost:8081/widget/rainmaker.js', 'h1.title')
       )?.headlineSelector
     ).toBe('h1.title');
+  });
+
+  it('lets the publisher choose where the article ends', () => {
+    const element = script('http://localhost:8081/widget/rainmaker.js');
+    element.dataset.articleEndSelector = '.story-body > :last-child';
+
+    expect(readSettings(element)?.articleEndSelector).toBe(
+      '.story-body > :last-child'
+    );
   });
 
   it('does not start without a script element or an http(s) address', () => {

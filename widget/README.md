@@ -49,6 +49,36 @@ it once per page view. #220 connects it to the panel; until then the hover above
   article (for example `data-rainmaker-article-end`, #217) must also be reached. Both are
   constants or settings, so changing them is a small change.
 
+## Leaving the article (#219)
+
+The reader flow (ADR 0005) shows the next step when the reader has read the article and shows
+signs of leaving it. `src/leaving-article.ts` gives that moment: `watchLeavingArticle` calls back
+once per page view, when the reading is qualified (#218) **and** the reader is at or past the end
+of the article, in either order. Showing the links then is #220's job; nothing calls it yet.
+
+**The proposal** (for Peter, in the demonstration of both flows, #222). Candidate signals:
+
+| Signal | Cost | When it is wrong |
+|---|---|---|
+| **The end-of-article marker is on the screen or above it** (chosen) | An `IntersectionObserver`; no scroll listener, no layout reads. Same on desktop and mobile. | A short article whose end is on the screen at once signals the moment the reading qualifies; after 60 s of reading and a scroll, that is fair. On a PLUS article the marker comes after the paywall offer (#217), so a reader who can't read the locked part still reaches it: whether to show anything there is open (#222). |
+| Scrolling past the article body, towards the rest of the page | Similar. | Later than the marker: on mobile the place after the article may already have scrolled away. A page with nothing below the article can't be scrolled past, so it never fires. |
+| Navigating away (`pagehide`, back, a link) | Low. | Nothing shown while the page unloads can be seen, so it is only useful for measurement, and this signal stores and sends nothing. An "exit intent" (the pointer moving to the address bar) exists only on desktop. |
+
+- **"At or past":** the observed area is the screen stretched far upwards
+  (`rootMargin: 1000000px 0px 0px 0px`). So the end counts as reached while it is on the screen
+  *and* after the reader scrolled past it, even with a jump (the End key) that never shows it; a
+  plain observer misses that jump. Checked in Chrome. A reader who scrolls back up above the end
+  before the reading qualifies gets the next step when they reach the end again, not while
+  re-reading.
+- **A reader who never leaves:** one who stops at the end has reached it, so it fires. One who
+  stops reading in the middle never gets the next step: nothing commercial, and nothing disturbs
+  the reading.
+- **The marker:** `[data-rainmaker-article-end]`, last in the article text (#217). A publisher
+  with other markup adds `data-article-end-selector="…"` to the script tag. Without the marker,
+  or in a browser without `IntersectionObserver`, there is no signal and nothing shows.
+- **Open until #222:** whether a short article should wait for some scrolling past the end, and
+  the PLUS case above.
+
 ## Rules it must keep
 
 - **Fail open** (CLAUDE.md, product rules): if anything in Rainmaker fails, the publisher's page
@@ -96,6 +126,7 @@ page. See G1's README for how to start it.
 | `src/main.ts` | The entry point: starts the widget and never lets an error reach the page |
 | `src/start.ts` | Finds the headline and connects the API, the hover and the panel |
 | `src/page.ts` | Reads the settings from the script tag, and the article's URL (D-2) |
+| `src/leaving-article.ts` | Signals once when the reader has read the article and reached its end (#219) |
 | `src/links-api.ts` | Calls the widget API and checks its answer |
 | `src/hover-panel.ts` | Opens the panel after a deliberate hover and closes it again |
 | `src/panel.ts` | Builds the panel in a Shadow DOM |
