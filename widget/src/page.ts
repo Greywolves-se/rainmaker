@@ -8,6 +8,8 @@ export interface Settings {
   headlineSelector: string;
   /** Active reading time before the interest counts as confirmed (#218). */
   qualifiedReadingSeconds: number;
+  /** Which element is the end of the article content, for the leaving signal (#219). */
+  articleEndSelector: string;
 }
 
 /** The largest threshold accepted: an hour of active reading would never be reached anyway. */
@@ -18,6 +20,12 @@ const MAX_QUALIFIED_READING_SECONDS = 3600;
  * `data-headline-selector` on the script tag.
  */
 export const DEFAULT_HEADLINE_SELECTOR = '[data-rainmaker-headline]';
+
+/**
+ * The end-of-article marker on the fake-news site (#217). A publisher with other markup sets
+ * `data-article-end-selector` on the script tag.
+ */
+export const DEFAULT_ARTICLE_END_SELECTOR = '[data-rainmaker-article-end]';
 
 /**
  * Reads the settings from rainmaker.js's own `<script>` tag. Returns null when the widget can't
@@ -38,6 +46,8 @@ export function readSettings(script: Element | null): Settings | null {
     qualifiedReadingSeconds: readSeconds(
       script.dataset.qualifiedReadingSeconds
     ),
+    articleEndSelector:
+      script.dataset.articleEndSelector || DEFAULT_ARTICLE_END_SELECTOR,
   };
 }
 
