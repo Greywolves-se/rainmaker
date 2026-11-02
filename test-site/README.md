@@ -332,6 +332,7 @@ Set as environment variables, in `application.yml`, or (for Docker) in a
 | `BASE_URL` | `http://localhost:<PORT>` | Public address, for absolute links in RSS and sitemap |
 | `RAINMAKER_SCRIPT_URL` | *(empty)* | Address of rainmaker.js; empty = no widget |
 | `RAINMAKER_INSTALL_METHOD` | `template` | `template` (script tag in the page) or `tag-manager` |
+| `RAINMAKER_QUALIFIED_READING_SECONDS` | *(empty)* | Seconds of active reading before the widget shows the next step (1–3600), set as `data-qualified-reading-seconds` on its script tag by the template or the tag manager. Empty = the widget's default (60 s). The end-to-end test (#154) shortens it |
 | `CONTENT_DIRECTORY` | `content` | Folder with the content files, relative to `test-site/` |
 | `TEST_SITE_PORT` | `3000` | Docker only: the port on your computer |
 

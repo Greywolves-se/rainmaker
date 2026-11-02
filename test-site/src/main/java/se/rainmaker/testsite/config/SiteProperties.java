@@ -3,6 +3,7 @@ package se.rainmaker.testsite.config;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -27,7 +28,7 @@ public record SiteProperties(String baseUrl, Path contentDirectory, Rainmaker ra
       throw new IllegalArgumentException("site.content-directory must be set");
     }
     if (rainmaker == null) {
-      rainmaker = new Rainmaker(null, InstallMethod.TEMPLATE);
+      rainmaker = new Rainmaker(null, InstallMethod.TEMPLATE, null);
     }
   }
 
@@ -41,11 +42,28 @@ public record SiteProperties(String baseUrl, Path contentDirectory, Rainmaker ra
    *
    * @param scriptUrl address of rainmaker.js, or empty for no widget
    * @param installMethod where the script tag comes from
+   * @param qualifiedReadingSeconds the widget's qualified reading in seconds (1-3600), put on its
+   *     script tag; empty for the widget's own default (60 s). The end-to-end test (#154) shortens
+   *     it
    */
-  public record Rainmaker(String scriptUrl, InstallMethod installMethod) {
+  public record Rainmaker(
+      String scriptUrl, InstallMethod installMethod, Integer qualifiedReadingSeconds) {
 
-    /** Checks the widget address: https only, plain http only for localhost. */
+    /** The widget's own limits for {@code data-qualified-reading-seconds}: 1 s to an hour. */
+    private static final int MAX_QUALIFIED_READING_SECONDS = 3600;
+
+    /**
+     * Checks the widget address (https only, plain http only for localhost) and the qualified
+     * reading.
+     */
     public Rainmaker {
+      if (qualifiedReadingSeconds != null
+          && (qualifiedReadingSeconds < 1
+              || qualifiedReadingSeconds > MAX_QUALIFIED_READING_SECONDS)) {
+        // The widget would quietly use its default; here a wrong setting stops the site instead.
+        throw new IllegalArgumentException(
+            "site.rainmaker.qualified-reading-seconds must be 1-3600: " + qualifiedReadingSeconds);
+      }
       if (scriptUrl != null && scriptUrl.isBlank()) {
         scriptUrl = null;
       }
@@ -67,6 +85,13 @@ public record SiteProperties(String baseUrl, Path contentDirectory, Rainmaker ra
     /** The widget address, if one is configured. */
     public Optional<String> script() {
       return Optional.ofNullable(scriptUrl);
+    }
+
+    /** The {@code data-*} attributes the widget reads from its own script tag. */
+    public Map<String, String> scriptAttributes() {
+      return qualifiedReadingSeconds == null
+          ? Map.of()
+          : Map.of("data-qualified-reading-seconds", qualifiedReadingSeconds.toString());
     }
 
     /** The widget's origin (e.g. "https://cdn.rainmaker.nu"), for the CSP header. */
