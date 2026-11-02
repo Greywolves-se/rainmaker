@@ -33,7 +33,7 @@ current suggestion set (contract 3.5, section 4):
   article and its set. An older version is ignored, a newer one replaces the set (D-5), and the same event
   twice changes nothing. Suggestion ids are UUIDv7 (`matching/UuidV7`).
 - **`api.CurrentSuggestions`:** the current set per article, for modules inside G2 (e.g. the articles
-  API, contract 7.1).
+  API, contract 7.1). `forArticles` reads the sets of many articles in one query (#202).
 
 Settings, `rainmaker.matching-ranking.offers.*` (checked at start-up; values in the G2 app's
 `application.properties`):

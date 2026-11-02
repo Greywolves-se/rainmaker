@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * How S1 reaches G3's approved links API (#151, contract 7.3), under {@code
  * rainmaker.widget-delivery.approved-links.*}. Checked at start-up. The reader waits at most two
  * seconds for the panel (rainmaker.js), so the timeouts, the attempts and the back-off together
- * must stay well under that.
+ * must stay under that; G1 checks it at start-up (#224).
  *
  * @param baseUrl G3's address, e.g. {@code http://localhost:8083}
  * @param connectTimeout how long to wait for a connection
@@ -26,6 +26,12 @@ record ApprovedLinksProperties(
     Duration backoff,
     CircuitBreaker circuitBreaker) {
 
+  /**
+   * How long the reader's browser waits for the widget API before it gives up on the panel
+   * (rainmaker.js, {@code API_TIMEOUT_MS} in {@code widget/src/links-api.ts}).
+   */
+  static final Duration READER_WAIT = Duration.ofSeconds(2);
+
   /** Checks the values. */
   ApprovedLinksProperties {
     require(baseUrl != null && baseUrl.getHost() != null, "base-url must be an absolute URL");
@@ -35,6 +41,33 @@ record ApprovedLinksProperties(
     require(maxAttempts >= 1, "max-attempts must be at least 1");
     require(backoff != null && backoff.isPositive(), "backoff must be positive");
     require(circuitBreaker != null, "circuit-breaker.* must be set");
+  }
+
+  /**
+   * The longest G1 can wait for G3: every attempt timing out on both connecting and reading, with
+   * the back-off before each retry. Stops adding once it reaches {@link #READER_WAIT}.
+   */
+  Duration worstCaseWait() {
+    Duration attempt = connectTimeout.plus(readTimeout);
+    Duration wait = attempt;
+    Duration nextBackoff = backoff;
+    for (int retry = 2; retry <= maxAttempts && wait.compareTo(READER_WAIT) < 0; retry++) {
+      wait = wait.plus(nextBackoff).plus(attempt);
+      nextBackoff = nextBackoff.multipliedBy(2);
+    }
+    return wait;
+  }
+
+  /**
+   * Checked when G1 starts (#224): past the reader's wait, rainmaker.js has given up and G1 retries
+   * for nobody. Not checked in the constructor, so tests can use generous timeouts.
+   */
+  void requireWithinReaderWait() {
+    require(
+        worstCaseWait().compareTo(READER_WAIT) < 0,
+        "attempts x (connect-timeout + read-timeout) + back-off must stay under the reader's "
+            + READER_WAIT.toMillis()
+            + " ms");
   }
 
   /**

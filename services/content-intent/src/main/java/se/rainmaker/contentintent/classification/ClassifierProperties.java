@@ -22,6 +22,7 @@ import se.rainmaker.contentintent.api.Zone;
  * @param callsPerMinute most Bedrock calls in any minute; more leave the article unclassified
  * @param dailyTokenCap most tokens per UTC day; when used, articles stay unclassified until the
  *     next day
+ * @param circuitBreaker when to stop calling Bedrock for a while because it keeps failing (#185)
  * @param fake the answer of the fake classifier, used when {@code mode} is {@code fake}
  */
 @ConfigurationProperties(prefix = "rainmaker.content-intent.classifier")
@@ -36,6 +37,7 @@ public record ClassifierProperties(
     Duration backoff,
     int callsPerMinute,
     long dailyTokenCap,
+    CircuitBreaker circuitBreaker,
     Fake fake) {
 
   /** Which classifier G2 uses. */
@@ -56,6 +58,18 @@ public record ClassifierProperties(
    */
   public record Fake(Zone zone, List<Topic> topics, String reasonSv, String reasonEn) {}
 
+  /**
+   * When the circuit breaker stops calling Bedrock (#185). One article counts as one call: it fails
+   * when its retries for temporary errors are used up.
+   *
+   * @param failureRatePercent open when at least this share of the last calls failed, 1-100
+   * @param windowSize how many of the last calls count
+   * @param minimumCalls calls needed before the failure rate is judged at all
+   * @param openFor how long no call is made once open; then one trial call decides
+   */
+  public record CircuitBreaker(
+      int failureRatePercent, int windowSize, int minimumCalls, Duration openFor) {}
+
   /** Checks the values; the Bedrock values only matter in Bedrock mode. */
   public ClassifierProperties {
     if (mode == null) {
@@ -71,6 +85,15 @@ public record ClassifierProperties(
       require(backoff != null && backoff.isPositive(), "backoff must be positive");
       require(callsPerMinute > 0, "calls-per-minute must be positive");
       require(dailyTokenCap > 0, "daily-token-cap must be positive");
+      require(circuitBreaker != null, "circuit-breaker.* is required");
+      require(
+          circuitBreaker.failureRatePercent() >= 1 && circuitBreaker.failureRatePercent() <= 100,
+          "circuit-breaker.failure-rate-percent must be 1-100");
+      require(circuitBreaker.windowSize() > 0, "circuit-breaker.window-size must be positive");
+      require(circuitBreaker.minimumCalls() > 0, "circuit-breaker.minimum-calls must be positive");
+      require(
+          circuitBreaker.openFor() != null && circuitBreaker.openFor().isPositive(),
+          "circuit-breaker.open-for must be positive");
     }
     if (mode == Mode.FAKE) {
       require(fake != null, "fake.* is required in fake mode");

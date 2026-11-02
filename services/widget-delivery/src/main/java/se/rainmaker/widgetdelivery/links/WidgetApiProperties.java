@@ -3,6 +3,7 @@ package se.rainmaker.widgetdelivery.links;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -10,7 +11,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * rainmaker.widget-delivery.widget-api}. Checked at start-up.
  *
  * @param allowedOrigins the publisher sites whose pages may call the API from the browser (CORS),
- *     each one origin such as {@code http://localhost:3000}: no path, no {@code *}
+ *     each one origin such as {@code http://localhost:3000}: no path, no {@code *}. Only articles
+ *     on these sites get links (#224).
  */
 @ConfigurationProperties(prefix = "rainmaker.widget-delivery.widget-api")
 record WidgetApiProperties(List<String> allowedOrigins) {
@@ -22,6 +24,22 @@ record WidgetApiProperties(List<String> allowedOrigins) {
     }
     allowedOrigins.forEach(WidgetApiProperties::requireOrigin);
     allowedOrigins = List.copyOf(allowedOrigins);
+  }
+
+  /**
+   * Whether the address is on one of the publisher sites: the same scheme, host and port as an
+   * allowed origin, ignoring case and a default port.
+   */
+  boolean isPublisherSite(URI address) {
+    String origin = origin(address);
+    return allowedOrigins.stream().anyMatch(allowed -> origin(URI.create(allowed)).equals(origin));
+  }
+
+  private static String origin(URI address) {
+    String scheme = address.getScheme().toLowerCase(Locale.ROOT);
+    int defaultPort = "https".equals(scheme) ? 443 : 80;
+    int port = address.getPort() == -1 ? defaultPort : address.getPort();
+    return scheme + "://" + address.getHost().toLowerCase(Locale.ROOT) + ":" + port;
   }
 
   private static void requireOrigin(String origin) {

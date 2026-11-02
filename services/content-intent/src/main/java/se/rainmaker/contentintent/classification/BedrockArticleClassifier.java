@@ -1,5 +1,8 @@
 package se.rainmaker.contentintent.classification;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
@@ -46,16 +49,17 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
  * <p>How one article is classified:
  *
  * <ol>
- *   <li>Our own brakes first: the daily token cap and the calls-per-minute limit. If either says
- *       no, no call is made and the article stays {@code unclassified}, to be classified later.
+ *   <li>Our own brakes first: the daily token cap, the circuit breaker (open while Bedrock keeps
+ *       failing, #185) and the calls-per-minute limit. If any says no, no call is made and the
+ *       article stays {@code unclassified}, to be classified later.
  *   <li>One Converse call: the system prompt ({@code content-intent/classification-prompt.txt}),
  *       the headline and text as data (escaped, and the text cut to {@code maxTextChars}), a small
  *       {@code maxTokens}, temperature 0, and the contract's schema as a tool Claude must call.
  *       Nothing about readers is ever sent.
- *   <li>Temporary errors (throttling, timeouts, service errors) are retried with exponential
- *       back-off and jitter, at most {@code maxAttempts} times in all. Everything else fails at
- *       once and is logged as an error: {@code AccessDenied}, which is how the hard cost stop (an
- *       SCP) shows up, and client errors such as an expired SSO login.
+ *   <li>Temporary errors (throttling, timeouts, service and network errors) are retried with
+ *       exponential back-off and jitter, at most {@code maxAttempts} times in all. Everything else
+ *       fails at once and is logged as an error: {@code AccessDenied}, which is how the hard cost
+ *       stop (an SCP) shows up, and client errors such as an expired SSO login.
  *   <li>The tool input must match the schema ({@link ClaudeAnswerParser}). A refusal, a cut-off
  *       answer, a text answer or an invalid one is {@code failed}: never green by default.
  * </ol>
@@ -84,6 +88,7 @@ public class BedrockArticleClassifier implements ArticleClassifier {
   private final DailyTokenBudget tokenBudget;
   private final ClaudeAnswerParser parser = new ClaudeAnswerParser();
   private final Retry retry;
+  private final CircuitBreaker circuitBreaker;
   private final String systemPrompt;
   private final ToolConfiguration toolConfig;
 
@@ -106,6 +111,7 @@ public class BedrockArticleClassifier implements ArticleClassifier {
                         settings.backoff(), BACKOFF_MULTIPLIER, BACKOFF_JITTER))
                 .retryOnException(BedrockArticleClassifier::isTemporary)
                 .build());
+    this.circuitBreaker = circuitBreaker(settings.circuitBreaker(), clock);
     this.systemPrompt = readPrompt();
     this.toolConfig =
         ToolConfiguration.builder()
@@ -131,7 +137,11 @@ public class BedrockArticleClassifier implements ArticleClassifier {
     ConverseRequest request = request(article);
     ConverseResponse response;
     try {
-      response = retry.executeSupplier(() -> callOnce(request));
+      response =
+          circuitBreaker.executeSupplier(() -> retry.executeSupplier(() -> callOnce(request)));
+    } catch (CallNotPermittedException e) {
+      log(article, "deferred-circuit-open", 0);
+      return Classification.unclassified();
     } catch (RateLimitedException e) {
       log(article, "deferred-calls-per-minute", 0);
       return Classification.unclassified();
@@ -205,13 +215,52 @@ public class BedrockArticleClassifier implements ArticleClassifier {
         .flatMap(input -> parser.parse(JsonDocuments.toJson(input)));
   }
 
+  /**
+   * One call per article, around the retries (#185). Only a temporary error that is still there
+   * after the retries counts as a failure: access denied, a bad request or an invalid answer say
+   * nothing about Bedrock's health, so they never open the circuit. Each change of state is logged
+   * once, never once per article.
+   */
+  private static CircuitBreaker circuitBreaker(
+      ClassifierProperties.CircuitBreaker settings, Clock clock) {
+    CircuitBreaker breaker =
+        CircuitBreaker.of(
+            "bedrock-classify",
+            CircuitBreakerConfig.custom()
+                .slidingWindow(
+                    settings.windowSize(),
+                    settings.minimumCalls(),
+                    CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
+                .failureRateThreshold(settings.failureRatePercent())
+                .waitDurationInOpenState(settings.openFor())
+                .permittedNumberOfCallsInHalfOpenState(1)
+                .recordException(BedrockArticleClassifier::isTemporary)
+                .ignoreException(error -> !isTemporary(error))
+                .clock(clock)
+                .build());
+    breaker
+        .getEventPublisher()
+        .onStateTransition(
+            event ->
+                LOG.atWarn()
+                    .addKeyValue("circuit_state", event.getStateTransition().getToState())
+                    .log(
+                        "Bedrock circuit breaker {}: while open, no calls are made and articles"
+                            + " stay unclassified for {}",
+                        event.getStateTransition().getToState(),
+                        settings.openFor()));
+    return breaker;
+  }
+
   private static String escapeTags(String value) {
     return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
   }
 
   /**
-   * Throttling, timeouts and service-side errors may pass; everything else will not. Other client
-   * errors, such as an expired SSO login, are not retried: they won't pass on a second try.
+   * Throttling, timeouts, service-side errors and network errors may pass; everything else will
+   * not. A network error is a client error caused by an I/O error, such as a reset connection
+   * (#185). Other client errors, such as an expired SSO login, are not retried: they won't pass on
+   * a second try.
    */
   private static boolean isTemporary(Throwable error) {
     return error instanceof ThrottlingException
@@ -219,7 +268,8 @@ public class BedrockArticleClassifier implements ArticleClassifier {
         || error instanceof InternalServerException
         || error instanceof ModelNotReadyException
         || error instanceof ApiCallTimeoutException
-        || error instanceof ApiCallAttemptTimeoutException;
+        || error instanceof ApiCallAttemptTimeoutException
+        || (error instanceof SdkClientException && error.getCause() instanceof IOException);
   }
 
   /**

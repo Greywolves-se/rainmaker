@@ -7,6 +7,7 @@ import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -178,14 +179,23 @@ class G3ApprovedLinksClient {
                 .build());
     breaker
         .getEventPublisher()
-        .onStateTransition(
-            event ->
-                LOG.warn(
-                    "G3 approved links circuit breaker {}: while open, G3 isn't called and"
-                        + " articles get no links for {}",
-                    event.getStateTransition().getToState(),
-                    settings.openFor()));
+        .onStateTransition(event -> logStateChange(event.getStateTransition(), settings.openFor()));
     return breaker;
+  }
+
+  /** Only opening means no links; the way back says so, so a recovery doesn't read as an outage. */
+  private static void logStateChange(CircuitBreaker.StateTransition change, Duration openFor) {
+    if (change.getToState() == CircuitBreaker.State.OPEN) {
+      LOG.warn(
+          "G3 approved links circuit breaker {} to {}: G3 isn't called and articles get no links"
+              + " for {}",
+          change.getFromState(),
+          change.getToState(),
+          openFor);
+    } else {
+      LOG.warn(
+          "G3 approved links circuit breaker {} to {}", change.getFromState(), change.getToState());
+    }
   }
 
   /** The answer's shape (contract 7.3); G3 may send more fields, which are ignored. */

@@ -3,10 +3,12 @@ package se.rainmaker.contentintent.classification;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -50,6 +52,11 @@ class BedrockArticleClassifierTest {
 
   private static final String MODEL = "eu.anthropic.claude-haiku-5-5";
   private static final Instant START = Instant.parse("2026-10-30T09:00:00Z");
+
+  /** Opens when half of the last 4 articles failed (at least 4 seen), for one minute. */
+  private static final ClassifierProperties.CircuitBreaker CIRCUIT =
+      new ClassifierProperties.CircuitBreaker(50, 4, 4, Duration.ofMinutes(1));
+
   private static final ArticleToClassify ARTICLE =
       new ArticleToClassify(
           UUID.fromString("0192f3c2-0000-7000-8000-000000000001"),
@@ -84,6 +91,7 @@ class BedrockArticleClassifierTest {
             Duration.ofMillis(1),
             callsPerMinute,
             dailyTokenCap,
+            CIRCUIT,
             null);
     return new BedrockArticleClassifier(client, settings, clock);
   }
@@ -274,6 +282,24 @@ class BedrockArticleClassifierTest {
     verify(client, times(2)).converse(any(ConverseRequest.class));
   }
 
+  /**
+   * A network blip (a client error caused by an I/O error, e.g. a reset connection) may pass on the
+   * next try, unlike an expired login (#185, review of #173).
+   */
+  @Test
+  void retriesLostConnectionAndThenSucceeds() {
+    when(client.converse(any(ConverseRequest.class)))
+        .thenThrow(
+            SdkClientException.builder()
+                .message("Unable to execute HTTP request")
+                .cause(new IOException("Connection reset"))
+                .build())
+        .thenReturn(toolAnswer(validAnswer(), 900));
+
+    assertThat(classifier().classify(ARTICLE).status()).isEqualTo(ClassificationStatus.CLASSIFIED);
+    verify(client, times(2)).converse(any(ConverseRequest.class));
+  }
+
   /** An article can't close the framing tags and pose as text outside the data. */
   @Test
   void escapesTheArticleSoItCannotLeaveItsFraming() {
@@ -361,5 +387,82 @@ class BedrockArticleClassifierTest {
 
     assertThat(classifier.classify(ARTICLE).status()).isEqualTo(ClassificationStatus.UNCLASSIFIED);
     verify(client, times(1)).converse(any(ConverseRequest.class));
+  }
+
+  /**
+   * #185: when Bedrock keeps timing out, the circuit opens: no more calls, and the articles stay
+   * unclassified for later instead of each one spending its retries and ending as failed.
+   */
+  @Test
+  void opensTheCircuitWhenBedrockKeepsFailingAndStopsCalling(CapturedOutput output) {
+    when(client.converse(any(ConverseRequest.class)))
+        .thenThrow(ApiCallTimeoutException.builder().message("timed out").build());
+    BedrockArticleClassifier classifier = classifier(100, 200_000);
+
+    for (int article = 0; article < 4; article++) {
+      assertThat(classifier.classify(ARTICLE).status()).isEqualTo(ClassificationStatus.FAILED);
+    }
+    Classification whileOpen = classifier.classify(ARTICLE);
+    Classification stillOpen = classifier.classify(ARTICLE);
+
+    assertThat(whileOpen.status()).isEqualTo(ClassificationStatus.UNCLASSIFIED);
+    assertThat(stillOpen.status()).isEqualTo(ClassificationStatus.UNCLASSIFIED);
+    // 4 articles x 3 attempts; nothing while the circuit is open.
+    verify(client, times(12)).converse(any(ConverseRequest.class));
+    // One warning when it opens, never one per article.
+    assertThat(output.getOut().split("Bedrock circuit breaker OPEN", -1)).hasSize(2);
+  }
+
+  @Test
+  void triesAgainAfterTheOpenTimeAndClosesOnSuccess(CapturedOutput output) {
+    when(client.converse(any(ConverseRequest.class)))
+        .thenThrow(ApiCallTimeoutException.builder().message("timed out").build());
+    BedrockArticleClassifier classifier = classifier(100, 200_000);
+    for (int article = 0; article < 4; article++) {
+      classifier.classify(ARTICLE);
+    }
+    assertThat(classifier.classify(ARTICLE).status()).isEqualTo(ClassificationStatus.UNCLASSIFIED);
+
+    // A trial call is allowed once the open time has passed (strictly after it).
+    clock.advance(Duration.ofMinutes(1).plusSeconds(1));
+    reset(client);
+    when(client.converse(any(ConverseRequest.class))).thenReturn(toolAnswer(validAnswer(), 900));
+
+    assertThat(classifier.classify(ARTICLE).status()).isEqualTo(ClassificationStatus.CLASSIFIED);
+    assertThat(classifier.classify(ARTICLE).status()).isEqualTo(ClassificationStatus.CLASSIFIED);
+    verify(client, times(2)).converse(any(ConverseRequest.class));
+    assertThat(output).contains("Bedrock circuit breaker CLOSED");
+  }
+
+  /** Access denied says nothing about Bedrock's health: it never opens the circuit. */
+  @Test
+  void neverOpensTheCircuitOnAccessDenied() {
+    when(client.converse(any(ConverseRequest.class)))
+        .thenThrow(AccessDeniedException.builder().message("denied by SCP").build());
+    BedrockArticleClassifier classifier = classifier(100, 200_000);
+
+    for (int article = 0; article < 10; article++) {
+      assertThat(classifier.classify(ARTICLE).status()).isEqualTo(ClassificationStatus.FAILED);
+    }
+    verify(client, times(10)).converse(any(ConverseRequest.class));
+  }
+
+  /** A bad answer means Bedrock answered: it never opens the circuit. */
+  @Test
+  void neverOpensTheCircuitOnInvalidAnswers() {
+    Map<String, Document> wrong =
+        Map.of(
+            "zone", Document.fromString("purple"),
+            "topics", Document.fromList(List.of(Document.fromString("home"))),
+            "reason",
+                Document.fromMap(
+                    Map.of("sv", Document.fromString("a"), "en", Document.fromString("b"))));
+    when(client.converse(any(ConverseRequest.class))).thenReturn(toolAnswer(wrong, 900));
+    BedrockArticleClassifier classifier = classifier(100, 200_000);
+
+    for (int article = 0; article < 10; article++) {
+      assertThat(classifier.classify(ARTICLE).status()).isEqualTo(ClassificationStatus.FAILED);
+    }
+    verify(client, times(10)).converse(any(ConverseRequest.class));
   }
 }

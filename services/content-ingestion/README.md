@@ -19,6 +19,10 @@ for each item:
    skips only that article. The next poll tries again. Pages on another site than the feed's
    are never read.
 
+**Reading the articles back (#202):** `api.LatestArticles` gives the latest version of each article,
+the most recently stored first or by URL, without the body text (`ingestion/JdbcLatestArticles`). G2's
+articles API (contract 7.1) uses it.
+
 It only sends GET requests: ingestion never writes to the publisher (product rule). The body text
 is never logged (`ArticleStored.toString()` leaves it out).
 

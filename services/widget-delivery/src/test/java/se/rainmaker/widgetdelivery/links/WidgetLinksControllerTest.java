@@ -23,6 +23,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -69,9 +70,13 @@ class WidgetLinksControllerTest {
   /** By default, a click link that names its offer, so a test can see which link is which. */
   private final ClickLinks clickLinks = mock(ClickLinks.class);
 
+  /** The publisher sites: the demo's, and one on https with its default port. */
+  private static final WidgetApiProperties SITES =
+      new WidgetApiProperties(List.of("http://localhost:3000", "https://www.example.se"));
+
   private final MockMvc mockMvc =
       MockMvcBuilders.standaloneSetup(
-              new WidgetLinksController(new WidgetLinksService(g3Client(), clickLinks)))
+              new WidgetLinksController(new WidgetLinksService(g3Client(), clickLinks), SITES))
           .build();
 
   private static G3ApprovedLinksClient g3Client() {
@@ -216,6 +221,31 @@ class WidgetLinksControllerTest {
     verify(clickLinks, never()).create(any(), any(), any());
   }
 
+  /** Links from one hover are never served again once G3 fails on the next. */
+  @Test
+  void g3FailingAfterGivingLinksMeansServiceUnavailable() throws Exception {
+    g3.stubFor(
+        WireMock.get(urlPathEqualTo(G3_API))
+            .inScenario("outage")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(okJson(G3_EXAMPLE))
+            .willSetStateTo("down"));
+    g3.stubFor(
+        WireMock.get(urlPathEqualTo(G3_API))
+            .inScenario("outage")
+            .whenScenarioStateIs("down")
+            .willReturn(aResponse().withStatus(500)));
+    clickLinksNameTheirOffer();
+    mockMvc
+        .perform(get(API).param("url", ARTICLE))
+        .andExpect(jsonPath("$.links.length()").value(1));
+
+    mockMvc
+        .perform(get(API).param("url", ARTICLE))
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(content().string(""));
+  }
+
   @Test
   void givesAtMostThreeLinksInRankOrder() throws Exception {
     g3Answers(
@@ -272,6 +302,47 @@ class WidgetLinksControllerTest {
     mockMvc.perform(get(API).param("url", url)).andExpect(status().isBadRequest());
 
     g3.verify(0, getRequestedFor(urlPathEqualTo(G3_API)));
+  }
+
+  /** Only a publisher site's articles can have links, so G3 is never asked about others (#224). */
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "http://other.example/artikel/x",
+        "https://localhost:3000/artikel/x",
+        "http://localhost:3001/artikel/x",
+        "http://localhost/artikel/x",
+        "http://www.example.se/artikel/x",
+        "http://localhost:3000.other.example/artikel/x"
+      })
+  void refusesAddressOutsideThePublisherSites(String url) throws Exception {
+    mockMvc.perform(get(API).param("url", url)).andExpect(status().isBadRequest());
+
+    g3.verify(0, getRequestedFor(urlPathEqualTo(G3_API)));
+  }
+
+  /** Case and a written-out default port don't make it another site. */
+  @ParameterizedTest
+  @ValueSource(
+      strings = {"HTTP://LOCALHOST:3000/artikel/x", "https://www.example.se:443/artikel/x"})
+  void acceptsPublisherSiteWrittenDifferently(String url) throws Exception {
+    g3Answers(G3_EXAMPLE);
+    clickLinksNameTheirOffer();
+
+    mockMvc.perform(get(API).param("url", url)).andExpect(status().isOk());
+  }
+
+  @Test
+  void refusesAddressLongerThanTheCap() throws Exception {
+    String base = ARTICLE + "?";
+    String atCap = base + "x".repeat(WidgetLinksController.MAX_URL_LENGTH - base.length());
+    g3Answers(G3_EXAMPLE);
+    clickLinksNameTheirOffer();
+
+    mockMvc.perform(get(API).param("url", atCap)).andExpect(status().isOk());
+    mockMvc.perform(get(API).param("url", atCap + "x")).andExpect(status().isBadRequest());
+
+    g3.verify(1, getRequestedFor(urlPathEqualTo(G3_API)));
   }
 
   /** An approved link from G3 for the offer with this rank. */

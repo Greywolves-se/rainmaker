@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -155,7 +157,32 @@ class G1ReaderApplicationTest {
         .perform(get(WIDGET_API).param("url", ARTICLE).header("Origin", "http://localhost:3000"))
         .andExpect(status().isServiceUnavailable())
         .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"))
-        .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
+        .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"))
+        .andExpect(variesByOrigin());
+  }
+
+  /**
+   * A refused address still carries the site's CORS headers, so rainmaker.js reads the 400 instead
+   * of a CORS error; a cache keeps answers for different sites apart (#224).
+   */
+  @Test
+  void widgetApiRefusesArticleOfAnotherSiteWithTheSitesCorsHeaders() throws Exception {
+    mockMvc
+        .perform(
+            get(WIDGET_API)
+                .param("url", "http://other.example/artikel/x")
+                .header("Origin", "http://localhost:3000"))
+        .andExpect(status().isBadRequest())
+        .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"))
+        .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"))
+        .andExpect(variesByOrigin());
+  }
+
+  private static ResultMatcher variesByOrigin() {
+    // One header value per name, or all names in one value: either way, Origin is among them.
+    return result ->
+        assertThat(result.getResponse().getHeaders("Vary"))
+            .anyMatch(vary -> List.of(vary.split(",\\s*")).contains("Origin"));
   }
 
   @Test

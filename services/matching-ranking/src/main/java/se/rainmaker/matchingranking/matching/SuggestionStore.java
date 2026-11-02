@@ -4,7 +4,11 @@ import java.security.SecureRandom;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -81,6 +85,28 @@ class SuggestionStore implements CurrentSuggestions {
         .param("articleId", articleId)
         .query(SuggestionStore::suggestion)
         .list();
+  }
+
+  @Override
+  public Map<UUID, List<Suggestion>> forArticles(Collection<UUID> articleIds) {
+    Map<UUID, List<Suggestion>> answer = new LinkedHashMap<>();
+    articleIds.forEach(articleId -> answer.put(articleId, new ArrayList<>()));
+    if (answer.isEmpty()) {
+      return answer;
+    }
+    database
+        .sql(
+            """
+            SELECT suggestion_id, article_id, article_version, offer_id, rank, matched_topic
+            FROM suggestion WHERE article_id = ANY (CAST(:articleIds AS uuid[]))
+            ORDER BY article_id, rank
+            """)
+        .param("articleIds", answer.keySet().stream().map(UUID::toString).toArray(String[]::new))
+        .query(SuggestionStore::suggestion)
+        .list()
+        .forEach(suggestion -> answer.get(suggestion.articleId()).add(suggestion));
+    answer.replaceAll((articleId, set) -> List.copyOf(set));
+    return answer;
   }
 
   /** The newest version seen, after recording {@code version} if the article is new; locked. */

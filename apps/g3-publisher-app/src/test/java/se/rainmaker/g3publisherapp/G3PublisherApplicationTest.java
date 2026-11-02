@@ -17,7 +17,7 @@ import se.rainmaker.advertisermarketplace.database.AdvertiserMarketplaceDatabase
 import se.rainmaker.publishercontrol.database.PublisherControlDatabaseConfiguration;
 
 /** The app starts against a real PostgreSQL set up exactly like the local one (#155). */
-@SpringBootTest
+@SpringBootTest(properties = "rainmaker.publisher-control.articles.polling=false")
 class G3PublisherApplicationTest {
 
   @DynamicPropertySource

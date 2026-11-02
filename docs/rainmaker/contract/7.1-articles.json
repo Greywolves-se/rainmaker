@@ -1,0 +1,35 @@
+{
+  "articles": [
+    {
+      "articleId": "0192f3c2-5e1a-7b10-8a3c-4d5e6f708192",
+      "externalId": "vb-0006",
+      "version": 1,
+      "url": "http://localhost:3000/artikel/badrumsrenovering-experternas-rad",
+      "headline": "Badrummet som håller i 40 år – experternas bästa råd",
+      "section": "bostad",
+      "language": "sv",
+      "publishedAt": "2026-10-10T05:45:00Z",
+      "updatedAt": null,
+      "classification": {
+        "status": "classified",
+        "zone": "green",
+        "topics": ["home"],
+        "reason": {
+          "sv": "Praktiska råd om badrumsrenovering; tydlig köpavsikt, inget känsligt.",
+          "en": "Practical advice on renovating a bathroom; clear buying intent, nothing sensitive."
+        },
+        "model": "claude-haiku-5-5",
+        "classifiedAt": "2026-10-30T09:15:04Z"
+      },
+      "suggestions": [
+        {
+          "suggestionId": "0192f3e4-7a1b-7c20-9d3e-0f1a2b3c4d5e",
+          "offerId": "0192f3d0-2b4c-7d10-9e8f-a1b2c3d4e5f6",
+          "rank": 1,
+          "matchedTopics": ["home"]
+        }
+      ],
+      "correlationId": "0192f3c2-5e1a-7b10-8a3c-c0a1c0a1c0a1"
+    }
+  ]
+}
