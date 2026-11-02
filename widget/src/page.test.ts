@@ -44,8 +44,26 @@ describe('readSettings', () => {
     ).toEqual({
       apiOrigin: 'http://localhost:8081',
       headlineSelector: '[data-rainmaker-headline]',
+      qualifiedReadingSeconds: 60,
     });
   });
+
+  it('lets the publisher change the qualified reading threshold', () => {
+    const element = script('http://localhost:8081/widget/rainmaker.js');
+    element.dataset.qualifiedReadingSeconds = '90';
+
+    expect(readSettings(element)?.qualifiedReadingSeconds).toBe(90);
+  });
+
+  it.each(['', 'abc', '0', '-5', '1.5', '60s', '3601'])(
+    'falls back to 60 s for an invalid threshold: "%s"',
+    value => {
+      const element = script('http://localhost:8081/widget/rainmaker.js');
+      element.dataset.qualifiedReadingSeconds = value;
+
+      expect(readSettings(element)?.qualifiedReadingSeconds).toBe(60);
+    }
+  );
 
   it('lets the publisher choose the headline selector', () => {
     expect(
