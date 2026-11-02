@@ -45,10 +45,13 @@ const APPROVED_LINKS = {
  */
 class FakeIntersectionObserver {
   static latest: FakeIntersectionObserver | undefined;
+  /** Every observer made, since the browser tells each of them. */
+  static readonly all: FakeIntersectionObserver[] = [];
   private disconnected = false;
 
   constructor(private readonly callback: IntersectionObserverCallback) {
     FakeIntersectionObserver.latest = this;
+    FakeIntersectionObserver.all.push(this);
   }
 
   observe(): void {}
@@ -65,6 +68,41 @@ class FakeIntersectionObserver {
       );
     }
   }
+}
+
+/**
+ * Stands in for a constructed stylesheet, which every browser the widget runs in has (Chrome 73,
+ * Firefox 101, Safari 16.4) but jsdom doesn't. It keeps the CSS, so a test can read it.
+ */
+class FakeCSSStyleSheet {
+  cssText = '';
+
+  replaceSync(text: string): void {
+    this.cssText = text;
+  }
+}
+
+/** A browser with constructed stylesheets, as the widget needs (#187). */
+function supportConstructedStylesheets(): void {
+  vi.stubGlobal('CSSStyleSheet', FakeCSSStyleSheet);
+  Object.defineProperty(ShadowRoot.prototype, 'adoptedStyleSheets', {
+    configurable: true,
+    writable: true,
+    value: [],
+  });
+}
+
+/** Back to jsdom, which has no constructed stylesheets, like Safari before 16.4. */
+function removeConstructedStylesheets(): void {
+  Reflect.deleteProperty(ShadowRoot.prototype, 'adoptedStyleSheets');
+}
+
+/** Each test is a new page view: no copy of the widget has started on it yet. */
+function newPageView(): void {
+  document.documentElement.removeAttribute('data-rainmaker-started');
+  FakeIntersectionObserver.latest = undefined;
+  FakeIntersectionObserver.all.length = 0;
+  supportConstructedStylesheets();
 }
 
 /** A box as getBoundingClientRect reports it; only the horizontal part matters here. */
@@ -126,7 +164,7 @@ async function read(seconds: number): Promise<void> {
 
 /** The reader reaches the end of the article, or scrolls back up above it. */
 async function articleEnd(reached: boolean): Promise<void> {
-  FakeIntersectionObserver.latest?.report(reached);
+  FakeIntersectionObserver.all.forEach(observer => observer.report(reached));
   // Lets the widget's call to the API answer and the next step be added.
   await vi.advanceTimersByTimeAsync(0);
 }
@@ -145,7 +183,7 @@ describe('rainmaker.js on an article page', () => {
     vi.useFakeTimers();
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
-    FakeIntersectionObserver.latest = undefined;
+    newPageView();
     document.documentElement.lang = 'sv';
     document.head.innerHTML = '';
     document.body.innerHTML = ARTICLE_PAGE;
@@ -159,6 +197,7 @@ describe('rainmaker.js on an article page', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    removeConstructedStylesheets();
   });
 
   it('shows the approved links, labelled "Annons", beside the article after the reader has read it (desktop)', async () => {
@@ -305,6 +344,46 @@ describe('rainmaker.js on an article page', () => {
     expect(uncaughtErrors).toEqual([]);
   });
 
+  it('starts once when the script tag is on the page twice (template and tag manager)', async () => {
+    answerWith(200, APPROVED_LINKS);
+    start(widgetScript());
+    start(widgetScript());
+
+    await readToTheEnd();
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(document.querySelectorAll('[data-rainmaker-panel]')).toHaveLength(1);
+  });
+
+  it('shows nothing and asks for nothing in a browser without constructed stylesheets', async () => {
+    removeConstructedStylesheets();
+    answerWith(200, APPROVED_LINKS);
+    start(widgetScript());
+
+    await readToTheEnd();
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(nextStep()).toBeNull();
+    expect(FakeIntersectionObserver.latest).toBeUndefined();
+  });
+
+  it('puts the next step in the page flow, so it can never cover the article', async () => {
+    answerWith(200, APPROVED_LINKS);
+    start(widgetScript());
+
+    await readToTheEnd();
+
+    const host = document.querySelector(
+      `${SIDEBAR_PLACE} > [data-rainmaker-panel]`
+    );
+    expect(host?.getAttribute('style')).toBeNull();
+    const css = (host?.shadowRoot?.adoptedStyleSheets ?? [])
+      .map(sheet => (sheet as unknown as FakeCSSStyleSheet).cssText)
+      .join('');
+    expect(css).toContain('display: block');
+    expect(css).not.toMatch(/position|z-index/);
+  });
+
   it('does nothing on a page without an end-of-article marker', async () => {
     answerWith(200, APPROVED_LINKS);
     document.body.innerHTML = '<h1>Förstasidan</h1>';
@@ -389,7 +468,7 @@ describe('rainmaker.js with a bug in its own code', () => {
     vi.useFakeTimers();
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
-    FakeIntersectionObserver.latest = undefined;
+    newPageView();
     document.head.innerHTML = '';
     document.body.innerHTML = ARTICLE_PAGE;
     layOut('desktop');
@@ -402,6 +481,7 @@ describe('rainmaker.js with a bug in its own code', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    removeConstructedStylesheets();
     vi.resetModules();
     vi.doUnmock('./links-api');
     vi.doUnmock('./panel');
@@ -423,7 +503,8 @@ describe('rainmaker.js with a bug in its own code', () => {
   });
 
   it('throws no uncaught error when building the next step fails', async () => {
-    vi.doMock('./panel', () => ({
+    vi.doMock('./panel', async importOriginal => ({
+      ...(await importOriginal<typeof import('./panel')>()),
       createPanel: () => {
         throw new Error('bug in the panel');
       },
