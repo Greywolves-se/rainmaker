@@ -29,12 +29,9 @@ describe('articleUrl', () => {
 });
 
 describe('readSettings', () => {
-  function script(src: string, headlineSelector?: string): HTMLScriptElement {
+  function script(src: string): HTMLScriptElement {
     const element = document.createElement('script');
     element.src = src;
-    if (headlineSelector) {
-      element.dataset.headlineSelector = headlineSelector;
-    }
     return element;
   }
 
@@ -43,8 +40,10 @@ describe('readSettings', () => {
       readSettings(script('http://localhost:8081/widget/rainmaker.js'))
     ).toEqual({
       apiOrigin: 'http://localhost:8081',
-      headlineSelector: '[data-rainmaker-headline]',
       qualifiedReadingSeconds: 60,
+      articleEndSelector: '[data-rainmaker-article-end]',
+      sidebarPlaceSelector: '[data-rainmaker-next-step="sidebar"]',
+      afterArticlePlaceSelector: '[data-rainmaker-next-step="after-article"]',
     });
   });
 
@@ -65,12 +64,24 @@ describe('readSettings', () => {
     }
   );
 
-  it('lets the publisher choose the headline selector', () => {
-    expect(
-      readSettings(
-        script('http://localhost:8081/widget/rainmaker.js', 'h1.title')
-      )?.headlineSelector
-    ).toBe('h1.title');
+  it('lets the publisher choose where the article ends', () => {
+    const element = script('http://localhost:8081/widget/rainmaker.js');
+    element.dataset.articleEndSelector = '.story-body > :last-child';
+
+    expect(readSettings(element)?.articleEndSelector).toBe(
+      '.story-body > :last-child'
+    );
+  });
+
+  it('lets the publisher choose the places for the next step', () => {
+    const element = script('http://localhost:8081/widget/rainmaker.js');
+    element.dataset.sidebarPlaceSelector = '.right-rail .slot';
+    element.dataset.afterArticlePlaceSelector = '#after-story';
+
+    expect(readSettings(element)).toMatchObject({
+      sidebarPlaceSelector: '.right-rail .slot',
+      afterArticlePlaceSelector: '#after-story',
+    });
   });
 
   it('does not start without a script element or an http(s) address', () => {
