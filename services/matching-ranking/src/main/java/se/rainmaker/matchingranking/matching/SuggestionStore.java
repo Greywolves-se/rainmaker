@@ -4,13 +4,18 @@ import java.security.SecureRandom;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
@@ -33,9 +38,15 @@ import se.rainmaker.matchingranking.ranking.RankedOffer;
  *
  * <p>The article's row is locked while its set changes, so two events for one article are handled
  * one after the other.
+ *
+ * <p>A green version that couldn't be matched because G3 was down waits for offers (#248): its
+ * topics are kept on the article's row until a retry matches it. Any later result for that version
+ * or a newer one clears them.
  */
 @Component
 class SuggestionStore implements CurrentSuggestions {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SuggestionStore.class);
 
   private final JdbcClient database;
   private final Clock clock = Clock.systemUTC();
@@ -60,18 +71,64 @@ class SuggestionStore implements CurrentSuggestions {
     if (version > newest || !currentOffers(articleId).equals(ranked)) {
       replace(articleId, version, ranked);
     }
+    stopWaiting(articleId);
     return true;
   }
 
   /**
-   * Withdraws the set if this version is newer than the one it belongs to; otherwise keeps it. Used
-   * when a new version can't be matched now: its text changed, so the old set no longer covers it.
+   * Marks this green version as waiting for G3's offers (#248), unless a newer version has been
+   * seen. A newer version also loses the old set: its text changed, so the set no longer covers it.
+   *
+   * @return false if the version is older than the newest one seen, so nothing changed
    */
   @Transactional(MatchingRankingDatabaseConfiguration.TRANSACTION_MANAGER)
-  public void withdrawIfNewer(UUID articleId, int version) {
-    if (version > lockNewestVersion(articleId, version)) {
+  public boolean waitForOffers(
+      UUID articleId, int version, List<Topic> topics, String correlationId) {
+    int newest = lockNewestVersion(articleId, version);
+    if (version < newest) {
+      return false;
+    }
+    if (version > newest) {
       replace(articleId, version, List.of());
     }
+    database
+        .sql(
+            """
+            UPDATE matched_article
+            SET waiting_topics = CAST(:topics AS text[]), waiting_correlation_id = :correlationId,
+                attempted_at = now()
+            WHERE article_id = :articleId
+            """)
+        .param("topics", topics.stream().map(Topic::key).toArray(String[]::new))
+        .param("correlationId", correlationId)
+        .param("articleId", articleId)
+        .update();
+    return true;
+  }
+
+  /**
+   * Takes at most {@code limit} versions waiting for offers that haven't been tried for {@code
+   * notTriedFor}, oldest attempt first, and marks them as tried now, so another run or another G2
+   * doesn't take them too. Only the newest version of an article can be waiting.
+   */
+  List<WaitingVersion> takeForRetry(int limit, Duration notTriedFor) {
+    return database
+        .sql(
+            """
+            UPDATE matched_article SET attempted_at = now()
+            WHERE article_id IN (
+                SELECT article_id FROM matched_article
+                WHERE waiting_topics IS NOT NULL
+                    AND attempted_at < now() - make_interval(secs => :seconds)
+                ORDER BY attempted_at
+                LIMIT :limit
+                FOR UPDATE SKIP LOCKED)
+            RETURNING article_id, article_version, waiting_topics, waiting_correlation_id
+            """)
+        .param("seconds", notTriedFor.toSeconds())
+        .param("limit", limit)
+        .query(SuggestionStore::waitingVersion)
+        .list();
   }
 
   @Override
@@ -127,6 +184,17 @@ class SuggestionStore implements CurrentSuggestions {
         .single();
   }
 
+  private void stopWaiting(UUID articleId) {
+    database
+        .sql(
+            """
+            UPDATE matched_article SET waiting_topics = NULL, waiting_correlation_id = NULL
+            WHERE article_id = :articleId AND waiting_topics IS NOT NULL
+            """)
+        .param("articleId", articleId)
+        .update();
+  }
+
   private List<RankedOffer> currentOffers(UUID articleId) {
     return forArticle(articleId).stream()
         .map(
@@ -168,6 +236,31 @@ class SuggestionStore implements CurrentSuggestions {
         .param("articleId", articleId)
         .param("version", version)
         .update();
+  }
+
+  /**
+   * A waiting row. A stored topic key that is no longer a known topic is skipped and logged, so one
+   * bad row can't break every run it lands in (review of #249); with no topic left, the version
+   * matches nothing, and saving that ends its wait.
+   */
+  private static WaitingVersion waitingVersion(ResultSet row, int rowNumber) throws SQLException {
+    UUID articleId = row.getObject("article_id", UUID.class);
+    int version = row.getInt("article_version");
+    String[] keys = (String[]) row.getArray("waiting_topics").getArray();
+    List<Topic> topics =
+        Arrays.stream(keys)
+            .map(key -> knownTopic(articleId, version, key))
+            .flatMap(Optional::stream)
+            .toList();
+    return new WaitingVersion(articleId, version, topics, row.getString("waiting_correlation_id"));
+  }
+
+  private static Optional<Topic> knownTopic(UUID articleId, int version, String key) {
+    Optional<Topic> topic = Topic.fromKey(key);
+    if (topic.isEmpty()) {
+      LOG.warn("Article {} version {}: unknown topic {} skipped", articleId, version, key);
+    }
+    return topic;
   }
 
   private static Suggestion suggestion(ResultSet row, int rowNumber) throws SQLException {
