@@ -568,6 +568,13 @@ Opening the link:
 | Same `clickId` again | `302` to the same place | No new row |
 | Bad, changed or garbled token | `400` error page | Nothing |
 | Valid signature, expired | `410 Gone` error page | Nothing |
+| Valid, but the click can't be stored (the database is down or too slow) | `503` error page ("try again"), no redirect | Nothing; opening the link again retries with the same `clickId` |
+| `HEAD` instead of `GET` (link checkers, e-mail and chat previews) | The same status and `Location` as `GET`, no page | Nothing, ever |
+
+- **Fail closed for money (#192):** a click that can't be stored is never passed on; the
+  alternative, redirecting anyway, would lose it. G1 waits at most 1 s for a database
+  connection (`connection-timeout`, never over 2 s) and 1 s for the insert, so the reader sees
+  the `503` page within about 2 s instead of a blank page.
 
 - The redirect target comes from the signed link, which only G1 can make, never from anything
   the request can change (no open redirect).

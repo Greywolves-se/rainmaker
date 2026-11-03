@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -142,6 +143,32 @@ class ClickRedirectControllerTest {
         .andExpect(content().string(containsString("Please try again")));
   }
 
+  /** Link checkers and chat previews send HEAD: they see where the link goes, but it's no click. */
+  @Test
+  void headOnValidLinkShowsTheRedirectWithoutStoringClick() throws Exception {
+    mockMvc
+        .perform(looking(newLink()))
+        .andExpect(status().isFound())
+        .andExpect(header().string(HttpHeaders.LOCATION, DESTINATION))
+        .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"));
+
+    verifyNoInteractions(clicks);
+  }
+
+  @Test
+  void headOnRefusedLinkGetsTheSameStatusAsOpeningIt() throws Exception {
+    String expired = newLink();
+    clock.advance(LIFETIME);
+
+    mockMvc.perform(head("/c/not-a-click-link")).andExpect(status().isBadRequest());
+    mockMvc
+        .perform(looking(expired))
+        .andExpect(status().isGone())
+        .andExpect(header().doesNotExist(HttpHeaders.LOCATION));
+
+    verifyNoInteractions(clicks);
+  }
+
   @Test
   void logOfClickHasNoIpAddress(CapturedOutput output) throws Exception {
     when(clicks.record(any())).thenReturn(true);
@@ -161,6 +188,10 @@ class ClickRedirectControllerTest {
 
   private static MockHttpServletRequestBuilder opening(String link) {
     return get(link.substring(link.indexOf(SignedClickLinks.PATH_PREFIX)));
+  }
+
+  private static MockHttpServletRequestBuilder looking(String link) {
+    return head(link.substring(link.indexOf(SignedClickLinks.PATH_PREFIX)));
   }
 
   /** A request from a reader's address, also through a proxy that forwards it. */
