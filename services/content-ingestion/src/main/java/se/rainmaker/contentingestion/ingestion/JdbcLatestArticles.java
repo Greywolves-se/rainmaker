@@ -4,22 +4,25 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
+import se.rainmaker.contentingestion.api.ArticleStored;
+import se.rainmaker.contentingestion.api.LatestArticleTexts;
 import se.rainmaker.contentingestion.api.LatestArticles;
 import se.rainmaker.contentingestion.api.StoredArticle;
 import se.rainmaker.contentingestion.database.ContentIngestionDatabaseConfiguration;
 
 /**
- * Reads the latest version of each article from {@code article_version} (#202). Never the body
- * text: it is not selected.
+ * Reads the latest version of each article from {@code article_version}: without the body text for
+ * the articles API (#202), with it only for classifying again inside G2 (#223).
  */
 @Component
-class JdbcLatestArticles implements LatestArticles {
+class JdbcLatestArticles implements LatestArticles, LatestArticleTexts {
 
   private static final String COLUMNS =
       """
@@ -65,6 +68,39 @@ class JdbcLatestArticles implements LatestArticles {
         .param("url", url)
         .query(JdbcLatestArticles::article)
         .optional();
+  }
+
+  @Override
+  public List<ArticleStored> latestOf(Collection<UUID> articleIds) {
+    if (articleIds.isEmpty()) {
+      return List.of();
+    }
+    return database
+        .sql(
+            """
+            SELECT DISTINCT ON (article_id) %s, body_text FROM article_version
+            WHERE article_id = ANY (CAST(:articleIds AS uuid[]))
+            ORDER BY article_id, version DESC
+            """
+                .formatted(COLUMNS))
+        .param("articleIds", articleIds.stream().map(UUID::toString).toArray(String[]::new))
+        .query(JdbcLatestArticles::withText)
+        .list();
+  }
+
+  private static ArticleStored withText(ResultSet row, int rowNumber) throws SQLException {
+    StoredArticle article = article(row, rowNumber);
+    return new ArticleStored(
+        article.articleId(),
+        article.version(),
+        article.url(),
+        article.headline(),
+        row.getString("body_text"),
+        article.section(),
+        article.language(),
+        article.publishedAt(),
+        article.updatedAt(),
+        article.correlationId());
   }
 
   private static StoredArticle article(ResultSet row, int rowNumber) throws SQLException {

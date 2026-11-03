@@ -21,7 +21,9 @@ for each item:
 
 **Reading the articles back (#202):** `api.LatestArticles` gives the latest version of each article,
 the most recently stored first or by URL, without the body text (`ingestion/JdbcLatestArticles`). G2's
-articles API (contract 7.1) uses it.
+articles API (contract 7.1) uses it. `api.LatestArticleTexts` gives the latest version of a list of
+articles with the body text, as `ArticleStored` announced it, so content-intent can classify an
+article again (#223). That text stays inside G2: never in a REST answer or a log line.
 
 It only sends GET requests: ingestion never writes to the publisher (product rule). The body text
 is never logged (`ArticleStored.toString()` leaves it out).
@@ -29,7 +31,7 @@ is never logged (`ArticleStored.toString()` leaves it out).
 | Setting (`rainmaker.content-ingestion.feed.*`) | Default | |
 |---|---|---|
 | `url` | `http://localhost:3000/rss.xml` | G2 reads `RAINMAKER_FEED_URL` |
-| `poll-interval` | `1m` | between the end of one poll and the next |
+| `poll-interval` | `1m` | between the end of one poll and the next; at least `1s`, or G2 stops at start-up |
 | `timeout` | `5s` | connect and read timeout per call |
 | `polling` | `true` | `false` turns the schedule off (G2's start-up test) |
 

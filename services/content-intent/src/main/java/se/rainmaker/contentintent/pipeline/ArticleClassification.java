@@ -60,14 +60,7 @@ class ArticleClassification {
             article.version());
         return;
       }
-      Classification classification = classify(article);
-      results.record(article, classification);
-      LOG.info(
-          "Article {} version {}: {}{}",
-          article.articleId(),
-          article.version(),
-          classification.status().key(),
-          classification.zone() == null ? "" : " " + classification.zone().key());
+      classifyAndRecord(article);
     } catch (RuntimeException error) {
       // Runs inside ingestion's feed poll: whatever fails here must not stop the other articles.
       LOG.error(
@@ -76,6 +69,36 @@ class ArticleClassification {
           article.version(),
           error);
     }
+  }
+
+  /**
+   * Classifies a version that is stored here already once more (#223), as the first time: the
+   * result replaces the old one and {@code ArticleClassified} is published. Any error is logged;
+   * the version keeps its old result.
+   */
+  void classifyAgain(ArticleStored article) {
+    try (MDC.MDCCloseable correlation =
+        MDC.putCloseable("correlation_id", article.correlationId())) {
+      classifyAndRecord(article);
+    } catch (RuntimeException error) {
+      // Runs in the retry's run: whatever fails here must not stop the other versions.
+      LOG.error(
+          "Article {} version {} not classified again; it is still treated like red",
+          article.articleId(),
+          article.version(),
+          error);
+    }
+  }
+
+  private void classifyAndRecord(ArticleStored article) {
+    Classification classification = classify(article);
+    results.record(article, classification);
+    LOG.info(
+        "Article {} version {}: {}{}",
+        article.articleId(),
+        article.version(),
+        classification.status().key(),
+        classification.zone() == null ? "" : " " + classification.zone().key());
   }
 
   private Classification classify(ArticleStored article) {
