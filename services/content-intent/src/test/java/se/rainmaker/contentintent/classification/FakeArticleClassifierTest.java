@@ -19,22 +19,47 @@ import se.rainmaker.contentintent.api.Zone;
 class FakeArticleClassifierTest {
 
   private static final Instant NOW = Instant.parse("2026-10-30T09:15:04Z");
+  private static final Reason REASON = new Reason("Låtsasklassificering.", "Fake classification.");
+  private static final String MARKER = "[e2e-green]";
 
   @Test
   void answersEveryArticleWithTheConfiguredClassification() {
-    Reason reason = new Reason("Låtsasklassificering.", "Fake classification.");
-    FakeArticleClassifier classifier =
-        new FakeArticleClassifier(
-            Zone.GREEN, List.of(Topic.HOME), reason, Clock.fixed(NOW, ZoneOffset.UTC));
+    FakeArticleClassifier classifier = classifier(Zone.GREEN, "");
 
-    Classification classification =
-        classifier.classify(new ArticleToClassify(UUID.randomUUID(), 1, "Rubrik", "Text"));
+    Classification classification = classifier.classify(article("Rubrik"));
 
     assertThat(classification.status()).isEqualTo(ClassificationStatus.CLASSIFIED);
     assertThat(classification.zone()).isEqualTo(Zone.GREEN);
     assertThat(classification.topics()).containsExactly(Topic.HOME);
-    assertThat(classification.reason()).isEqualTo(reason);
+    assertThat(classification.reason()).isEqualTo(REASON);
     assertThat(classification.model()).isEqualTo(FakeArticleClassifier.MODEL);
     assertThat(classification.classifiedAt()).isEqualTo(NOW);
+  }
+
+  /** The end-to-end test needs a green and a red article in one run (#154). */
+  @Test
+  void headlineWithTheGreenMarkerIsGreenAndOthersKeepTheConfiguredZone() {
+    FakeArticleClassifier classifier = classifier(Zone.RED, MARKER);
+
+    assertThat(classifier.classify(article("Nytt badrum " + MARKER)).zone()).isEqualTo(Zone.GREEN);
+    assertThat(classifier.classify(article("Två döda i trafikolycka")).zone()).isEqualTo(Zone.RED);
+  }
+
+  /** Fails closed: without a marker, nothing turns green, whatever the headline says. */
+  @Test
+  void withoutMarkerNoHeadlineTurnsGreen() {
+    FakeArticleClassifier classifier = classifier(Zone.RED, "");
+
+    assertThat(classifier.classify(article("Nytt badrum " + MARKER)).zone()).isEqualTo(Zone.RED);
+    assertThat(classifier.classify(article("Nytt badrum")).zone()).isEqualTo(Zone.RED);
+  }
+
+  private static FakeArticleClassifier classifier(Zone zone, String greenMarker) {
+    return new FakeArticleClassifier(
+        zone, greenMarker, List.of(Topic.HOME), REASON, Clock.fixed(NOW, ZoneOffset.UTC));
+  }
+
+  private static ArticleToClassify article(String headline) {
+    return new ArticleToClassify(UUID.randomUUID(), 1, headline, "Text");
   }
 }

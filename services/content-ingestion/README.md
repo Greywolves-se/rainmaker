@@ -31,7 +31,7 @@ is never logged (`ArticleStored.toString()` leaves it out).
 | Setting (`rainmaker.content-ingestion.feed.*`) | Default | |
 |---|---|---|
 | `url` | `http://localhost:3000/rss.xml` | G2 reads `RAINMAKER_FEED_URL` |
-| `poll-interval` | `1m` | between the end of one poll and the next |
+| `poll-interval` | `1m` | between the end of one poll and the next; at least `1s`, or G2 stops at start-up |
 | `timeout` | `5s` | connect and read timeout per call |
 | `polling` | `true` | `false` turns the schedule off (G2's start-up test) |
 

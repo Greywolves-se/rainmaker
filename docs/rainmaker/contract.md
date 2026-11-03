@@ -587,8 +587,8 @@ Opening the link:
 
 ### 7.6 Editor page (G3, #150)
 
-An internal UI, under `/publisher/` so the paths don't clash with the fake-news site's own
-`/editor` (#159):
+An internal UI for the publisher's editor, under `/publisher/`. (The fake-news site has no editor
+page of its own: articles are published as files in `test-site/content/articles/`, #159.)
 
 | Method | Path | What |
 |---|---|---|

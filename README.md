@@ -71,10 +71,14 @@ docker compose up --build        # stop with Ctrl+C, or add -d and stop with: do
   `docker compose down -v`.
 - **New articles:** add or edit a file in `test-site/content/articles/` while it runs; G2 reads the
   feed every minute.
+- **End-to-end test (#154):** the demo's "done means" points with Playwright, against this stack
+  started with the test's settings. How to run it: [`rainmaker-e2e/README.md`](rainmaker-e2e/README.md).
 - **Claude:** G2 uses the fake classifier by default, so no AWS access is needed. It gives every
   article the same zone, **red** by default, so **no panel shows** without Claude: safe, never a
   panel on a red article. For local work on matching or the widget, set `RAINMAKER_FAKE_ZONE=green`
   in `.env`; then every article gets a panel, the red test articles too, so never for the demo.
+  The end-to-end test (#154) instead sets `RAINMAKER_FAKE_GREEN_MARKER`: only headlines containing
+  it are green, every other article stays red.
   For real Claude on Bedrock, log in with `aws sso login`, set `AWS_PROFILE` in `.env` (copy
   `.env.example`) and start with
   `docker compose -f docker-compose.yml -f docker-compose.bedrock.yml up --build`. Your SSO login is

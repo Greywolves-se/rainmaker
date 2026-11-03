@@ -52,11 +52,20 @@ public record ClassifierProperties(
    * The fake classifier's answer.
    *
    * @param zone the zone it gives every article
+   * @param greenMarker a headline that contains it is green instead, for the end-to-end test
+   *     (#154); empty (the default) for none
    * @param topics the topics it gives every article
    * @param reasonSv the reason in Swedish
    * @param reasonEn the reason in English
    */
-  public record Fake(Zone zone, List<Topic> topics, String reasonSv, String reasonEn) {}
+  public record Fake(
+      Zone zone, String greenMarker, List<Topic> topics, String reasonSv, String reasonEn) {
+
+    /** No marker unless one is set. */
+    public Fake {
+      greenMarker = greenMarker == null ? "" : greenMarker.strip();
+    }
+  }
 
   /**
    * When the circuit breaker stops calling Bedrock (#185). One article counts as one call: it fails
