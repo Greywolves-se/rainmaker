@@ -53,11 +53,16 @@ public class ClassifierConfiguration {
       // Not Claude: say so where everyone looks, with the zone every article will get.
       LOG.atWarn()
           .addKeyValue("zone", fake.zone().key())
+          .addKeyValue("green_marker", fake.greenMarker())
           .log(
-              "Fake classifier active: every article is classified {}, not by Claude",
-              fake.zone().key());
+              "Fake classifier active: every article is classified {}, not by Claude{}",
+              fake.zone().key(),
+              fake.greenMarker().isEmpty()
+                  ? ""
+                  : "; headlines containing \"" + fake.greenMarker() + "\" are green");
       return new FakeArticleClassifier(
           fake.zone(),
+          fake.greenMarker(),
           fake.topics(),
           new Reason(fake.reasonSv(), fake.reasonEn()),
           Clock.systemUTC());

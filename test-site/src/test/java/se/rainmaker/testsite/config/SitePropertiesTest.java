@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -34,13 +35,14 @@ class SitePropertiesTest {
 
   @Test
   void treatsBlankScriptUrlAsNoWidget() {
-    assertThat(new Rainmaker("  ", InstallMethod.TEMPLATE).script()).isEmpty();
+    assertThat(new Rainmaker("  ", InstallMethod.TEMPLATE, null).script()).isEmpty();
   }
 
   @Test
   void knowsWhoLoadsTheWidget() {
-    Rainmaker template = new Rainmaker("https://cdn.example/r.js", InstallMethod.TEMPLATE);
-    Rainmaker tagManager = new Rainmaker("https://cdn.example/r.js", InstallMethod.TAG_MANAGER);
+    Rainmaker template = new Rainmaker("https://cdn.example/r.js", InstallMethod.TEMPLATE, null);
+    Rainmaker tagManager =
+        new Rainmaker("https://cdn.example/r.js", InstallMethod.TAG_MANAGER, null);
 
     assertThat(template.loadedByTemplate()).isTrue();
     assertThat(template.loadedByTagManager()).isFalse();
@@ -50,15 +52,16 @@ class SitePropertiesTest {
 
   @Test
   void derivesTheWidgetOriginForTheSecurityPolicy() {
-    Rainmaker widget = new Rainmaker("https://cdn.example:8443/js/r.js", InstallMethod.TEMPLATE);
+    Rainmaker widget =
+        new Rainmaker("https://cdn.example:8443/js/r.js", InstallMethod.TEMPLATE, null);
 
     assertThat(widget.origin()).contains("https://cdn.example:8443");
   }
 
   @Test
   void allowsPlainHttpWidgetOnlyOnLocalhost() {
-    assertThat(new Rainmaker("http://localhost:5173/r.js", null).script()).isPresent();
-    assertThatThrownBy(() -> new Rainmaker("http://cdn.example/r.js", null))
+    assertThat(new Rainmaker("http://localhost:5173/r.js", null, null).script()).isPresent();
+    assertThatThrownBy(() -> new Rainmaker("http://cdn.example/r.js", null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("https");
   }
@@ -66,7 +69,31 @@ class SitePropertiesTest {
   @ParameterizedTest
   @ValueSource(strings = {"javascript:alert(1)", "not a url", "ftp://cdn.example/r.js"})
   void rejectsDangerousOrBrokenWidgetUrls(String url) {
-    assertThatThrownBy(() -> new Rainmaker(url, null)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> new Rainmaker(url, null, null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  /** The end-to-end test (#154) shortens the widget's qualified reading on the script tag. */
+  @Test
+  void passesTheQualifiedReadingSecondsToTheScriptTag() {
+    Rainmaker shortened = new Rainmaker("https://cdn.example/r.js", InstallMethod.TEMPLATE, 2);
+
+    assertThat(shortened.scriptAttributes())
+        .containsExactly(Map.entry("data-qualified-reading-seconds", "2"));
+  }
+
+  @Test
+  void addsNoScriptAttributeWithoutQualifiedReadingSeconds() {
+    assertThat(new Rainmaker("https://cdn.example/r.js", null, null).scriptAttributes()).isEmpty();
+  }
+
+  /** The same range as the widget's (1 second to an hour), but a wrong value stops the site. */
+  @ParameterizedTest
+  @ValueSource(ints = {0, -1, 3601})
+  void rejectsQualifiedReadingSecondsOutsideTheWidgetsRange(int seconds) {
+    assertThatThrownBy(() -> new Rainmaker("https://cdn.example/r.js", null, seconds))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("qualified-reading-seconds");
   }
 
   @ParameterizedTest
