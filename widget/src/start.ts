@@ -4,21 +4,29 @@ import {fetchApprovedLinks} from './links-api';
 import {choosePlace} from './next-step-place';
 import {articleUrl, readSettings} from './page';
 import type {Settings} from './page';
-import {createPanel} from './panel';
+import {canStylePanel, createPanel} from './panel';
 import {textsFor} from './translations';
+
+/**
+ * Set on `<html>` by the first copy of rainmaker.js that starts, so a second script tag on the
+ * same page (for example once in the template and once through a tag manager) does nothing
+ * (#187). An attribute, not a global variable: the widget adds no globals to the page.
+ */
+const STARTED_ATTRIBUTE = 'data-rainmaker-started';
 
 /**
  * Starts the widget on the publisher's page (ADR 0005): once the reader has read the article and
  * reaches its end (#218, #219), it asks for the article's approved links (contract, section 7.4)
  * and shows them as a labelled next step, beside the article or after it (#220). On a page
  * without an end-of-article marker or a place for the next step, or for an article without
- * links, it does nothing and adds nothing to the page.
+ * links, it does nothing and adds nothing to the page. Nor in a browser that can't style the next
+ * step, or when another copy of the script has already started on the page (#187).
  *
  * @param script rainmaker.js's own `<script>` tag, which says where the widget API is
  */
 export function start(script: Element | null): void {
   const settings = readSettings(script);
-  if (!settings) {
+  if (!settings || !canStylePanel() || !claimPage()) {
     return;
   }
   // An async script in <head> can run before the article has been parsed.
@@ -31,6 +39,16 @@ export function start(script: Element | null): void {
   } else {
     watchArticle(settings);
   }
+}
+
+/** True for the first copy of the script on this page; marks the page so later copies stop. */
+function claimPage(): boolean {
+  const root = document.documentElement;
+  if (root.hasAttribute(STARTED_ATTRIBUTE)) {
+    return false;
+  }
+  root.setAttribute(STARTED_ATTRIBUTE, '');
+  return true;
 }
 
 function watchArticle(settings: Settings): void {

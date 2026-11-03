@@ -112,6 +112,14 @@ of the article, in either order. Then the next step shows (#220, above).
   page rules for ordinary elements (`div { … }`) don't match it; rules that match every element
   (`body > * { … }`) still could. Its CSS is a constructed stylesheet, which a Content-Security-Policy with
   `style-src 'self'` (like the fake-news site's) allows.
+- **Styled, or not shown at all (#187):** a browser without constructed stylesheets (Safari
+  before 16.4, Firefox before 101) gets no next step and makes no call. Its only way to style
+  the box would be a `<style>` element, which that CSP blocks, and an unstyled ad could pass for
+  the publisher's own content. Those browsers are from before 2023, so few readers lose it.
+- **Once per page (#187):** the first copy of the script that starts sets
+  `data-rainmaker-started` on `<html>`; a second script tag on the same page (for example in the
+  template and again through a tag manager) then does nothing, so there is one next step and one
+  call to the widget API.
 - **Quiet:** the widget never writes to the reader's console. The browser itself still logs a
   request that fails (for example when the API is down); a script can't prevent that.
 - **Texts from translation files:** `src/translations/sv.json` and `en.json`, chosen by
@@ -119,7 +127,8 @@ of the article, in either order. Then the next step shows (#220, above).
 - **Small:** at most 15 KB gzipped (architecture, acceptance criteria for A1). `npm run build`
   fails above that (`scripts/check-size.mjs`).
 - **No traces on the page:** the build is one immediately invoked function, so it adds no
-  global variables. Never export anything from `src/main.ts`: an export becomes a global. No
+  global variables. Never export anything from `src/main.ts`: an export becomes a global. Its
+  only mark on the page outside the box is `data-rainmaker-started` on `<html>` (above). No
   framework, no separate CSS file.
 - **No reader data:** no cookies, nothing about the reader stored or sent (contract, 7.4).
 
