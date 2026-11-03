@@ -11,8 +11,11 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
@@ -42,6 +45,8 @@ import se.rainmaker.matchingranking.ranking.RankedOffer;
  */
 @Component
 class SuggestionStore implements CurrentSuggestions {
+
+  private static final Logger LOG = LoggerFactory.getLogger(SuggestionStore.class);
 
   private final JdbcClient database;
   private final Clock clock = Clock.systemUTC();
@@ -233,13 +238,29 @@ class SuggestionStore implements CurrentSuggestions {
         .update();
   }
 
+  /**
+   * A waiting row. A stored topic key that is no longer a known topic is skipped and logged, so one
+   * bad row can't break every run it lands in (review of #249); with no topic left, the version
+   * matches nothing, and saving that ends its wait.
+   */
   private static WaitingVersion waitingVersion(ResultSet row, int rowNumber) throws SQLException {
+    UUID articleId = row.getObject("article_id", UUID.class);
+    int version = row.getInt("article_version");
     String[] keys = (String[]) row.getArray("waiting_topics").getArray();
-    return new WaitingVersion(
-        row.getObject("article_id", UUID.class),
-        row.getInt("article_version"),
-        Arrays.stream(keys).map(key -> Topic.fromKey(key).orElseThrow()).toList(),
-        row.getString("waiting_correlation_id"));
+    List<Topic> topics =
+        Arrays.stream(keys)
+            .map(key -> knownTopic(articleId, version, key))
+            .flatMap(Optional::stream)
+            .toList();
+    return new WaitingVersion(articleId, version, topics, row.getString("waiting_correlation_id"));
+  }
+
+  private static Optional<Topic> knownTopic(UUID articleId, int version, String key) {
+    Optional<Topic> topic = Topic.fromKey(key);
+    if (topic.isEmpty()) {
+      LOG.warn("Article {} version {}: unknown topic {} skipped", articleId, version, key);
+    }
+    return topic;
   }
 
   private static Suggestion suggestion(ResultSet row, int rowNumber) throws SQLException {

@@ -58,22 +58,39 @@ class MatchingRetry implements Runnable {
     }
   }
 
+  /**
+   * One article. An error is logged and the run goes on with the next one; this one was marked as
+   * tried when the run took it, so it is tried again after the interval. The error line carries the
+   * article's correlation id too: the catch is inside the MDC's scope.
+   */
   private void matchAgain(WaitingVersion version, List<OfferForMatching> current) {
     try (MDC.MDCCloseable correlation =
         MDC.putCloseable("correlation_id", version.correlationId())) {
-      List<RankedOffer> ranked = OfferRanking.rank(version.topics(), current);
-      if (store.save(version.articleId(), version.version(), ranked)) {
-        LOG.info(
-            "Article {} version {}: {} suggestions (matched again)",
+      try {
+        rankAndSave(version, current);
+      } catch (RuntimeException error) {
+        LOG.error(
+            "Matching article {} version {} again failed; it is tried again after the interval",
             version.articleId(),
             version.version(),
-            ranked.size());
-      } else {
-        LOG.info(
-            "Article {} version {} was replaced by a newer one; not matched again",
-            version.articleId(),
-            version.version());
+            error);
       }
+    }
+  }
+
+  private void rankAndSave(WaitingVersion version, List<OfferForMatching> current) {
+    List<RankedOffer> ranked = OfferRanking.rank(version.topics(), current);
+    if (store.save(version.articleId(), version.version(), ranked)) {
+      LOG.info(
+          "Article {} version {}: {} suggestions (matched again)",
+          version.articleId(),
+          version.version(),
+          ranked.size());
+    } else {
+      LOG.info(
+          "Article {} version {} was replaced by a newer one; not matched again",
+          version.articleId(),
+          version.version());
     }
   }
 }

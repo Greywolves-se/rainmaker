@@ -60,11 +60,13 @@ class ArticleMatcher {
             event.articleVersion(),
             exception.getMessage(),
             exception);
-        store.waitForOffers(
+        if (!store.waitForOffers(
             event.articleId(),
             event.articleVersion(),
             classification.topics(),
-            event.correlationId());
+            event.correlationId())) {
+          logOlderVersionIgnored(event);
+        }
         return;
       }
       save(event, ranked);
@@ -79,10 +81,14 @@ class ArticleMatcher {
           event.articleVersion(),
           ranked.size());
     } else {
-      LOG.info(
-          "Article {} version {} is older than the newest one matched; ignored",
-          event.articleId(),
-          event.articleVersion());
+      logOlderVersionIgnored(event);
     }
+  }
+
+  private static void logOlderVersionIgnored(ArticleClassified event) {
+    LOG.info(
+        "Article {} version {} is older than the newest one matched; ignored",
+        event.articleId(),
+        event.articleVersion());
   }
 }

@@ -167,7 +167,35 @@ class MatchingRetryTest {
 
     retry.run();
 
+    assertThat(waitingTopics(article)).isNull();
     g3.verify(0, getRequestedFor(urlPathEqualTo(OFFERS)));
+  }
+
+  /**
+   * Review of #249: a stored topic key that is no longer valid is skipped and logged, and never
+   * breaks the run. A version with no valid topic left can't be matched, so its wait ends.
+   */
+  @Test
+  void unknownTopicKeyIsSkippedAndTheRunGoesOn(CapturedOutput output) {
+    UUID mixed = UUID.randomUUID();
+    UUID unknownOnly = UUID.randomUUID();
+    g3IsDown();
+    events.publishEvent(classified(mixed, 1, green(Topic.TRAVEL)));
+    events.publishEvent(classified(unknownOnly, 1, green(Topic.TRAVEL)));
+    storedTopics(mixed, "{no-such-topic,travel}");
+    storedTopics(unknownOnly, "{no-such-topic}");
+    triedLongAgo(mixed, LONG_AGO);
+    triedLongAgo(unknownOnly, LONG_AGO.plusSeconds(60));
+    g3HasOffers();
+
+    retry.run();
+
+    assertThat(suggestions.forArticle(mixed))
+        .extracting(Suggestion::offerId)
+        .containsExactly(TRAVEL_600, TRAVEL_450);
+    assertThat(suggestions.forArticle(unknownOnly)).isEmpty();
+    assertThat(waitingTopics(unknownOnly)).isNull();
+    assertThat(output).contains("unknown topic no-such-topic skipped").contains(mixed.toString());
   }
 
   @Test
@@ -225,6 +253,28 @@ class MatchingRetryTest {
         .param("at", at.atOffset(ZoneOffset.UTC))
         .param("article", article)
         .update();
+  }
+
+  private void storedTopics(UUID article, String topics) {
+    matching
+        .sql(
+            "UPDATE matched_article SET waiting_topics = CAST(:topics AS text[])"
+                + " WHERE article_id = :article")
+        .param("topics", topics)
+        .param("article", article)
+        .update();
+  }
+
+  /** The topics an article waits with, as stored; null when it isn't waiting. */
+  private String waitingTopics(UUID article) {
+    return matching
+        .sql(
+            "SELECT array_to_string(waiting_topics, ',') FROM matched_article"
+                + " WHERE article_id = :a")
+        .param("a", article)
+        .query(String.class)
+        .optional()
+        .orElse(null);
   }
 
   private static ArticleClassified classified(

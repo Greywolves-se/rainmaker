@@ -51,6 +51,10 @@ would stay without suggestions until it is edited. `matching/MatchingRetry` runs
    would have. The log line is `Article <id> version <n>: <k> suggestions (matched again)`, with the
    original event's correlation id.
 
+`interval` is both the time between runs and how long a version must go untried, so a version that
+starts waiting just after a run can wait up to about twice the interval (about 10 minutes with the
+default 5m) before it is matched.
+
 Only the newest version of an article can be waiting. Any later result for it or a newer version
 (matched, nothing fits, not green) clears the wait, so a replaced version is never matched again,
 and "nothing fits" isn't retried.
