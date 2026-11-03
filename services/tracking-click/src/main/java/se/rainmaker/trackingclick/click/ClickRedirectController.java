@@ -2,6 +2,7 @@ package se.rainmaker.trackingclick.click;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -13,13 +14,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import se.rainmaker.trackingclick.click.ClickErrorPages.Reason;
 
 /**
  * {@code GET /c/{token}}: opens a click link (#153, contract 7.5). A valid link is stored once per
  * click id and redirected (302) to the destination inside it; a forged, changed or garbled one gets
- * a 400 page and an expired one a 410 page, and neither stores anything.
+ * a 400 page and an expired one a 410 page, and neither stores anything. {@code HEAD} gets the same
+ * answer but never stores a click (#192).
  *
  * <p>The target only ever comes from a link G1 signed, never from the request (no open redirect).
  * Nothing about the reader is stored or logged: no IP, no cookie, no user id.
@@ -44,8 +48,31 @@ class ClickRedirectController {
   ResponseEntity<String> open(
       @PathVariable String token,
       @RequestHeader(name = HttpHeaders.ACCEPT_LANGUAGE, required = false) String acceptLanguage) {
+    return answer(token, acceptLanguage, link -> storeAndRedirect(link, acceptLanguage));
+  }
+
+  /**
+   * {@code HEAD /c/{token}}: link checkers and e-mail and chat previews look at a link without a
+   * reader opening it, so it's no click and nothing is stored (#192). They get the same status and
+   * {@code Location} as {@code GET}, so the link still looks like it works.
+   */
+  @RequestMapping(path = SignedClickLinks.PATH_PREFIX + "{token}", method = RequestMethod.HEAD)
+  ResponseEntity<String> look(
+      @PathVariable String token,
+      @RequestHeader(name = HttpHeaders.ACCEPT_LANGUAGE, required = false) String acceptLanguage) {
+    return answer(
+        token,
+        acceptLanguage,
+        link -> {
+          LOG.info("Click link looked at (HEAD), not stored: clickId={}", link.clickId());
+          return redirect(link);
+        });
+  }
+
+  private ResponseEntity<String> answer(
+      String token, String acceptLanguage, Function<ClickLink, ResponseEntity<String>> onValid) {
     return switch (links.check(token)) {
-      case ClickLinkCheck.Valid valid -> redirect(valid.link(), acceptLanguage);
+      case ClickLinkCheck.Valid valid -> onValid.apply(valid.link());
       case ClickLinkCheck.Invalid invalid ->
           refused(HttpStatus.BAD_REQUEST, Reason.INVALID, acceptLanguage);
       case ClickLinkCheck.Expired expired ->
@@ -53,7 +80,7 @@ class ClickRedirectController {
     };
   }
 
-  private ResponseEntity<String> redirect(ClickLink link, String acceptLanguage) {
+  private ResponseEntity<String> storeAndRedirect(ClickLink link, String acceptLanguage) {
     try {
       boolean stored = clicks.record(link);
       LOG.info(
@@ -68,6 +95,10 @@ class ClickRedirectController {
       LOG.error("Click not stored, so not redirected: clickId={}", link.clickId(), e);
       return page(HttpStatus.SERVICE_UNAVAILABLE, Reason.UNAVAILABLE, acceptLanguage);
     }
+    return redirect(link);
+  }
+
+  private static ResponseEntity<String> redirect(ClickLink link) {
     return ResponseEntity.status(HttpStatus.FOUND)
         .location(URI.create(link.destinationUrl()))
         .cacheControl(CacheControl.noStore())

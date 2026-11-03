@@ -27,8 +27,14 @@ The click redirect: stores each click once and sends the reader to the offer.
   - valid: the click is stored (once per click id) and the reader is sent on with `302` to the
     destination inside the signed link;
   - forged, changed or garbled: a `400` page; expired: a `410` page. Neither stores anything;
-  - the click can't be stored (the database is down): a `503` page and no redirect (fail closed for
-    money). Opening the same link again retries with the same click id;
+  - the click can't be stored (the database is down or too slow): a `503` page and no redirect
+    (fail closed for money, #192). Opening the same link again retries with the same click id;
+  - the reader never waits long for that (#192): `database/TrackingClickDatabaseConfiguration` waits
+    at most `rainmaker.tracking-click.datasource.connection-timeout` for a connection (1 s unless
+    set; G1 doesn't start with more than 2 s, or 0, which HikariCP reads as "forever") and 1 s for a
+    statement. HikariCP's own default is 30 s;
+  - `HEAD /c/{token}` (link checkers, e-mail and chat previews) gets the same status and `Location`
+    as `GET` but never stores a click (#192). Real bot filtering is "not now";
   - the pages' text is in `tracking-click/messages*.properties`: Swedish, or English when the
     browser asks for it;
   - the log has the click, article and offer ids, never the reader's IP or the token.
