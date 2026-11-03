@@ -24,7 +24,9 @@ class RainmakerInstallTest {
       properties = {
         WebTestSupport.BASE_URL_PROPERTY,
         "site.rainmaker.script-url=" + WIDGET,
-        "site.rainmaker.install-method=template"
+        "site.rainmaker.install-method=template",
+        // Empty, as docker-compose.yml passes it by default: no attribute on the tag (#154).
+        "site.rainmaker.qualified-reading-seconds="
       })
   @AutoConfigureMockMvc
   class Template {
@@ -53,7 +55,9 @@ class RainmakerInstallTest {
       properties = {
         WebTestSupport.BASE_URL_PROPERTY,
         "site.rainmaker.script-url=" + WIDGET,
-        "site.rainmaker.install-method=tag-manager"
+        "site.rainmaker.install-method=tag-manager",
+        // Empty, as docker-compose.yml passes it by default: no attributes in the tag (#154).
+        "site.rainmaker.qualified-reading-seconds="
       })
   @AutoConfigureMockMvc
   class TagManager {
