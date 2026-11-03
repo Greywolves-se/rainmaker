@@ -2,12 +2,14 @@ package se.rainmaker.contentintent.pipeline;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -70,7 +72,8 @@ class ClassificationStore implements CurrentClassifications {
                 """
                 UPDATE classification
                 SET status = :status, zone = :zone, topics = :topics, reason_sv = :reasonSv,
-                    reason_en = :reasonEn, model = :model, classified_at = :classifiedAt
+                    reason_en = :reasonEn, model = :model, classified_at = :classifiedAt,
+                    attempted_at = now()
                 WHERE article_id = :articleId AND article_version = :version
                 """)
             .param("articleId", articleId)
@@ -89,6 +92,38 @@ class ClassificationStore implements CurrentClassifications {
       throw new IllegalStateException(
           "Article " + articleId + " version " + version + " has no classification row");
     }
+  }
+
+  /**
+   * Takes up to {@code limit} versions to classify again (#223): failed or unclassified, the newest
+   * version of their article here, and not tried for {@code notTriedFor}; oldest attempt first.
+   * They are marked as tried now, so the next run, or another G2, doesn't take them too.
+   */
+  List<ArticleVersion> takeForRetry(int limit, Duration notTriedFor) {
+    return database
+        .sql(
+            """
+            UPDATE classification SET attempted_at = now()
+            WHERE (article_id, article_version) IN (
+                SELECT article_id, article_version FROM classification tried
+                WHERE status IN ('failed', 'unclassified')
+                    AND attempted_at < now() - make_interval(secs => :seconds)
+                    AND NOT EXISTS (
+                        SELECT 1 FROM classification newer
+                        WHERE newer.article_id = tried.article_id
+                            AND newer.article_version > tried.article_version)
+                ORDER BY attempted_at
+                LIMIT :limit
+                FOR UPDATE SKIP LOCKED)
+            RETURNING article_id, article_version
+            """)
+        .param("seconds", notTriedFor.toSeconds())
+        .param("limit", limit)
+        .query(
+            (row, number) ->
+                new ArticleVersion(
+                    row.getObject("article_id", UUID.class), row.getInt("article_version")))
+        .list();
   }
 
   @Override
