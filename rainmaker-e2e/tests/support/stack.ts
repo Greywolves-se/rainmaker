@@ -28,6 +28,15 @@ export interface PublishedArticle {
 const published: string[] = [];
 
 /**
+ * Twelve paragraphs: long enough that the article's end starts below the screen, so the reader
+ * scrolls to reach it, as qualified reading needs (#218).
+ */
+const BODY = Array.from({length: 12}, (_, index) => ({
+  type: 'paragraph',
+  text: `Stycke ${index + 1}. Kakel, golvvärme och tätskikt: så planerar du badrummet steg för steg, från fuktspärr till fogar, utan att budgeten spricker på vägen.`,
+}));
+
+/**
  * Publishes a new article on the test site the way #159 does it: a new file in
  * test-site/content/articles/. Both articles are about a bathroom, so the fake's topic ("home")
  * matches S4's offers; only the marker decides the zone.
@@ -51,7 +60,7 @@ export function publishArticle(zone: 'green' | 'red'): PublishedArticle {
     author: {name: 'Testredaktionen', role: 'End-to-end-test'},
     publishedAt: new Date().toISOString(),
     updatedAt: null,
-    body: [{type: 'paragraph', text: 'Kakel, golvvärme och tätskikt: det här är testets text.'}],
+    body: BODY,
   };
   const file = join(ARTICLES, `${slug}.json`);
   writeFileSync(file, JSON.stringify(article, null, 2) + '\n', 'utf8');

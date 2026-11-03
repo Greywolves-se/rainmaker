@@ -18,20 +18,26 @@ export async function openArticle(page: Page, url: string): Promise<void> {
  * (`/widget/v1/links`, contract 7.4). Waiting for that answer means the widget has really decided,
  * so a test that expects no panel can't pass too early.
  *
- * Today the widget opens its panel when the reader hovers the headline (#152). Once #220 (PR #234)
- * replaces the hover, this becomes: scroll a little, wait the qualified reading
- * (RAINMAKER_QUALIFIED_READING_SECONDS, 2 s in e2e.env), and scroll [data-rainmaker-article-end]
- * into view (Gabriel's comment on #154).
+ * Since #220 (ADR 0005) the widget asks only when the reader leaves the article: after qualified
+ * reading (active time, with at least one scroll; 2 s in e2e.env instead of 60 s) and once the
+ * article's end, [data-rainmaker-article-end], has been reached. Scrolling the end into view does
+ * both: it is the scroll, and it reaches the end. The 2 s pass while this waits for the answer.
+ * The test's articles are long enough that the end starts out of view.
  */
 export async function showNextStep(page: Page): Promise<Response> {
   const answered = page.waitForResponse(response =>
     response.url().includes('/widget/v1/links')
   );
-  await page.locator('[data-rainmaker-headline]').hover();
+  await page.locator('[data-rainmaker-article-end]').scrollIntoViewIfNeeded();
   return answered;
 }
 
 /** The widget's panel: one element with an open Shadow DOM, which Playwright's locators reach. */
 export function panel(page: Page): Locator {
   return page.locator('[data-rainmaker-panel]');
+}
+
+/** The place beside the article, where the next step shows at desktop width (#220). */
+export function sidebar(page: Page): Locator {
+  return page.locator('[data-rainmaker-next-step="sidebar"]');
 }

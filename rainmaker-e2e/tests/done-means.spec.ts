@@ -5,7 +5,7 @@
  * it again.
  */
 import {expect, test, type Locator, type Page} from '@playwright/test';
-import {openArticle, panel, showNextStep} from './support/reader';
+import {openArticle, panel, showNextStep, sidebar} from './support/reader';
 import {
   EDITOR_VIEW,
   SITE,
@@ -67,6 +67,8 @@ test('a green article: editor view, approval, panel, and a click stored once', a
     expect(answer.status()).toBe(200);
     await expect(panel(page).getByRole('link')).toHaveCount(1);
     await expect(panel(page).getByRole('link')).toContainText(advertiser);
+    // At desktop width the next step goes beside the article, never over it (#220).
+    await expect(sidebar(page).locator('[data-rainmaker-panel]')).toHaveCount(1);
   });
 
   await test.step("a click lands on the offer's page and is stored once, also when clicked twice", async () => {

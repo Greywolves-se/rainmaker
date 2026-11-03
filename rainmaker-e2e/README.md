@@ -59,10 +59,13 @@ You need Docker, and Node.js 22 or newer.
 
 ## Good to know
 
-- **The reader's step is in one place:** `showNextStep` in `tests/support/reader.ts`. Today it
-  hovers the headline. When #220 (PR #234) replaces the hover, only that function changes: scroll
-  a little, wait the qualified reading (2 s here), and scroll `[data-rainmaker-article-end]` into
-  view.
+- **The reader's step is in one place:** `showNextStep` in `tests/support/reader.ts`. Since #220
+  (ADR 0005) the widget shows the next step when the reader leaves the article: after qualified
+  reading (2 s here instead of 60 s, with at least one scroll) and once the article's end is
+  reached. The helper scrolls `[data-rainmaker-article-end]` into view, which is both the scroll
+  and the end, and waits for the widget's links request. At desktop width the panel shows in the
+  sidebar place, `[data-rainmaker-next-step="sidebar"]`. If the reader flow changes again, only
+  that function changes.
 - **Swedish:** the browser asks for Swedish (`sv-SE`), like the demo's editor, and the test looks
   for the editor view's Swedish texts.
 - **Not in CI yet** (#154, "Not now"): it needs the whole stack running.
