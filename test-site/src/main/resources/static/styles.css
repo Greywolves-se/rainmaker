@@ -752,6 +752,12 @@ h3 {
   top: calc(var(--section-nav-height) + var(--gutter));
 }
 
+/* Rainmaker's next step after the article (#220): space above it once the widget has filled it,
+   none while it is empty, so the page looks the same without the widget. */
+[data-rainmaker-next-step="after-article"]:not(:empty) {
+  margin-top: 24px;
+}
+
 /* Empty, it would still get the sidebar's 20px gap. */
 [data-rainmaker-next-step="sidebar"]:empty {
   display: none;

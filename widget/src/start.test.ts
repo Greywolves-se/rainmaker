@@ -1,14 +1,23 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {OPEN_DELAY_MS} from './hover-panel';
 import {start} from './start';
 
 const ARTICLE_URL =
   'http://localhost:3000/artikel/badrumsrenovering-experternas-rad';
 const WIDGET_URL = 'http://localhost:8081/widget/rainmaker.js';
+
+/** The test site's article page (#217): the end marker and the two places for the next step. */
 const ARTICLE_PAGE =
   `<link rel="canonical" href="${ARTICLE_URL}">` +
-  '<h1 class="article__headline" data-rainmaker-headline>Experternas råd</h1>' +
-  '<p>Brödtext.</p>';
+  '<div class="article-layout">' +
+  '<article><div class="article__body"><p>Brödtext.</p>' +
+  '<div data-rainmaker-article-end aria-hidden="true"></div></div>' +
+  '<div data-rainmaker-next-step="after-article"></div></article>' +
+  '<aside class="article-sidebar"><section>Läs också</section>' +
+  '<div data-rainmaker-next-step="sidebar"></div></aside>' +
+  '</div>';
+
+const SIDEBAR_PLACE = '[data-rainmaker-next-step="sidebar"]';
+const AFTER_ARTICLE_PLACE = '[data-rainmaker-next-step="after-article"]';
 
 const APPROVED_LINKS = {
   articleUrl: ARTICLE_URL,
@@ -30,18 +39,72 @@ const APPROVED_LINKS = {
   ],
 };
 
-function widgetScript(): HTMLScriptElement {
+/**
+ * Stands in for the browser's IntersectionObserver, which jsdom doesn't have. The widget observes
+ * one element, the end-of-article marker.
+ */
+class FakeIntersectionObserver {
+  static latest: FakeIntersectionObserver | undefined;
+  private disconnected = false;
+
+  constructor(private readonly callback: IntersectionObserverCallback) {
+    FakeIntersectionObserver.latest = this;
+  }
+
+  observe(): void {}
+
+  disconnect(): void {
+    this.disconnected = true;
+  }
+
+  report(isIntersecting: boolean): void {
+    if (!this.disconnected) {
+      this.callback(
+        [{isIntersecting} as IntersectionObserverEntry],
+        this as unknown as IntersectionObserver
+      );
+    }
+  }
+}
+
+/** A box as getBoundingClientRect reports it; only the horizontal part matters here. */
+function box(left: number, width: number): DOMRect {
+  return {left, width, right: left + width} as DOMRect;
+}
+
+/** The test site's layout at desktop width (sidebar beside the article) or at 390 px (below it). */
+function layOut(width: 'desktop' | 'mobile'): void {
+  const boxes: Record<string, DOMRect> =
+    width === 'desktop'
+      ? {
+          '[data-rainmaker-article-end]': box(0, 680),
+          '.article-sidebar': box(720, 300),
+        }
+      : {
+          '[data-rainmaker-article-end]': box(0, 390),
+          '.article-sidebar': box(0, 390),
+        };
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+    function (this: Element) {
+      const match = Object.keys(boxes).find(selector => this.matches(selector));
+      return match ? boxes[match]! : box(0, 0);
+    }
+  );
+}
+
+function widgetScript(qualifiedReadingSeconds = 60): HTMLScriptElement {
   const script = document.createElement('script');
   script.src = WIDGET_URL;
+  script.dataset.qualifiedReadingSeconds = String(qualifiedReadingSeconds);
   return script;
 }
 
-function headline(): HTMLElement {
-  return document.querySelector<HTMLElement>('[data-rainmaker-headline]')!;
-}
-
-function panel(): ShadowRoot | null {
-  return document.querySelector('[data-rainmaker-panel]')?.shadowRoot ?? null;
+/** The next step in the given place, or anywhere on the page. */
+function nextStep(place = 'body'): ShadowRoot | null {
+  return (
+    document.querySelector(`${place} [data-rainmaker-panel]`)?.shadowRoot ??
+    null
+  );
 }
 
 function answerWith(status: number, body: unknown): void {
@@ -51,9 +114,27 @@ function answerWith(status: number, body: unknown): void {
   );
 }
 
-async function hover(milliseconds: number): Promise<void> {
-  headline().dispatchEvent(new MouseEvent('mouseenter'));
-  await vi.advanceTimersByTimeAsync(milliseconds);
+/** Reads actively for the given time, scrolling every 5 seconds. */
+async function read(seconds: number): Promise<void> {
+  for (let second = 1; second <= seconds; second++) {
+    if (second % 5 === 0) {
+      window.dispatchEvent(new Event('scroll'));
+    }
+    await vi.advanceTimersByTimeAsync(1000);
+  }
+}
+
+/** The reader reaches the end of the article, or scrolls back up above it. */
+async function articleEnd(reached: boolean): Promise<void> {
+  FakeIntersectionObserver.latest?.report(reached);
+  // Lets the widget's call to the API answer and the next step be added.
+  await vi.advanceTimersByTimeAsync(0);
+}
+
+/** What the widget needs before it shows anything: qualified reading, then the article's end. */
+async function readToTheEnd(): Promise<void> {
+  await read(60);
+  await articleEnd(true);
 }
 
 describe('rainmaker.js on an article page', () => {
@@ -62,9 +143,13 @@ describe('rainmaker.js on an article page', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
+    FakeIntersectionObserver.latest = undefined;
     document.documentElement.lang = 'sv';
     document.head.innerHTML = '';
     document.body.innerHTML = ARTICLE_PAGE;
+    layOut('desktop');
     uncaughtErrors.length = 0;
     window.addEventListener('error', recordError);
   });
@@ -72,68 +157,97 @@ describe('rainmaker.js on an article page', () => {
   afterEach(() => {
     window.removeEventListener('error', recordError);
     vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
-  it('shows the approved links and the "Annons" label when the reader hovers the headline', async () => {
+  it('shows the approved links, labelled "Annons", beside the article after the reader has read it (desktop)', async () => {
     answerWith(200, APPROVED_LINKS);
     start(widgetScript());
 
-    await hover(OPEN_DELAY_MS);
+    await readToTheEnd();
 
-    const shown = panel();
+    const shown = nextStep(SIDEBAR_PLACE);
     expect(shown?.textContent).toContain('Annons');
     const links = [...(shown?.querySelectorAll('a') ?? [])];
     expect(links.map(link => link.getAttribute('href'))).toEqual([
       'http://localhost:8081/c/first',
       'http://localhost:8081/c/second',
     ]);
+    expect(links[0]?.rel).toBe('sponsored noopener');
     expect(links[0]?.textContent).toContain(
       'Gratis hembesök för badrumsoffert'
     );
+    expect(nextStep(AFTER_ARTICLE_PLACE)).toBeNull();
     expect(fetch).toHaveBeenCalledWith(
       `http://localhost:8081/widget/v1/links?url=${encodeURIComponent(ARTICLE_URL)}`,
       expect.objectContaining({credentials: 'omit'})
     );
   });
 
-  it("keeps the panel out of reach of the page's rules for ordinary elements", async () => {
+  it('shows the links after the article text when the sidebar is below it (mobile)', async () => {
+    layOut('mobile');
     answerWith(200, APPROVED_LINKS);
-    const pageStyle = document.createElement('style');
-    pageStyle.textContent = 'div { display: none; padding: 20px; }';
-    document.head.append(pageStyle);
     start(widgetScript());
 
-    await hover(OPEN_DELAY_MS);
+    await readToTheEnd();
 
-    const host = document.querySelector<HTMLElement>('[data-rainmaker-panel]')!;
-    expect(host.localName).toBe('rainmaker-panel');
-    expect(getComputedStyle(host).display).not.toBe('none');
+    expect(nextStep(AFTER_ARTICLE_PLACE)?.textContent).toContain('Annons');
+    expect(nextStep(SIDEBAR_PLACE)).toBeNull();
   });
 
-  it('closes the panel when the pointer leaves the headline', async () => {
+  it('shows nothing and asks for nothing while the reader is still reading', async () => {
     answerWith(200, APPROVED_LINKS);
     start(widgetScript());
-    await hover(OPEN_DELAY_MS);
 
-    headline().dispatchEvent(new MouseEvent('mouseleave'));
-    await vi.advanceTimersByTimeAsync(1000);
+    await read(59);
+    await articleEnd(true);
 
-    expect(panel()).toBeNull();
+    expect(nextStep()).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('keeps the panel open while the pointer moves from the headline into it', async () => {
+  it('shows nothing to a reader who read long enough but stopped before the end', async () => {
     answerWith(200, APPROVED_LINKS);
     start(widgetScript());
-    await hover(OPEN_DELAY_MS);
 
-    headline().dispatchEvent(new MouseEvent('mouseleave'));
-    document
-      .querySelector('[data-rainmaker-panel]')!
-      .dispatchEvent(new MouseEvent('mouseenter'));
-    await vi.advanceTimersByTimeAsync(1000);
+    await read(120);
 
-    expect(panel()).not.toBeNull();
+    expect(nextStep()).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('shows the links when a reader who reached the end early has read long enough', async () => {
+    answerWith(200, APPROVED_LINKS);
+    start(widgetScript());
+
+    await articleEnd(true);
+    await read(60);
+
+    expect(nextStep(SIDEBAR_PLACE)).not.toBeNull();
+  });
+
+  it('uses the qualified reading threshold from the script tag', async () => {
+    answerWith(200, APPROVED_LINKS);
+    start(widgetScript(5));
+
+    await read(5);
+    await articleEnd(true);
+
+    expect(nextStep(SIDEBAR_PLACE)).not.toBeNull();
+  });
+
+  it('asks for the links once per page view, even when the reader comes back to the end', async () => {
+    answerWith(200, APPROVED_LINKS);
+    start(widgetScript());
+    await readToTheEnd();
+
+    await articleEnd(false);
+    await articleEnd(true);
+    await read(60);
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(document.querySelectorAll('[data-rainmaker-panel]')).toHaveLength(1);
   });
 
   it.each([
@@ -141,13 +255,13 @@ describe('rainmaker.js on an article page', () => {
     ['a bad request', 400, {}],
     ['G3 unavailable', 503, {}],
   ])(
-    'shows nothing on hover for an article without links (%s)',
+    'shows nothing for an article without links (%s)',
     async (_case, status, body) => {
       answerWith(status, body);
       const pageBefore = document.body.innerHTML;
       start(widgetScript());
 
-      await hover(OPEN_DELAY_MS);
+      await readToTheEnd();
 
       expect(document.body.innerHTML).toBe(pageBefore);
     }
@@ -163,13 +277,13 @@ describe('rainmaker.js on an article page', () => {
     const pageBefore = document.body.innerHTML;
     start(widgetScript());
 
-    await hover(OPEN_DELAY_MS);
+    await readToTheEnd();
 
     expect(document.body.innerHTML).toBe(pageBefore);
     expect(uncaughtErrors).toEqual([]);
   });
 
-  it('gives up without a panel when the API does not answer in time', async () => {
+  it('gives up without showing anything when the API does not answer in time', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(
@@ -184,115 +298,62 @@ describe('rainmaker.js on an article page', () => {
     const pageBefore = document.body.innerHTML;
     start(widgetScript());
 
-    await hover(10_000);
+    await readToTheEnd();
+    await vi.advanceTimersByTimeAsync(10_000);
 
     expect(document.body.innerHTML).toBe(pageBefore);
     expect(uncaughtErrors).toEqual([]);
   });
 
-  it('shows no panel when the pointer leaves before a slow answer arrives', async () => {
-    let answer: (response: Response) => void = () => {};
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(
-        () =>
-          new Promise<Response>(resolve => {
-            answer = resolve;
-          })
-      )
-    );
-    start(widgetScript());
-
-    await hover(OPEN_DELAY_MS + 100);
-    headline().dispatchEvent(new MouseEvent('mouseleave'));
-    answer(new Response(JSON.stringify(APPROVED_LINKS), {status: 200}));
-    // Look before the 200 ms close timer could hide a panel that wrongly opened.
-    await vi.advanceTimersByTimeAsync(10);
-    expect(panel()).toBeNull();
-
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(panel()).toBeNull();
-    expect(uncaughtErrors).toEqual([]);
-  });
-
-  it('does not open the panel on a short hover', async () => {
-    answerWith(200, APPROVED_LINKS);
-    start(widgetScript());
-
-    await hover(OPEN_DELAY_MS - 1);
-    headline().dispatchEvent(new MouseEvent('mouseleave'));
-    await vi.advanceTimersByTimeAsync(1000);
-
-    expect(panel()).toBeNull();
-  });
-
-  it('does nothing on a page without a headline', async () => {
+  it('does nothing on a page without an end-of-article marker', async () => {
     answerWith(200, APPROVED_LINKS);
     document.body.innerHTML = '<h1>Förstasidan</h1>';
-
     start(widgetScript());
 
+    await read(120);
+
+    expect(FakeIntersectionObserver.latest).toBeUndefined();
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('asks for the links once per page, however often the reader hovers', async () => {
+  it('does nothing on a page without a place for the next step', async () => {
     answerWith(200, APPROVED_LINKS);
+    document.body.innerHTML =
+      '<article><p>Text.</p><div data-rainmaker-article-end></div></article>';
     start(widgetScript());
 
-    await hover(OPEN_DELAY_MS);
-    headline().dispatchEvent(new MouseEvent('mouseleave'));
-    await vi.advanceTimersByTimeAsync(1000);
-    await hover(OPEN_DELAY_MS);
+    await read(120);
 
-    expect(fetch).toHaveBeenCalledOnce();
-    expect(panel()).not.toBeNull();
+    expect(FakeIntersectionObserver.latest).toBeUndefined();
+    expect(fetch).not.toHaveBeenCalled();
   });
 
-  it.each([
-    [
-      'the API was down',
-      () => Promise.reject(new TypeError('Failed to fetch')),
-    ],
-    ['G3 was unavailable', async () => new Response('{}', {status: 503})],
-  ])(
-    'asks again on the next hover when the first call failed (%s)',
-    async (_case, firstAnswer) => {
-      vi.stubGlobal(
-        'fetch',
-        vi
-          .fn()
-          .mockImplementationOnce(firstAnswer)
-          .mockImplementation(
-            async () =>
-              new Response(JSON.stringify(APPROVED_LINKS), {status: 200})
-          )
-      );
-      start(widgetScript());
+  it("uses the publisher's own places when the script tag names them", async () => {
+    answerWith(200, APPROVED_LINKS);
+    document.body.innerHTML =
+      '<main><p>Text.</p><hr class="story-end"></main>' +
+      '<div class="ad-rail"><div id="beside"></div></div>' +
+      '<div id="after"></div>';
+    // Replaces the test site's layout from beforeEach.
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: Element) {
+        if (this.matches('.story-end')) return box(0, 680);
+        if (this.matches('.ad-rail')) return box(720, 300);
+        return box(0, 0);
+      }
+    );
+    const script = widgetScript();
+    script.dataset.articleEndSelector = '.story-end';
+    script.dataset.sidebarPlaceSelector = '#beside';
+    script.dataset.afterArticlePlaceSelector = '#after';
+    start(script);
 
-      await hover(OPEN_DELAY_MS);
-      expect(panel()).toBeNull();
-      headline().dispatchEvent(new MouseEvent('mouseleave'));
-      await vi.advanceTimersByTimeAsync(1000);
-      await hover(OPEN_DELAY_MS);
+    await readToTheEnd();
 
-      expect(fetch).toHaveBeenCalledTimes(2);
-      expect(panel()).not.toBeNull();
-    }
-  );
-
-  it('does not ask again when the article simply has no links', async () => {
-    answerWith(200, {articleUrl: ARTICLE_URL, links: []});
-    start(widgetScript());
-
-    await hover(OPEN_DELAY_MS);
-    headline().dispatchEvent(new MouseEvent('mouseleave'));
-    await vi.advanceTimersByTimeAsync(1000);
-    await hover(OPEN_DELAY_MS);
-
-    expect(fetch).toHaveBeenCalledOnce();
+    expect(nextStep('#beside')).not.toBeNull();
   });
 
-  it('waits for the headline when it starts before the page has loaded (script in <head>)', async () => {
+  it('waits for the article when it starts before the page has loaded (script in <head>)', async () => {
     answerWith(200, APPROVED_LINKS);
     document.body.innerHTML = '';
     Object.defineProperty(document, 'readyState', {
@@ -308,9 +369,9 @@ describe('rainmaker.js on an article page', () => {
       delete (document as {readyState?: string}).readyState;
     }
 
-    await hover(OPEN_DELAY_MS);
+    await readToTheEnd();
 
-    expect(panel()).not.toBeNull();
+    expect(nextStep(SIDEBAR_PLACE)).not.toBeNull();
   });
 });
 
@@ -326,8 +387,12 @@ describe('rainmaker.js with a bug in its own code', () => {
     vi.resetModules();
     answerWith(200, APPROVED_LINKS);
     vi.useFakeTimers();
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
+    FakeIntersectionObserver.latest = undefined;
     document.head.innerHTML = '';
     document.body.innerHTML = ARTICLE_PAGE;
+    layOut('desktop');
     uncaughtErrors.length = 0;
     window.addEventListener('error', recordError);
   });
@@ -335,28 +400,29 @@ describe('rainmaker.js with a bug in its own code', () => {
   afterEach(() => {
     window.removeEventListener('error', recordError);
     vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.resetModules();
     vi.doUnmock('./links-api');
     vi.doUnmock('./panel');
   });
 
-  it('throws no uncaught error when the hover handler fails', async () => {
+  it('throws no uncaught error when asking for the links fails', async () => {
     vi.doMock('./links-api', () => ({
       fetchApprovedLinks: () => {
-        throw new Error('bug in the hover handler');
+        throw new Error('bug in the call');
       },
     }));
     const {start: startWithBug} = await import('./start');
     startWithBug(widgetScript());
 
-    await hover(OPEN_DELAY_MS);
+    await readToTheEnd();
 
     expect(uncaughtErrors).toEqual([]);
-    expect(panel()).toBeNull();
+    expect(nextStep()).toBeNull();
   });
 
-  it('throws no uncaught error when building the panel fails', async () => {
+  it('throws no uncaught error when building the next step fails', async () => {
     vi.doMock('./panel', () => ({
       createPanel: () => {
         throw new Error('bug in the panel');
@@ -365,9 +431,9 @@ describe('rainmaker.js with a bug in its own code', () => {
     const {start: startWithBug} = await import('./start');
     startWithBug(widgetScript());
 
-    await hover(OPEN_DELAY_MS);
+    await readToTheEnd();
 
     expect(uncaughtErrors).toEqual([]);
-    expect(panel()).toBeNull();
+    expect(nextStep()).toBeNull();
   });
 });

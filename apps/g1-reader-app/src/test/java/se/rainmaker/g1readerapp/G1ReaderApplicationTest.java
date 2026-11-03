@@ -3,6 +3,7 @@ package se.rainmaker.g1readerapp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -133,6 +134,27 @@ class G1ReaderApplicationTest {
                 .query(Long.class)
                 .single())
         .isEqualTo(1L);
+  }
+
+  /** A link checker or chat preview sends HEAD: it sees the redirect, but no click is stored. */
+  @Test
+  void headOnClickLinkStoresNoClick() throws Exception {
+    UUID offer = UUID.randomUUID();
+    String destination = "http://localhost:8083/landing/" + offer;
+    String link = clickLinks.create(UUID.randomUUID(), offer, destination);
+
+    mockMvc
+        .perform(head(URI.create(link).getPath()))
+        .andExpect(status().isFound())
+        .andExpect(header().string("Location", destination));
+
+    assertThat(
+            trackingClick
+                .sql("SELECT count(*) FROM click WHERE offer_id = :offer")
+                .param("offer", offer)
+                .query(Long.class)
+                .single())
+        .isZero();
   }
 
   @Test
