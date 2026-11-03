@@ -19,6 +19,7 @@ interface Tag {
   name: string;
   src: string;
   trigger: 'pageview' | 'consent';
+  attributes?: Record<string, string>;
 }
 
 /** Lets pending promise callbacks (fetch -> json -> run) finish. */
@@ -34,6 +35,7 @@ function runTagManager(options: {
   tcfApi?: ReturnType<typeof createTcfApi> | null;
 }) {
   const injected: string[] = [];
+  const scripts: Record<string, string>[] = [];
   const warnings: unknown[] = [];
   const window: any = {
     __tcfapi: options.tcfApi === null ? undefined : options.tcfApi?.handle,
@@ -54,6 +56,7 @@ function runTagManager(options: {
     head: {
       appendChild: (element: { attributes: Record<string, string> }) => {
         injected.push(element.attributes['data-tag-name'] ?? '?');
+        scripts.push(element.attributes);
       },
     },
   };
@@ -71,7 +74,7 @@ function runTagManager(options: {
     console: { warn: (...args: unknown[]) => warnings.push(args) },
     Date,
   });
-  return { window, injected, warnings };
+  return { window, injected, scripts, warnings };
 }
 
 const statsTag: Tag = { name: 'vintra-stats', src: '/static/js/vintra-stats.js', trigger: 'consent' };
@@ -82,6 +85,14 @@ describe('tag manager', () => {
     const { injected } = runTagManager({ tags: [widgetTag], tcfApi: createTcfApi(null) });
     await settle();
     assert.deepEqual(injected, ['rainmaker']);
+  });
+
+  it("sets a tag's attributes on its script, as the widget reads them there", async () => {
+    const tag: Tag = { ...widgetTag, attributes: { 'data-qualified-reading-seconds': '2' } };
+    const { scripts } = runTagManager({ tags: [tag], tcfApi: createTcfApi(null) });
+    await settle();
+    assert.equal(scripts[0]['data-qualified-reading-seconds'], '2');
+    assert.equal(scripts[0]['data-tag-name'], 'rainmaker');
   });
 
   it('holds consent tags until the reader accepts all', async () => {

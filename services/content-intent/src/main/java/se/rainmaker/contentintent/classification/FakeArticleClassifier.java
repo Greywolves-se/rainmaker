@@ -13,6 +13,9 @@ import se.rainmaker.contentintent.api.Zone;
  * Gives every article the same configured classification, without calling Bedrock (#148, Getting
  * Started Guide 5.3). For local work before Bedrock access and for tests; never for the demo's real
  * classification.
+ *
+ * <p>One exception, for the end-to-end test (#154), which needs a green and a red article in one
+ * run: a headline that contains the green marker is green. Without a marker, nothing changes.
  */
 public class FakeArticleClassifier implements ArticleClassifier {
 
@@ -20,13 +23,20 @@ public class FakeArticleClassifier implements ArticleClassifier {
   public static final String MODEL = "fake-classifier";
 
   private final Zone zone;
+  private final String greenMarker;
   private final List<Topic> topics;
   private final Reason reason;
   private final Clock clock;
 
-  /** Creates the classifier with the answer it gives every article. */
-  public FakeArticleClassifier(Zone zone, List<Topic> topics, Reason reason, Clock clock) {
+  /**
+   * Creates the classifier with the answer it gives every article.
+   *
+   * @param greenMarker a headline that contains it is green instead of {@code zone}; blank for none
+   */
+  public FakeArticleClassifier(
+      Zone zone, String greenMarker, List<Topic> topics, Reason reason, Clock clock) {
     this.zone = zone;
+    this.greenMarker = greenMarker.strip();
     this.topics = List.copyOf(topics);
     this.reason = reason;
     this.clock = clock;
@@ -34,6 +44,8 @@ public class FakeArticleClassifier implements ArticleClassifier {
 
   @Override
   public Classification classify(ArticleToClassify article) {
-    return Classification.classified(zone, topics, reason, MODEL, clock.instant());
+    boolean marked = !greenMarker.isEmpty() && article.headline().contains(greenMarker);
+    return Classification.classified(
+        marked ? Zone.GREEN : zone, topics, reason, MODEL, clock.instant());
   }
 }

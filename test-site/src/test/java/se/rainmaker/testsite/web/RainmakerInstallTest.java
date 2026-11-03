@@ -24,7 +24,9 @@ class RainmakerInstallTest {
       properties = {
         WebTestSupport.BASE_URL_PROPERTY,
         "site.rainmaker.script-url=" + WIDGET,
-        "site.rainmaker.install-method=template"
+        "site.rainmaker.install-method=template",
+        // Empty, as docker-compose.yml passes it by default: no attribute on the tag (#154).
+        "site.rainmaker.qualified-reading-seconds="
       })
   @AutoConfigureMockMvc
   class Template {
@@ -53,7 +55,9 @@ class RainmakerInstallTest {
       properties = {
         WebTestSupport.BASE_URL_PROPERTY,
         "site.rainmaker.script-url=" + WIDGET,
-        "site.rainmaker.install-method=tag-manager"
+        "site.rainmaker.install-method=tag-manager",
+        // Empty, as docker-compose.yml passes it by default: no attributes in the tag (#154).
+        "site.rainmaker.qualified-reading-seconds="
       })
   @AutoConfigureMockMvc
   class TagManager {
@@ -71,6 +75,57 @@ class RainmakerInstallTest {
       assertThat(page(mockMvc, "/")).doesNotContain(WIDGET);
       assertThat(fetch(mockMvc, "/").getResponse().getHeader("Content-Security-Policy"))
           .contains("script-src 'self' https://cdn.rainmaker.example;");
+    }
+  }
+
+  /** The end-to-end test (#154) shortens the qualified reading through the template's tag. */
+  @Nested
+  @NestedTestConfiguration(NestedTestConfiguration.EnclosingConfiguration.OVERRIDE)
+  @SpringBootTest(
+      properties = {
+        WebTestSupport.BASE_URL_PROPERTY,
+        "site.rainmaker.script-url=" + WIDGET,
+        "site.rainmaker.install-method=template",
+        "site.rainmaker.qualified-reading-seconds=2"
+      })
+  @AutoConfigureMockMvc
+  class TemplateWithShortQualifiedReading {
+
+    @Autowired private MockMvc mockMvc;
+
+    @Test
+    void putsTheSecondsOnTheScriptTag() throws Exception {
+      assertThat(page(mockMvc, "/artikel/vintraloppet-firar-25-ar"))
+          .containsOnlyOnce(
+              "<script async src=\""
+                  + WIDGET
+                  + "\" data-qualified-reading-seconds=\"2\"></script>");
+    }
+  }
+
+  /** ... and through the tag manager, which sets the tag's attributes on the script it adds. */
+  @Nested
+  @NestedTestConfiguration(NestedTestConfiguration.EnclosingConfiguration.OVERRIDE)
+  @SpringBootTest(
+      properties = {
+        WebTestSupport.BASE_URL_PROPERTY,
+        "site.rainmaker.script-url=" + WIDGET,
+        "site.rainmaker.install-method=tag-manager",
+        "site.rainmaker.qualified-reading-seconds=2"
+      })
+  @AutoConfigureMockMvc
+  class TagManagerWithShortQualifiedReading {
+
+    @Autowired private MockMvc mockMvc;
+
+    @Test
+    void putsTheSecondsInTheWidgetsTag() throws Exception {
+      assertThat(page(mockMvc, "/tag-manager/container.json"))
+          .contains(
+              "{\"name\":\"rainmaker\",\"src\":\""
+                  + WIDGET
+                  + "\",\"trigger\":\"pageview\","
+                  + "\"attributes\":{\"data-qualified-reading-seconds\":\"2\"}}");
     }
   }
 }

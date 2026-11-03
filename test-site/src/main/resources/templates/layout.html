@@ -97,6 +97,7 @@
     manager when RAINMAKER_INSTALL_METHOD=tag-manager). The script must never
     block or break the page: if it fails to load, the article still works.
   -->
-  <script th:if="${rainmaker.loadedByTemplate()}" async th:src="${rainmaker.scriptUrl()}"></script>
+  <script th:if="${rainmaker.loadedByTemplate()}" async th:src="${rainmaker.scriptUrl()}"
+          th:attr="data-qualified-reading-seconds=${rainmaker.qualifiedReadingSeconds()}"></script>
 </body>
 </html>
