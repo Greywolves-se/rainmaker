@@ -7,6 +7,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -21,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
@@ -74,9 +76,14 @@ class WidgetLinksControllerTest {
   private static final WidgetApiProperties SITES =
       new WidgetApiProperties(List.of("http://localhost:3000", "https://www.example.se"));
 
+  private final SimpleMeterRegistry meters = new SimpleMeterRegistry();
+
   private final MockMvc mockMvc =
       MockMvcBuilders.standaloneSetup(
-              new WidgetLinksController(new WidgetLinksService(g3Client(), clickLinks), SITES))
+              new WidgetLinksController(
+                  new WidgetLinksService(g3Client(), clickLinks),
+                  SITES,
+                  new WidgetLinksCounters(meters)))
           .build();
 
   private static G3ApprovedLinksClient g3Client() {
@@ -207,6 +214,36 @@ class WidgetLinksControllerTest {
         .perform(get(API).param("url", ARTICLE))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.links").isEmpty());
+  }
+
+  /** Every result has its counter from the start, so a dashboard shows 0, not "no data" (#193). */
+  @Test
+  void countsEachKindOfAnswer() throws Exception {
+    assertThat(meters.find(WidgetLinksCounters.NAME).counters()).hasSize(4);
+    clickLinksNameTheirOffer();
+    g3Answers(G3_EXAMPLE);
+    mockMvc.perform(get(API).param("url", ARTICLE)).andExpect(status().isOk());
+    g3Answers(
+        """
+        {"articleId": null, "articleUrl": "%s", "links": []}
+        """
+            .formatted(ARTICLE));
+    mockMvc.perform(get(API).param("url", ARTICLE)).andExpect(status().isOk());
+    mockMvc.perform(get(API).param("url", ARTICLE)).andExpect(status().isOk());
+    mockMvc
+        .perform(get(API).param("url", "http://other.example/artikel/x"))
+        .andExpect(status().isBadRequest());
+    g3.stubFor(WireMock.get(urlPathEqualTo(G3_API)).willReturn(aResponse().withStatus(503)));
+    mockMvc.perform(get(API).param("url", ARTICLE)).andExpect(status().isServiceUnavailable());
+
+    assertThat(answers("links")).isEqualTo(1);
+    assertThat(answers("empty")).isEqualTo(2);
+    assertThat(answers("refused")).isEqualTo(1);
+    assertThat(answers("unavailable")).isEqualTo(1);
+  }
+
+  private double answers(String result) {
+    return meters.get(WidgetLinksCounters.NAME).tag("result", result).counter().count();
   }
 
   @Test

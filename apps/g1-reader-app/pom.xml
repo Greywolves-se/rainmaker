@@ -28,6 +28,32 @@
       <version>${project.version}</version>
     </dependency>
 
+    <!-- Metrics and a trace id in every log line (#193; agreed on #193 with #188). Versions come
+         from Spring Boot's dependency management. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <!-- Spring Boot 4's tracing auto-configuration with the OpenTelemetry bridge: a trace id per
+         request in the MDC. No exporter: nothing is sent anywhere until the AWS work. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-micrometer-tracing-opentelemetry</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-tracing-bridge-otel</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator-test</artifactId>
+      <scope>test</scope>
+    </dependency>
     <!-- JUnit 5, AssertJ, Mockito and MockMvc. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

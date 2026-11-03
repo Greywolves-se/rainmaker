@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import se.rainmaker.trackingclick.click.ClickCounters.Result;
 import se.rainmaker.trackingclick.click.ClickErrorPages.Reason;
 
 /**
@@ -27,6 +29,9 @@ import se.rainmaker.trackingclick.click.ClickErrorPages.Reason;
  *
  * <p>The target only ever comes from a link G1 signed, never from the request (no open redirect).
  * Nothing about the reader is stored or logged: no IP, no cookie, no user id.
+ *
+ * <p>Each answer is counted by result ({@link ClickCounters}, #193), and a valid link's log lines
+ * carry its click id as {@code correlation_id} (contract section 3).
  */
 @RestController
 class ClickRedirectController {
@@ -35,13 +40,17 @@ class ClickRedirectController {
 
   private static final MediaType HTML = new MediaType("text", "html", StandardCharsets.UTF_8);
 
+  private static final String CORRELATION_ID = "correlation_id";
+
   private final SignedClickLinks links;
   private final ClickStore clicks;
+  private final ClickCounters counters;
   private final ClickErrorPages errorPages = new ClickErrorPages();
 
-  ClickRedirectController(SignedClickLinks links, ClickStore clicks) {
+  ClickRedirectController(SignedClickLinks links, ClickStore clicks, ClickCounters counters) {
     this.links = links;
     this.clicks = clicks;
+    this.counters = counters;
   }
 
   @GetMapping(SignedClickLinks.PATH_PREFIX + "{token}")
@@ -64,8 +73,12 @@ class ClickRedirectController {
         token,
         acceptLanguage,
         link -> {
-          LOG.info("Click link looked at (HEAD), not stored: clickId={}", link.clickId());
-          return redirect(link);
+          try (MDC.MDCCloseable correlation =
+              MDC.putCloseable(CORRELATION_ID, link.clickId().toString())) {
+            LOG.info("Click link looked at (HEAD), not stored: clickId={}", link.clickId());
+            counters.count(Result.LOOKED_AT);
+            return redirect(link);
+          }
         });
   }
 
@@ -73,14 +86,26 @@ class ClickRedirectController {
       String token, String acceptLanguage, Function<ClickLink, ResponseEntity<String>> onValid) {
     return switch (links.check(token)) {
       case ClickLinkCheck.Valid valid -> onValid.apply(valid.link());
-      case ClickLinkCheck.Invalid invalid ->
-          refused(HttpStatus.BAD_REQUEST, Reason.INVALID, acceptLanguage);
-      case ClickLinkCheck.Expired expired ->
-          refused(HttpStatus.GONE, Reason.EXPIRED, acceptLanguage);
+      case ClickLinkCheck.Invalid invalid -> {
+        counters.count(Result.INVALID);
+        yield refused(HttpStatus.BAD_REQUEST, Reason.INVALID, acceptLanguage);
+      }
+      case ClickLinkCheck.Expired expired -> {
+        counters.count(Result.EXPIRED);
+        yield refused(HttpStatus.GONE, Reason.EXPIRED, acceptLanguage);
+      }
     };
   }
 
+  /** Every log line about this click, the error too, carries its click id as correlation id. */
   private ResponseEntity<String> storeAndRedirect(ClickLink link, String acceptLanguage) {
+    try (MDC.MDCCloseable correlation =
+        MDC.putCloseable(CORRELATION_ID, link.clickId().toString())) {
+      return store(link, acceptLanguage);
+    }
+  }
+
+  private ResponseEntity<String> store(ClickLink link, String acceptLanguage) {
     try {
       boolean stored = clicks.record(link);
       LOG.info(
@@ -89,10 +114,12 @@ class ClickRedirectController {
           link.clickId(),
           link.articleId(),
           link.offerId());
+      counters.count(stored ? Result.STORED : Result.ALREADY_STORED);
     } catch (DataAccessException e) {
       // Fail closed for money: a click that can't be stored is not passed on. Opening the same
       // link again retries with the same click id, so it is still stored once.
       LOG.error("Click not stored, so not redirected: clickId={}", link.clickId(), e);
+      counters.count(Result.NOT_STORED);
       return page(HttpStatus.SERVICE_UNAVAILABLE, Reason.UNAVAILABLE, acceptLanguage);
     }
     return redirect(link);

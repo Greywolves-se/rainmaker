@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import se.rainmaker.widgetdelivery.links.WidgetLinksCounters.Result;
 
 /**
  * {@code GET /widget/v1/links?url=…}: the widget API rainmaker.js calls to show an article's links
@@ -22,7 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>200 with the links, or an empty list for an article that may have none; 400 when {@code url}
  * isn't an absolute http(s) address on one of the publisher sites, or is too long (#224); 503 when
  * G3 can't answer, never the last known links (fail closed). rainmaker.js shows no panel for
- * anything but a 200 with links (fail open, #152).
+ * anything but a 200 with links (fail open, #152). Each answer is counted by result ({@link
+ * WidgetLinksCounters}, #193).
  */
 @RestController
 class WidgetLinksController {
@@ -42,10 +44,13 @@ class WidgetLinksController {
 
   private final WidgetLinksService links;
   private final WidgetApiProperties settings;
+  private final WidgetLinksCounters counters;
 
-  WidgetLinksController(WidgetLinksService links, WidgetApiProperties settings) {
+  WidgetLinksController(
+      WidgetLinksService links, WidgetApiProperties settings, WidgetLinksCounters counters) {
     this.links = links;
     this.settings = settings;
+    this.counters = counters;
   }
 
   @GetMapping(PATH)
@@ -55,17 +60,19 @@ class WidgetLinksController {
       LOG.info(
           "Widget links refused: url is missing, too long, or not an http(s) address on a"
               + " publisher site");
+      counters.count(Result.REFUSED);
       return ResponseEntity.badRequest().cacheControl(CacheControl.noStore()).build();
     }
     // G1 has no article correlation id yet, so each widget request starts its own (contract 7).
     String correlationId = UUID.randomUUID().toString();
     MDC.put(CORRELATION_ID, correlationId);
     try {
-      return ResponseEntity.ok()
-          .cacheControl(CacheControl.noStore())
-          .body(links.find(url, correlationId));
+      WidgetLinks answer = links.find(url, correlationId);
+      counters.count(answer.links().isEmpty() ? Result.EMPTY : Result.LINKS);
+      return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(answer);
     } catch (ApprovedLinksUnavailableException unavailable) {
       logUnavailable(unavailable);
+      counters.count(Result.UNAVAILABLE);
       return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
           .cacheControl(CacheControl.noStore())
           .build();

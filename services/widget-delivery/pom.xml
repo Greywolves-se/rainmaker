@@ -16,6 +16,11 @@
   <description>Gives rainmaker.js the approved links for an article.</description>
 
   <dependencies>
+    <!-- Counters for G1's metrics (#193); the registry and its export come from the app. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+    </dependency>
     <!-- S2's signed click links (contract 7.5), which the widget API gives instead of the offer's
          address. Only its api package may be used (CLAUDE.md, "Architecture rules"). -->
     <dependency>

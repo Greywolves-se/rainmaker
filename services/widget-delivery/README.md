@@ -45,5 +45,8 @@ Gives rainmaker.js the approved links for an article.
     `RAINMAKER_CLICK_BASE_URL`. G1 can't check this, because it doesn't know where the script is
     loaded from. If the two differ, even `localhost` against `127.0.0.1`, every panel disappears
     without an error.
+- **Metrics and logs** (#193): `links/WidgetLinksCounters` counts every widget API answer as
+  `rainmaker.widget.links{result=links|empty|refused|unavailable}`. Each request's log lines carry
+  its `correlation_id`. G1's README lists every metric and the first alerts.
 - **Data:** no database of its own for the demo: it asks G3 for the approved links on each
   request (contract, section 7.3). A Redis projection comes later (architecture S1).
