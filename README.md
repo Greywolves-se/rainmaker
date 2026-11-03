@@ -3,9 +3,8 @@
 Contextual performance marketplace for digital news publishers. A script on the
 publisher's site shows relevant, labelled commercial links as a next step once the reader
 has read the article: beside it on desktop, after it on mobile
-([ADR 0005](docs/adr/0005-behaviour-based-reader-flow.md); the demo still opens a panel on
-headline hover). AI suggests the links, an editor approves them, and every click is tracked
-for settlement.
+([ADR 0005](docs/adr/0005-behaviour-based-reader-flow.md)). AI suggests the links, an editor
+approves them, and every click is tracked for settlement.
 
 The team is building the Rainmaker demo: three apps (G1–G3) that take an article from a
 fictional news site through classification, matching and editor approval to a panel and a
@@ -36,7 +35,7 @@ rainmaker/
 ├── docker-compose.yml   local PostgreSQL; its init script is in docker/postgres/
 ├── infra/               AWS CDK app (Java): every AWS resource, created through the pipeline
 └── portals/             React apps for publishers and admins, not Maven (empty for now)
-├── widget/              rainmaker.js, TypeScript, not Maven         (hover today, #152; reader flow, #217–#220)
+├── widget/              rainmaker.js, TypeScript, not Maven         (reader flow, ADR 0005, #217–#220)
 └── portals/             React apps, not Maven                       (empty for now)
 ```
 

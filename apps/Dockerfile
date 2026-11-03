@@ -13,6 +13,8 @@ WORKDIR /widget
 COPY widget/package.json widget/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 COPY widget/ ./
+# The type check also compiles the tests, and links-api.test.ts reads contract 7.4's example (#151).
+COPY docs/rainmaker/contract/ /docs/rainmaker/contract/
 RUN npm run build
 
 FROM eclipse-temurin:21-jdk-noble AS build

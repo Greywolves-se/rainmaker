@@ -21,7 +21,9 @@ for each item:
 
 **Reading the articles back (#202):** `api.LatestArticles` gives the latest version of each article,
 the most recently stored first or by URL, without the body text (`ingestion/JdbcLatestArticles`). G2's
-articles API (contract 7.1) uses it.
+articles API (contract 7.1) uses it. `api.LatestArticleTexts` gives the latest version of a list of
+articles with the body text, as `ArticleStored` announced it, so content-intent can classify an
+article again (#223). That text stays inside G2: never in a REST answer or a log line.
 
 It only sends GET requests: ingestion never writes to the publisher (product rule). The body text
 is never logged (`ArticleStored.toString()` leaves it out).
