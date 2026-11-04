@@ -16,8 +16,11 @@ public final class InfraApp {
 
   static final String STAGING = "rainmaker:staging";
   static final String DEV = "rainmaker:dev";
+  static final String SSO = "rainmaker:sso";
 
   private static final Pattern ACCOUNT_ID = Pattern.compile("^\\d{12}$");
+  private static final Pattern SSO_INSTANCE =
+      Pattern.compile("^arn:aws:sso:::instance/ssoins-[0-9a-zA-Z]+$");
 
   private InfraApp() {}
 
@@ -51,11 +54,33 @@ public final class InfraApp {
       throw new IllegalArgumentException(
           "CDK context \"" + DEV + "\": region must be an EU region: " + devRegion);
     }
-    new BedrockAccessStack(
+    StackProps devProps = stackProps(account, devRegion);
+    BedrockModelAccess model = BedrockModelAccess.fromContext(app);
+    new BedrockAccessStack(app, "BedrockAccess-dev", devProps, model);
+    new CostGuardrailsStack(
+        app, "CostGuardrails-dev", devProps, CostAlertSettings.fromContext(app));
+
+    // The permission set lives where IAM Identity Center is (the management account), and grants
+    // Bedrock in the dev account.
+    Map<?, ?> sso = ContextValues.requireObject(app, SSO);
+    String identityCenterAccount = ContextValues.requireText(sso, SSO, "account");
+    if (!ACCOUNT_ID.matcher(identityCenterAccount).matches()) {
+      throw new IllegalArgumentException(
+          "CDK context \"" + SSO + "\": account must be a 12-digit AWS account id");
+    }
+    String arn = ContextValues.requireText(sso, SSO, "instanceArn");
+    if (!SSO_INSTANCE.matcher(arn).matches()) {
+      throw new IllegalArgumentException(
+          "CDK context \"" + SSO + "\": instanceArn must be an Identity Center instance ARN");
+    }
+    new DeveloperAccessStack(
         app,
-        "BedrockAccess-dev",
-        stackProps(account, devRegion),
-        BedrockModelAccess.fromContext(app));
+        "DeveloperAccess-dev",
+        stackProps(identityCenterAccount, devRegion),
+        model,
+        account,
+        devRegion,
+        arn);
   }
 
   private static StackProps stackProps(String account, String region) {

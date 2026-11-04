@@ -16,6 +16,8 @@ are created with CDK through the pipeline, never by hand in the console.
 |---|---|---|
 | `GithubDeployAccess-staging` | GitHub OIDC provider and the `github-actions-rainmaker` role with three inline policies: `ecr-push-mission-control` (push the images), `ecs-deploy-mission-control-web` (roll out the web service) and `read-mission-control-secrets` (read the collector's OpenAI key, see below). Only jobs in the GitHub environment `staging` of `Greywolves-se/rainmaker` can assume the role. `docker.yml` uses it. | #61, #82, #112 |
 | `BedrockAccess-dev` | The `rainmaker-g2-content-app` role: ECS tasks in the dev account may call Claude Haiku 4.5 through the EU inference profile, and nothing else. See "Dev account and Bedrock" below. | #161 |
+| `CostGuardrails-dev` | Cost Anomaly Detection for every AWS service (Bedrock included) and the SNS topic `rainmaker-cost-alerts` it alerts at once from $5. | #161 |
+| `DeveloperAccess-dev` | The IAM Identity Center permission set `RainmakerBedrockDeveloper`: the same Bedrock access as the G2 role, for developers' own SSO logins. Deployed to the management account, where IAM Identity Center is (`rainmaker:sso` in `cdk.json`). | #161 |
 
 ECR repositories and the ECS service follow in #62.
 
@@ -195,7 +197,23 @@ Only ECS tasks in the same account (`aws:SourceAccount`) can assume the role.
 ### Local access for developers
 
 Each developer signs in with their own IAM Identity Center user; no access keys in files. The
-permission set with the same narrow access follows in the second #161 PR. Then:
+permission set `RainmakerBedrockDeveloper` (`DeveloperAccessStack`) has exactly the G2 role's
+statements, built from the same `BedrockModelAccess`, so the two cannot drift apart. Sessions
+last 8 hours.
+
+**One-time setup by an Identity Center admin:**
+
+1. The Identity Center instance ARN and the management account id are in `cdk.json`
+   (`rainmaker:sso`); like the other account ids they are not secrets. The instance is in the
+   organisation's management account, so `DeveloperAccess-dev` is deployed there, while its
+   policy names the dev account, where Bedrock is called.
+2. Deploy the stack with a profile for the management account (see "Synth, diff and deploy").
+   The management account needs a CDK bootstrap for this one stack; how much that bootstrap may
+   do is an open decision for the senior reviewer (PR #168).
+3. In IAM Identity Center, AWS accounts, assign `RainmakerBedrockDeveloper` for the dev account
+   to the developers or their group. The stack assigns nobody, so no names are in the code.
+
+**Each developer:**
 
 ```
 aws configure sso                       # once: SSO start URL, region eu-north-1, the permission set
@@ -213,6 +231,12 @@ region. Name the stack, and use an admin profile for the dev account:
 cdk diff   --profile <admin profile> BedrockAccess-dev
 cdk deploy --profile <admin profile> BedrockAccess-dev
 ```
+
+The same commands work for `CostGuardrails-dev`. `DeveloperAccess-dev` needs a profile for the
+management account instead, because it is deployed there. If the account already has an
+"AWS services" cost monitor (Billing and Cost Management, Cost Anomaly Detection, Cost monitors;
+only one is allowed per account), add `-c rainmaker:existing-cost-monitor-arn=<arn>` so the alert
+uses it instead of creating a second one.
 
 Before the first deploy the dev account must be bootstrapped once
 (`cdk bootstrap aws://034220091974/eu-north-1`); see the change log, C-3 and C-4.
@@ -240,8 +264,29 @@ find your SSO login, load it into the shell first and leave out `--profile`:
   --messages '[{"role":"user","content":[{"text":"hej"}]}]'`; after that the narrow
   roles work. If a call fails with AccessDenied before then, this is the first thing to check.
 - **Where to see the cost:** Billing and Cost Management, Cost Explorer, filter *Service* =
-  *Amazon Bedrock*. A Cost Anomaly Detection alert follows in the second #161 PR; a Bedrock-only
-  budget can be added once Bedrock has billing history.
+  *Amazon Bedrock*.
+- **Anomaly alert (`CostGuardrails-dev`):** Cost Anomaly Detection watches every service and
+  sends an alert at once (`IMMEDIATE`) to the SNS topic `rainmaker-cost-alerts` when an
+  anomaly's impact is at least $5 (`rainmaker:cost-alerts` in `cdk.json`). Immediate alerts
+  can only go to SNS; e-mail works only for daily or weekly summaries. Only Cost Anomaly
+  Detection, for this account, may publish to the topic. Both are free; the topic has no
+  customer-managed KMS key (about $1 a month).
+- **Spend history first:** Cost Anomaly Detection compares spend with its own history, so it
+  says little about a service until that service has billed for some weeks. For Bedrock's first
+  weeks the budget with the hard stop (below, C-9) is the real guard.
+- **Get the alerts:** after the deploy, subscribe your own e-mail to `rainmaker-cost-alerts` and
+  confirm the e-mail AWS sends you. Addresses are never in the code, because the repository is
+  public:
+
+  ```
+  aws sns subscribe --profile <admin profile> --region eu-north-1 --protocol email \
+    --topic-arn arn:aws:sns:eu-north-1:034220091974:rainmaker-cost-alerts \
+    --notification-endpoint <your e-mail>
+  ```
+- **Region:** everything is in `eu-north-1`. `aws cloudformation describe-type --type RESOURCE
+  --type-name AWS::CE::AnomalyMonitor --region eu-north-1` showed the resource type there
+  (4 Nov 2026).
+- **Not yet:** a budget for Bedrock alone, once Bedrock has billing history to filter on.
 - **The budget and the hard stop (change log C-9):** the budget **"rainmaker-dev - Monthly
   Budget"**, 100 USD a month of actual cost, filtered on the rainmaker-dev account. It lives in the
   management account's AWS Budgets, **not** in rainmaker-dev, so it can't be seen from there. It
