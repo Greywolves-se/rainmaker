@@ -53,7 +53,7 @@ class ArticleClassificationTest {
 
   private static final Instant AT = Instant.parse("2026-10-30T09:15:04Z");
   private static final Reason REASON = new Reason("Skäl.", "Reason.");
-  private static final String MODEL = "eu.anthropic.claude-haiku-5-5";
+  private static final String MODEL = "eu.anthropic.claude-haiku-4-5-20251001-v1:0";
 
   @DynamicPropertySource
   static void settings(DynamicPropertyRegistry registry) {
