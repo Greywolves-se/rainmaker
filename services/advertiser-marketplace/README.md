@@ -18,9 +18,11 @@ Advertisers, offers and their landing pages.
 
 ## What it does (#149)
 
-- **Offers:** the `offer` table (`V2__offer.sql`) holds the demo's eight fictional offers
-  (`V3__fictional_offers.sql`): advertiser, title, text, a commercial category key (#145, D-3) and the CPC in
-  whole öre. To change an offer, add a new migration.
+- **Offers:** the `offer` table (`V2__offer.sql`) holds the demo's 19 fictional offers
+  (`V3__fictional_offers.sql`, `V4__more_fictional_offers.sql`): advertiser, title, text, a commercial category
+  key (#145, D-3) and the CPC in whole öre. Each green category has two or three offers with different CPCs, so
+  an article can get up to three suggestions (#260). `health` and `personal-finance` have none: those articles
+  are yellow and get no suggestions (contract 3.3, D-4). To change an offer, add a new migration.
 - **`GET /api/offers`:** every offer, as in the contract (`docs/rainmaker/contract.md`, 7.2). Matching in G2
   reads it.
 - **`api.OfferCatalog`:** the same offers for modules inside G3, e.g. the editor page (#150).

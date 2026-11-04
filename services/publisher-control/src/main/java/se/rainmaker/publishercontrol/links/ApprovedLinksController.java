@@ -1,5 +1,6 @@
 package se.rainmaker.publishercontrol.links;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import org.slf4j.Logger;
@@ -63,7 +64,12 @@ class ApprovedLinksController {
   /** Fail closed: no links when G2 can't answer (contract 7.3). */
   @ExceptionHandler(ArticlesUnavailableException.class)
   ResponseEntity<Void> g2Unavailable(ArticlesUnavailableException unavailable) {
-    LOG.warn("No approved links: {}", unavailable.getMessage());
+    // While the circuit is open, the breaker has already said so once; not again on every request.
+    if (unavailable.getCause() instanceof CallNotPermittedException) {
+      LOG.debug("No approved links: {}", unavailable.getMessage());
+    } else {
+      LOG.warn("No approved links: {}", unavailable.getMessage());
+    }
     return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
   }
 }

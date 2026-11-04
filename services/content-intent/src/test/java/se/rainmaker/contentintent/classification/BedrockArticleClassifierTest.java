@@ -50,7 +50,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ValidationException;
 @ExtendWith(OutputCaptureExtension.class)
 class BedrockArticleClassifierTest {
 
-  private static final String MODEL = "eu.anthropic.claude-haiku-5-5";
+  private static final String MODEL = "eu.anthropic.claude-haiku-4-5-20251001-v1:0";
   private static final Instant START = Instant.parse("2026-10-30T09:00:00Z");
 
   /** Opens when half of the last 4 articles failed (at least 4 seen), for one minute. */

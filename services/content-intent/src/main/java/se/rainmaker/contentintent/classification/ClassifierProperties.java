@@ -12,7 +12,8 @@ import se.rainmaker.contentintent.api.Zone;
  *
  * @param mode {@code fake} (no Bedrock, the default for local work and tests) or {@code bedrock}
  * @param region the AWS region Bedrock is called in, e.g. {@code eu-north-1}
- * @param modelId the inference profile to call, e.g. {@code eu.anthropic.claude-haiku-5-5}
+ * @param modelId the inference profile to call, e.g. {@code
+ *     eu.anthropic.claude-haiku-4-5-20251001-v1:0}
  * @param maxTokens most tokens Claude may answer with; the answer is a short JSON
  * @param maxTextChars most characters of the article text sent; a longer text is cut, so one call
  *     can't use a large share of the daily token cap

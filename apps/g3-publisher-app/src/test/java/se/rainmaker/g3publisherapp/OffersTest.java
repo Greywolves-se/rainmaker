@@ -6,8 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,18 +27,20 @@ import tools.jackson.databind.json.JsonMapper;
 @AutoConfigureMockMvc
 class OffersTest {
 
-  /** The commercial categories (#145, D-3); "other" never has an offer. */
-  private static final Set<String> CATEGORIES =
-      Set.of(
-          "travel",
-          "outdoor",
-          "sport",
-          "culture",
-          "food",
-          "home",
-          "cars",
-          "health",
-          "personal-finance");
+  /**
+   * The demo's offers per commercial category (#260): two or three for each green category, so the
+   * editor sees a ranking. None for "health" and "personal-finance": those articles are yellow and
+   * get no suggestions (contract 3.3, D-4). "other" never has an offer.
+   */
+  private static final Map<String, Long> OFFERS_PER_CATEGORY =
+      Map.of(
+          "travel", 3L,
+          "outdoor", 3L,
+          "sport", 3L,
+          "culture", 2L,
+          "food", 3L,
+          "home", 3L,
+          "cars", 2L);
 
   @DynamicPropertySource
   static void databases(DynamicPropertyRegistry registry) {
@@ -48,21 +51,44 @@ class OffersTest {
   @Autowired private JsonMapper jsonMapper;
 
   @Test
-  void offersApiListsFiveToTenFictionalOffers() throws Exception {
+  void offersApiListsTheFictionalOffers() throws Exception {
     List<JsonNode> offers = offers();
 
-    assertThat(offers).hasSizeBetween(5, 10);
     assertThat(offers.stream().map(offer -> offer.get("offerId").asString()).distinct())
         .hasSameSizeAs(offers);
     for (JsonNode offer : offers) {
       assertThat(offer.get("advertiser").asString()).isNotBlank();
       assertThat(offer.get("title").asString()).isNotBlank();
       assertThat(offer.get("text").asString()).isNotBlank();
-      assertThat(CATEGORIES).contains(offer.get("category").asString());
       assertThat(offer.get("cpcOre").asInt()).isPositive();
       assertThat(offer.get("destinationUrl").asString())
           .isEqualTo("http://localhost:8083/landing/" + offer.get("offerId").asString());
     }
+  }
+
+  @Test
+  void everyGreenCategoryHasTwoOrThreeOffersAndSensitiveOnesNone() throws Exception {
+    Map<String, Long> perCategory =
+        offers().stream()
+            .collect(
+                Collectors.groupingBy(
+                    offer -> offer.get("category").asString(), Collectors.counting()));
+
+    assertThat(perCategory).isEqualTo(OFFERS_PER_CATEGORY);
+  }
+
+  /** Offers in one category fit an article equally well, so CPC orders them (contract 4). */
+  @Test
+  void offersInOneCategoryHaveDifferentPrices() throws Exception {
+    Map<String, List<Integer>> pricesPerCategory =
+        offers().stream()
+            .collect(
+                Collectors.groupingBy(
+                    offer -> offer.get("category").asString(),
+                    Collectors.mapping(offer -> offer.get("cpcOre").asInt(), Collectors.toList())));
+
+    pricesPerCategory.forEach(
+        (category, prices) -> assertThat(prices).as(category).doesNotHaveDuplicates());
   }
 
   @Test

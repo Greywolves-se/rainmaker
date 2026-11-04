@@ -146,7 +146,7 @@ Shared rules for every object, event and API:
     "sv": "Praktiska råd om badrumsrenovering; tydlig köpavsikt, inget känsligt.",
     "en": "Practical advice on renovating a bathroom; clear buying intent, nothing sensitive."
   },
-  "model": "claude-haiku-5-5",
+  "model": "claude-haiku-4-5",
   "classifiedAt": "2026-10-30T09:15:04Z",
   "correlationId": "c0a1…"
 }
@@ -155,7 +155,7 @@ Shared rules for every object, event and API:
 - `status` is `unclassified` (stored, not classified yet), `classified` or `failed`. `zone` and
   `reason` are `null` and `topics` is empty unless `status` is `classified`. See section 3.3.
 - `model` is the model id from the settings, exactly as sent to Bedrock (section 8). The
-  examples use the short name `claude-haiku-5-5`; the real value is the Bedrock id from #161.
+  examples use the short name `claude-haiku-4-5`; the real value is the Bedrock id from #161.
 
 **Decision D-3: topics are commercial categories,** the same list offers use as `category`.
 Not the site's sections: a section says where an article sits, not what it is about. A story
@@ -271,7 +271,9 @@ Append-only. `clickId` is unique in the database (#153). No IP, no cookie, no us
   keys are kept in both G3 and G2.
 - Matching reads the offers from G3 (section 7.2), with timeouts and retries. If G3 still can't
   be reached, nothing new is stored and the error is logged; a new version still loses its old
-  set (D-5). The article is matched again the next time it is classified (decided in #149).
+  set (D-5). The version waits for offers, and matching tries it again on a schedule until G3
+  answers (#248); a later result for that version or a newer one ends the wait. "Nothing fits"
+  is a result, not an outage, so it isn't tried again.
 - Not green never waits for G3: the set is emptied at once.
 
 ---
@@ -410,7 +412,7 @@ GET http://localhost:8082/api/articles?url=http%3A%2F%2Flocalhost%3A3000%2Fartik
           "sv": "Praktiska råd om badrumsrenovering; tydlig köpavsikt, inget känsligt.",
           "en": "Practical advice on renovating a bathroom; clear buying intent, nothing sensitive."
         },
-        "model": "claude-haiku-5-5",
+        "model": "claude-haiku-4-5",
         "classifiedAt": "2026-10-30T09:15:04Z"
       },
       "suggestions": [
@@ -585,8 +587,8 @@ Opening the link:
 
 ### 7.6 Editor page (G3, #150)
 
-An internal UI, under `/publisher/` so the paths don't clash with the fake-news site's own
-`/editor` (#159):
+An internal UI for the publisher's editor, under `/publisher/`. (The fake-news site has no editor
+page of its own: articles are published as files in `test-site/content/articles/`, #159.)
 
 | Method | Path | What |
 |---|---|---|
@@ -617,8 +619,10 @@ and no key is stored anywhere: the AWS SDK picks up the SSO login locally.
   WireMock), never Bedrock (`CLAUDE.md`: external APIs are mocked).
 - The model id and the region are settings. Their exact values come from #161: use the Bedrock
   model id, or the inference profile, that #161's role is allowed to call.
-- Model: Claude Haiku 5.5. Check it against the site's `/eval/labels.csv` by hand (#148); if it
-  misses yellow or red articles, try Sonnet 5.5.
+- Model: Claude Haiku 4.5 (`eu.anthropic.claude-haiku-4-5-20251001-v1:0`, the EU inference
+  profile). Changed from Haiku 5.5 on 4 Nov 2026: the dev account never got quota for 5.5 (#161).
+  Check it against the site's `/eval/labels.csv` by hand (#148); if it misses yellow or red
+  articles, try a larger Claude model, after checking its quota in the dev account.
 - The call has a timeout and retries with back-off. When they are used up, the classification
   is `failed` (section 3.3).
 
