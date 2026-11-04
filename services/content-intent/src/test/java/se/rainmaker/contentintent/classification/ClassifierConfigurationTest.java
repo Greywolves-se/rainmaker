@@ -2,12 +2,17 @@ package se.rainmaker.contentintent.classification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import se.rainmaker.contentintent.api.ArticleClassifier;
+import se.rainmaker.contentintent.api.ArticleToClassify;
+import se.rainmaker.contentintent.api.Classification;
+import se.rainmaker.contentintent.api.Topic;
+import se.rainmaker.contentintent.api.Zone;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 /**
@@ -18,6 +23,9 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 class ClassifierConfigurationTest {
 
   private static final String PREFIX = "rainmaker.content-intent.classifier.";
+  private static final String DEMO_FILE = "classpath:content-intent/demo-classifications.json";
+  private static final String MALLORCA =
+      "Svenskarna väljer Mallorca i höst – här är öns okända pärlor";
 
   private final ApplicationContextRunner runner =
       new ApplicationContextRunner()
@@ -71,6 +79,57 @@ class ClassifierConfigurationTest {
     assertThat(output).contains("WARN").contains("Fake classifier active").contains("green");
   }
 
+  /** The demo's file gives the test site's articles Claude-like answers (#261). */
+  @Test
+  void usesTheDemoClassificationsWhenSet() {
+    runner
+        .withPropertyValues(
+            PREFIX + "mode=fake",
+            PREFIX + "fake.zone=red",
+            PREFIX + "fake.classifications=" + DEMO_FILE)
+        .run(
+            context -> {
+              ArticleClassifier classifier = context.getBean(ArticleClassifier.class);
+              Classification mallorca = classifier.classify(article(MALLORCA));
+              assertThat(mallorca.zone()).isEqualTo(Zone.GREEN);
+              assertThat(mallorca.topics()).containsExactly(Topic.TRAVEL, Topic.FOOD);
+              assertThat(classifier.classify(article("Inte i filen")).zone()).isEqualTo(Zone.RED);
+            });
+  }
+
+  @Test
+  void refusesToStartWhenTheDemoFileIsMissing() {
+    runner
+        .withPropertyValues(
+            PREFIX + "mode=fake", PREFIX + "fake.classifications=classpath:no-such-file.json")
+        .run(
+            context ->
+                assertThat(context)
+                    .getFailure()
+                    .hasStackTraceContaining("fake.classifications: can't read")
+                    .hasStackTraceContaining("no-such-file.json"));
+  }
+
+  @Test
+  void warnsThatTheDemoClassificationsAreInUse(CapturedOutput output) {
+    runner
+        .withPropertyValues(PREFIX + "mode=fake", PREFIX + "fake.classifications=" + DEMO_FILE)
+        .run(context -> assertThat(context).hasNotFailed());
+
+    assertThat(output)
+        .contains("Fake classifier active")
+        .contains("12 headlines from " + DEMO_FILE);
+  }
+
+  /** Claude decides in Bedrock mode; the demo file is never read, so a wrong one can't matter. */
+  @Test
+  void neverReadsTheDemoFileInBedrockMode() {
+    runner
+        .withPropertyValues(
+            PREFIX + "mode=bedrock", PREFIX + "fake.classifications=classpath:no-such-file.json")
+        .run(context -> assertThat(context).hasNotFailed());
+  }
+
   /** As a bean of its own, the SDK client is closed when the app shuts down. */
   @Test
   void makesTheBedrockClientBeanOnlyInBedrockMode() {
@@ -110,5 +169,9 @@ class ClassifierConfigurationTest {
     runner
         .withPropertyValues(PREFIX + "mode=bedrock", PREFIX + "calls-per-minute=0")
         .run(context -> assertThat(context).hasFailed());
+  }
+
+  private static ArticleToClassify article(String headline) {
+    return new ArticleToClassify(UUID.randomUUID(), 1, headline, "Text");
   }
 }

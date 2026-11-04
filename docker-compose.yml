@@ -94,6 +94,9 @@ services:
       # Only for the end-to-end test (#154): a headline containing this marker is green. Empty
       # (default): no headline is.
       RAINMAKER_FAKE_GREEN_MARKER: ${RAINMAKER_FAKE_GREEN_MARKER:-}
+      # For a local demo without Claude (#261): the test site's articles get known answers, e.g.
+      # classpath:content-intent/demo-classifications.json. Empty (default): none.
+      RAINMAKER_FAKE_CLASSIFICATIONS: ${RAINMAKER_FAKE_CLASSIFICATIONS:-}
       # How often G2 reads the test site's feed: every minute; the end-to-end test shortens it.
       RAINMAKER_FEED_POLL_INTERVAL: ${RAINMAKER_FEED_POLL_INTERVAL:-1m}
       # G2 fetches the offers from G3 (#149, #190). G2 shares the test site's network, where
