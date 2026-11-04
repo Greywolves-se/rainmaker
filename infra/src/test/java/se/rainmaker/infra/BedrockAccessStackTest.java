@@ -19,7 +19,9 @@ class BedrockAccessStackTest {
   private static final String ACCOUNT = "111111111111";
 
   private static final String PROFILE_ARN =
-      "arn:aws:bedrock:eu-north-1:" + ACCOUNT + ":inference-profile/eu.anthropic.claude-haiku-5-5";
+      "arn:aws:bedrock:eu-north-1:"
+          + ACCOUNT
+          + ":inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0";
 
   private Template template;
 
@@ -45,7 +47,9 @@ class BedrockAccessStackTest {
         BedrockModelAccessTest.EU_REGIONS.stream()
             .map(
                 region ->
-                    "arn:aws:bedrock:" + region + "::foundation-model/anthropic.claude-haiku-5-5")
+                    "arn:aws:bedrock:"
+                        + region
+                        + "::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0")
             .toList();
 
     template.hasResourceProperties(

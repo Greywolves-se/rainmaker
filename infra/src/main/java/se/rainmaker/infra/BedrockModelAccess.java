@@ -18,8 +18,10 @@ import software.constructs.Construct;
  * bedrock:InferenceProfileArn}), so the base model cannot be called directly, and the resource list
  * keeps every call inside the EU regions.
  *
- * @param inferenceProfileId the EU inference profile, e.g. {@code eu.anthropic.claude-haiku-5-5}
- * @param foundationModelId the model the profile routes to, e.g. {@code anthropic.claude-haiku-5-5}
+ * @param inferenceProfileId the EU inference profile, e.g. {@code
+ *     eu.anthropic.claude-haiku-4-5-20251001-v1:0}
+ * @param foundationModelId the model the profile routes to, e.g. {@code
+ *     anthropic.claude-haiku-4-5-20251001-v1:0}
  * @param destinationRegions the regions the profile routes to; all must be EU regions
  */
 public record BedrockModelAccess(

@@ -15,7 +15,7 @@ are created with CDK through the pipeline, never by hand in the console.
 |---|---|---|
 | `GithubDeployAccess-staging` | GitHub OIDC provider and the `github-actions-rainmaker` role with three inline policies: `ecr-push-mission-control` (push the images), `ecs-deploy-mission-control-web` (roll out the web service) and `read-mission-control-secrets` (read the collector's OpenAI key, see below). Only jobs in the GitHub environment `staging` of `Greywolves-se/rainmaker` can assume the role. `docker.yml` uses it. | #61, #82, #112 |
 
-| `BedrockAccess-dev` | The `rainmaker-g2-content-app` role: ECS tasks in the dev account may call Claude Haiku 5.5 through the EU inference profile, and nothing else. See "Dev account and Bedrock" below. | #161 |
+| `BedrockAccess-dev` | The `rainmaker-g2-content-app` role: ECS tasks in the dev account may call Claude Haiku 4.5 through the EU inference profile, and nothing else. See "Dev account and Bedrock" below. | #161 |
 
 ECR repositories and the ECS service follow in #62.
 
@@ -164,20 +164,27 @@ organisation, billing and IAM Identity Center, never workloads (decided 22 Oct 2
 | Setting | Value |
 |---|---|
 | Region | `eu-north-1` (Stockholm) |
-| Model id to call | `eu.anthropic.claude-haiku-5-5` (the EU cross-region inference profile) |
+| Model id to call | `eu.anthropic.claude-haiku-4-5-20251001-v1:0` (the EU cross-region inference profile) |
 | Credentials | Locally: `AWS_PROFILE` of your SSO profile. In AWS: the task role |
 
-Call the **profile id**, not the base model id `anthropic.claude-haiku-5-5`. The role only
+Call the **profile id**, not the base model id `anthropic.claude-haiku-4-5-20251001-v1:0`. The role only
 allows the model *through* the profile, which may route a request to any of the six EU regions
 in `cdk.json` (`rainmaker:bedrock`). Changing the model is a change to that context block.
+
+**Why Haiku 4.5, not 5.5 (4 Nov 2026):** the dev account's quota for Claude Haiku 5.5
+cross-region tokens per minute was 0 (21 Oct) and the increase never came, so the team switched
+to Claude Haiku 4.5, which has quota. The ids, the profile ARN and the six destination regions
+were read from AWS (`aws bedrock list-inference-profiles` / `get-inference-profile`) on 4 Nov 2026;
+`BedrockModelAccessTest.cdkJsonNamesTheVerifiedModelAndRegions` pins them.
 
 ### What the G2 role may do
 
 `bedrock:InvokeModel` (which also covers the Converse API) on two kinds of resource:
 
 1. the inference profile
-   `arn:aws:bedrock:eu-north-1:<dev account>:inference-profile/eu.anthropic.claude-haiku-5-5`;
-2. `arn:aws:bedrock:<region>::foundation-model/anthropic.claude-haiku-5-5` in each of the six EU
+   `arn:aws:bedrock:eu-north-1:<dev account>:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0`;
+2. `arn:aws:bedrock:<region>::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0` in each of
+   the six EU
    destination regions, **only** when the request comes through that profile (condition
    `bedrock:InferenceProfileArn`). Calling the base model directly is denied.
 
@@ -215,8 +222,11 @@ work as before. Before the first deploy the dev account must be bootstrapped onc
   call (input and output tokens), and nothing calls it until #148 runs with this role or an SSO
   login. The CDK bootstrap adds an S3 bucket and an ECR repository that cost fractions of a cent
   a month while nearly empty.
-- **Quota:** the quota for Claude Haiku 5.5 cross-region tokens per minute is **0** in the dev
-  account (21 Oct 2026). Every call is rejected until an increase is requested in Service Quotas.
+- **Quota (4 Nov 2026):** Claude Haiku 4.5 cross-region inference in the dev account allows
+  **50 requests per minute** (the default is 10 000) and **5 000 000 tokens per minute**. G2's own
+  limit is 20 calls per minute (`calls-per-minute`, retries included), well under 50. Model access
+  is authorized; `agreementAvailability` showed `NOT_AVAILABLE`, which should clear on the first
+  call. If the first call fails, check that first.
 - **Where to see the cost:** Billing and Cost Management, Cost Explorer, filter *Service* =
   *Amazon Bedrock*. A Cost Anomaly Detection alert follows in the second #161 PR; a Bedrock-only
   budget can be added once Bedrock has billing history.
