@@ -5,7 +5,8 @@ are created with CDK through the pipeline, never by hand in the console.
 
 - One stack per environment: **staging** (account `659947636280`) and **dev** (the member account
   `rainmaker-dev`, #161), both in `eu-north-1` (Stockholm). Accounts and regions are context in
-  `cdk.json`; the dev account id is not committed (see "Dev account and Bedrock" below).
+  `cdk.json`, the dev account (`034220091974`) next to staging's. Account ids aren't secret (AWS);
+  name the stack in every `cdk` command, since staging and dev are different accounts.
 - Package `se.rainmaker.infra`. The module inherits Spotless, Checkstyle and JaCoCo from the
   root POM (#39).
 
@@ -42,13 +43,15 @@ Needs the CDK CLI (`npm install -g aws-cdk`) and credentials for the staging acc
 Run from `infra/`:
 
 ```
-cdk synth     # writes the templates to cdk.out/ (git-ignored)
-cdk diff      # shows what would change in AWS; paste the output into infra PRs
-cdk deploy    # changes AWS; only through the pipeline or with senior approval
+cdk synth                               # writes the templates to cdk.out/ (git-ignored)
+cdk diff   GithubDeployAccess-staging   # what would change in AWS; paste it into infra PRs
+cdk deploy GithubDeployAccess-staging   # changes AWS; only through the pipeline or with senior approval
 ```
 
-`cdk.json` starts the app with `../mvnw`, which works in Linux, macOS, CI and WSL. On
-Windows, run `cdk` from WSL; plain `cmd.exe` cannot run `../mvnw`.
+Name the stack: the app also defines the dev stacks, which live in another account (see "Dev
+account and Bedrock"). `cdk.json` starts the app with `../mvnw`, which works in Linux, macOS, CI
+and WSL. On Windows, use WSL or Git Bash with `--app '..mvnw.cmd -q compile exec:java'`; plain
+`cmd.exe` cannot run `../mvnw`.
 
 Never print or commit secret values. Reference secrets by name or ARN (see CLAUDE.md).
 
@@ -203,16 +206,21 @@ Set `AWS_PROFILE=rainmaker-dev` (or pass the profile to the SDK); the AWS SDK pi
 
 ### Synth, diff and deploy for dev
 
-The dev account id is passed on the command line, never committed (the repository is public):
+The dev account and region come from `cdk.json` (`rainmaker:dev`); the region must be an EU
+region. Name the stack, and use an admin profile for the dev account:
 
 ```
-cdk diff   -c rainmaker:dev-account=<dev account id> --profile <admin profile> BedrockAccess-dev
-cdk deploy -c rainmaker:dev-account=<dev account id> --profile <admin profile> BedrockAccess-dev
+cdk diff   --profile <admin profile> BedrockAccess-dev
+cdk deploy --profile <admin profile> BedrockAccess-dev
 ```
 
-Without `-c rainmaker:dev-account=...` the dev stacks are left out, and the staging commands
-work as before. Before the first deploy the dev account must be bootstrapped once
-(`cdk bootstrap aws://<dev account id>/eu-north-1`); see the change log, C-3 and C-4.
+Before the first deploy the dev account must be bootstrapped once
+(`cdk bootstrap aws://034220091974/eu-north-1`); see the change log, C-3 and C-4.
+
+**On Windows:** run `cdk` from Git Bash as `npx aws-cdk ...` with
+`--app '..mvnw.cmd -q compile exec:java'` (plain `cmd.exe` can't run `../mvnw`). If CDK doesn't
+find your SSO login, load it into the shell first and leave out `--profile`:
+`eval "$(aws configure export-credentials --profile <admin profile> --format env)"`.
 
 ### Cost
 

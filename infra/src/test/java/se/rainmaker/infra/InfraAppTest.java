@@ -10,15 +10,14 @@ import software.amazon.awscdk.App;
 import software.amazon.awscdk.Stack;
 
 /**
- * Which stacks the app defines, and in which account. Accounts and regions come from cdk.json
- * context; the dev account is passed on the command line, so it never has to be committed.
+ * Which stacks the app defines, and in which account and region; both come from cdk.json context.
  */
 class InfraAppTest {
 
   private static Map<String, Object> context() {
     Map<String, Object> context = new HashMap<>();
     context.put("rainmaker:staging", Map.of("account", "659947636280", "region", "eu-north-1"));
-    context.put("rainmaker:dev", Map.of("region", "eu-north-1"));
+    context.put("rainmaker:dev", Map.of("account", "111111111111", "region", "eu-north-1"));
     context.put("rainmaker:bedrock", BedrockModelAccessTest.bedrockContext());
     return context;
   }
@@ -42,32 +41,33 @@ class InfraAppTest {
   }
 
   @Test
-  void putsTheBedrockStackInTheDevAccountFromTheCommandLine() {
-    Map<String, Object> context = context();
-    context.put("rainmaker:dev-account", "111111111111");
-
-    Stack bedrock = stack(defineStacks(context), "BedrockAccess-dev");
+  void putsTheBedrockStackInTheDevAccountFromCdkJson() {
+    Stack bedrock = stack(defineStacks(context()), "BedrockAccess-dev");
 
     assertThat(bedrock.getAccount()).isEqualTo("111111111111");
     assertThat(bedrock.getRegion()).isEqualTo("eu-north-1");
   }
 
   @Test
-  void leavesOutTheDevStacksWithoutDevAccount() {
-    App app = defineStacks(context());
+  void refusesDevContextWithoutAccount() {
+    Map<String, Object> context = context();
+    context.put("rainmaker:dev", Map.of("region", "eu-north-1"));
 
-    assertThat(app.getNode().tryFindChild("BedrockAccess-dev")).isNull();
-    assertThat(app.getNode().tryFindChild("GithubDeployAccess-staging")).isNotNull();
+    assertThatThrownBy(() -> defineStacks(context))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("rainmaker:dev")
+        .hasMessageContaining("account");
   }
 
   @Test
   void refusesDevAccountThatIsNoAccountId() {
     Map<String, Object> context = context();
-    context.put("rainmaker:dev-account", "greywolves");
+    context.put("rainmaker:dev", Map.of("account", "greywolves", "region", "eu-north-1"));
 
     assertThatThrownBy(() -> defineStacks(context))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("rainmaker:dev-account");
+        .hasMessageContaining("rainmaker:dev")
+        .hasMessageContaining("12-digit");
   }
 
   /**
@@ -76,8 +76,7 @@ class InfraAppTest {
   @Test
   void refusesDevRegionOutsideTheEu() {
     Map<String, Object> context = context();
-    context.put("rainmaker:dev", Map.of("region", "us-east-1"));
-    context.put("rainmaker:dev-account", "111111111111");
+    context.put("rainmaker:dev", Map.of("account", "111111111111", "region", "us-east-1"));
 
     assertThatThrownBy(() -> defineStacks(context))
         .isInstanceOf(IllegalArgumentException.class)

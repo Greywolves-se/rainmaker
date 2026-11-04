@@ -6,6 +6,7 @@
       "region": "eu-north-1"
     },
     "rainmaker:dev": {
+      "account": "034220091974",
       "region": "eu-north-1"
     },
     "rainmaker:bedrock": {
