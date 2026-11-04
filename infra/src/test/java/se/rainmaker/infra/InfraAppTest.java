@@ -14,13 +14,20 @@ import software.amazon.awscdk.Stack;
  */
 class InfraAppTest {
 
+  private static final String INSTANCE_ARN = "arn:aws:sso:::instance/ssoins-0000000000000000";
+
   private static Map<String, Object> context() {
     Map<String, Object> context = new HashMap<>();
     context.put("rainmaker:staging", Map.of("account", "659947636280", "region", "eu-north-1"));
     context.put("rainmaker:dev", Map.of("account", "111111111111", "region", "eu-north-1"));
     context.put("rainmaker:bedrock", BedrockModelAccessTest.bedrockContext());
     context.put("rainmaker:cost-alerts", Map.of("thresholdUsd", 5));
+    context.put("rainmaker:sso", sso("222222222222", INSTANCE_ARN));
     return context;
+  }
+
+  private static Map<String, Object> sso(String account, String instanceArn) {
+    return Map.of("account", account, "instanceArn", instanceArn);
   }
 
   private static App defineStacks(Map<String, Object> context) {
@@ -58,49 +65,44 @@ class InfraAppTest {
   }
 
   @Test
-  void addsTheDeveloperPermissionSetOnlyWithIdentityCenterInstanceAndAccount() {
-    Map<String, Object> context = context();
-    assertThat(defineStacks(context).getNode().tryFindChild("DeveloperAccess-dev")).isNull();
-
-    context.put("rainmaker:sso-instance-arn", "arn:aws:sso:::instance/ssoins-0000000000000000");
-    assertThat(defineStacks(context).getNode().tryFindChild("DeveloperAccess-dev")).isNull();
-
-    context.put("rainmaker:sso-account", "222222222222");
-    assertThat(defineStacks(context).getNode().tryFindChild("DeveloperAccess-dev")).isNotNull();
-  }
-
-  @Test
-  void putsThePermissionSetInTheIdentityCenterAccount() {
-    Map<String, Object> context = context();
-    context.put("rainmaker:sso-instance-arn", "arn:aws:sso:::instance/ssoins-0000000000000000");
-    context.put("rainmaker:sso-account", "222222222222");
-
-    Stack developerAccess = stack(defineStacks(context), "DeveloperAccess-dev");
+  void putsThePermissionSetInTheIdentityCenterAccountFromCdkJson() {
+    Stack developerAccess = stack(defineStacks(context()), "DeveloperAccess-dev");
 
     assertThat(developerAccess.getAccount()).isEqualTo("222222222222");
     assertThat(developerAccess.getRegion()).isEqualTo("eu-north-1");
   }
 
   @Test
-  void refusesSsoAccountThatIsNoAccountId() {
+  void refusesSsoContextWithoutInstance() {
     Map<String, Object> context = context();
-    context.put("rainmaker:sso-instance-arn", "arn:aws:sso:::instance/ssoins-0000000000000000");
-    context.put("rainmaker:sso-account", "management");
+    context.put("rainmaker:sso", Map.of("account", "222222222222"));
 
     assertThatThrownBy(() -> defineStacks(context))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("rainmaker:sso-account");
+        .hasMessageContaining("rainmaker:sso")
+        .hasMessageContaining("instanceArn");
+  }
+
+  @Test
+  void refusesSsoAccountThatIsNoAccountId() {
+    Map<String, Object> context = context();
+    context.put("rainmaker:sso", sso("management", INSTANCE_ARN));
+
+    assertThatThrownBy(() -> defineStacks(context))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("rainmaker:sso")
+        .hasMessageContaining("12-digit");
   }
 
   @Test
   void refusesSomethingElseAsIdentityCenterInstance() {
     Map<String, Object> context = context();
-    context.put("rainmaker:sso-account", "222222222222");
-    context.put("rainmaker:sso-instance-arn", "ssoins-0000000000000000");
+    context.put("rainmaker:sso", sso("222222222222", "ssoins-0000000000000000"));
 
     assertThatThrownBy(() -> defineStacks(context))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("rainmaker:sso-instance-arn");
+        .hasMessageContaining("rainmaker:sso")
+        .hasMessageContaining("instance ARN");
   }
 
   @Test

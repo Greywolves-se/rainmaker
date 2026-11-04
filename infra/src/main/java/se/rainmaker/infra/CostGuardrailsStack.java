@@ -17,9 +17,10 @@ import software.constructs.Construct;
  * service, Bedrock included, and alerts an SNS topic at once when an anomaly reaches the threshold.
  *
  * <p>No e-mail address is in the code (the repository is public). People subscribe themselves to
- * the topic {@code rainmaker-cost-alerts} once, in the SNS console, and confirm the e-mail. All of
- * this is free: Cost Anomaly Detection costs nothing, and SNS e-mails stay within the free tier.
- * The topic is not encrypted with a customer-managed KMS key, which would cost about $1 a month.
+ * the topic {@code rainmaker-cost-alerts} once with {@code aws sns subscribe} (see the README), and
+ * confirm the e-mail. All of this is free: Cost Anomaly Detection costs nothing, and SNS e-mails
+ * stay within the free tier. The topic is not encrypted with a customer-managed KMS key, which
+ * would cost about $1 a month.
  *
  * <p>A budget for Bedrock alone cannot be filtered until Bedrock has billing history. Until then
  * the rainmaker-dev budget covers it: 100 USD a month, kept in the management account, with the

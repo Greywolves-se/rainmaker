@@ -9,6 +9,10 @@
       "account": "034220091974",
       "region": "eu-north-1"
     },
+    "rainmaker:sso": {
+      "account": "254212224361",
+      "instanceArn": "arn:aws:sso:::instance/ssoins-650808ab49c5db4c"
+    },
     "rainmaker:cost-alerts": {
       "thresholdUsd": 5
     },

@@ -26,8 +26,8 @@ public class DeveloperAccessStack extends Stack {
    * @param model which model may be called, from the {@code rainmaker:bedrock} context
    * @param bedrockAccount the dev account, where the developers call Bedrock
    * @param bedrockRegion the region they send their requests to
-   * @param identityCenterInstanceArn the Identity Center instance, passed with {@code -c
-   *     rainmaker:sso-instance-arn=<arn>}
+   * @param identityCenterInstanceArn the Identity Center instance, from the {@code rainmaker:sso}
+   *     context
    */
   public DeveloperAccessStack(
       Construct scope,

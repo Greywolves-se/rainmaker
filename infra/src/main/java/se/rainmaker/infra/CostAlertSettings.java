@@ -1,6 +1,7 @@
 package se.rainmaker.infra;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 import software.constructs.Construct;
 
 /**
@@ -16,20 +17,33 @@ public record CostAlertSettings(int thresholdUsd, String existingMonitorArn) {
   static final String CONTEXT_KEY = "rainmaker:cost-alerts";
   static final String EXISTING_MONITOR_KEY = "rainmaker:existing-cost-monitor-arn";
 
-  /** Checks that the threshold is positive. */
+  private static final Pattern MONITOR_ARN =
+      Pattern.compile("^arn:aws:ce::\\d{12}:anomalymonitor/[0-9a-zA-Z-]+$");
+
+  /** Checks that the threshold is positive and the existing monitor, if any, is a monitor ARN. */
   public CostAlertSettings {
     if (thresholdUsd <= 0) {
       throw new IllegalArgumentException(
           "CDK context \"" + CONTEXT_KEY + "\": thresholdUsd must be at least 1: " + thresholdUsd);
+    }
+    if (existingMonitorArn != null && !MONITOR_ARN.matcher(existingMonitorArn).matches()) {
+      throw new IllegalArgumentException(
+          "CDK context \""
+              + EXISTING_MONITOR_KEY
+              + "\" must be a cost anomaly monitor ARN: "
+              + existingMonitorArn);
     }
   }
 
   /** Reads the settings from the context. */
   public static CostAlertSettings fromContext(Construct scope) {
     Map<?, ?> settings = ContextValues.requireObject(scope, CONTEXT_KEY);
-    if (!(settings.get("thresholdUsd") instanceof Number threshold)) {
+    if (!(settings.get("thresholdUsd") instanceof Number threshold)
+        || threshold.doubleValue() != threshold.intValue()) {
       throw new IllegalArgumentException(
-          "CDK context \"" + CONTEXT_KEY + "\": \"thresholdUsd\" must be a number");
+          "CDK context \""
+              + CONTEXT_KEY
+              + "\": \"thresholdUsd\" must be a whole number of dollars");
     }
     Object existing = scope.getNode().tryGetContext(EXISTING_MONITOR_KEY);
     return new CostAlertSettings(

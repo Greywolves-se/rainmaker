@@ -16,8 +16,7 @@ public final class InfraApp {
 
   static final String STAGING = "rainmaker:staging";
   static final String DEV = "rainmaker:dev";
-  static final String SSO_INSTANCE_ARN = "rainmaker:sso-instance-arn";
-  static final String SSO_ACCOUNT = "rainmaker:sso-account";
+  static final String SSO = "rainmaker:sso";
 
   private static final Pattern ACCOUNT_ID = Pattern.compile("^\\d{12}$");
   private static final Pattern SSO_INSTANCE =
@@ -62,27 +61,17 @@ public final class InfraApp {
         app, "CostGuardrails-dev", devProps, CostAlertSettings.fromContext(app));
 
     // The permission set lives where IAM Identity Center is (the management account), and grants
-    // Bedrock in the dev account. Without both values the stack is left out, so the other dev
-    // stacks still work.
-    Object instanceArn = app.getNode().tryGetContext(SSO_INSTANCE_ARN);
-    Object ssoAccount = app.getNode().tryGetContext(SSO_ACCOUNT);
-    if (instanceArn == null || ssoAccount == null) {
-      System.err.println(
-          "DeveloperAccess-dev left out: add -c "
-              + SSO_INSTANCE_ARN
-              + "=<arn> and -c "
-              + SSO_ACCOUNT
-              + "=<account id> to include it.");
-      return;
-    }
-    if (!(instanceArn instanceof String arn) || !SSO_INSTANCE.matcher(arn).matches()) {
+    // Bedrock in the dev account.
+    Map<?, ?> sso = ContextValues.requireObject(app, SSO);
+    String identityCenterAccount = ContextValues.requireText(sso, SSO, "account");
+    if (!ACCOUNT_ID.matcher(identityCenterAccount).matches()) {
       throw new IllegalArgumentException(
-          "CDK context \"" + SSO_INSTANCE_ARN + "\" must be an Identity Center instance ARN");
+          "CDK context \"" + SSO + "\": account must be a 12-digit AWS account id");
     }
-    if (!(ssoAccount instanceof String identityCenterAccount)
-        || !ACCOUNT_ID.matcher(identityCenterAccount).matches()) {
+    String arn = ContextValues.requireText(sso, SSO, "instanceArn");
+    if (!SSO_INSTANCE.matcher(arn).matches()) {
       throw new IllegalArgumentException(
-          "CDK context \"" + SSO_ACCOUNT + "\" must be a 12-digit AWS account id");
+          "CDK context \"" + SSO + "\": instanceArn must be an Identity Center instance ARN");
     }
     new DeveloperAccessStack(
         app,

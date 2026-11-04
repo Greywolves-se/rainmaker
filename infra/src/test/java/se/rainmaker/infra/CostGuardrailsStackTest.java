@@ -121,4 +121,23 @@ class CostGuardrailsStackTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("thresholdUsd");
   }
+
+  @Test
+  void refusesThresholdWithDecimals() {
+    App app =
+        App.Builder.create()
+            .context(Map.of("rainmaker:cost-alerts", Map.of("thresholdUsd", 2.5)))
+            .build();
+
+    assertThatThrownBy(() -> CostAlertSettings.fromContext(app))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("whole number");
+  }
+
+  @Test
+  void refusesSomethingElseAsExistingMonitor() {
+    assertThatThrownBy(() -> new CostAlertSettings(5, "abc-123"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("rainmaker:existing-cost-monitor-arn");
+  }
 }
