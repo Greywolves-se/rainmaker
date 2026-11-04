@@ -14,10 +14,14 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-/** G3 reads a snapshot of G2's recent articles (#150, contract 7.1), with timeouts and retries. */
+/**
+ * G3 reads a snapshot of G2's recent articles (#150, contract 7.1), with timeouts and retries, and
+ * one article on the reader path with a short time budget and a circuit breaker (#230).
+ */
 class G2ArticlesClientTest {
 
   private static final String ARTICLES = "/api/articles";
@@ -30,7 +34,30 @@ class G2ArticlesClientTest {
   static WireMockExtension g2 =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
+  private static final String ARTICLE = "http://localhost:3000/artikel/badrummet";
+
+  /**
+   * Generous, so the reader client's first request, which also warms up WireMock and the HTTP
+   * client, isn't cut off on a slow machine (#211); {@link #readerCallGivesUpAfterOneAttempt} uses
+   * a short one.
+   */
+  private static final Duration READER_READ_TIMEOUT = Duration.ofSeconds(5);
+
+  private static final ArticlesProperties.CircuitBreaker NEVER_OPENS =
+      new ArticlesProperties.CircuitBreaker(10, 10, 50, Duration.ofMinutes(1));
+
+  /** Opens after two failed calls of the last two, for a minute. */
+  private static final ArticlesProperties.CircuitBreaker OPENS_QUICKLY =
+      new ArticlesProperties.CircuitBreaker(2, 2, 50, Duration.ofMinutes(1));
+
+  private final TestClock clock = new TestClock(Instant.parse("2026-11-02T18:00:00Z"));
+
   private G2ArticlesClient client() {
+    return client(READER_READ_TIMEOUT, NEVER_OPENS);
+  }
+
+  private G2ArticlesClient client(
+      Duration readerReadTimeout, ArticlesProperties.CircuitBreaker breaker) {
     return new G2ArticlesClient(
         new ArticlesProperties(
             URI.create(g2.baseUrl()),
@@ -40,7 +67,9 @@ class G2ArticlesClientTest {
             Duration.ofMillis(10),
             Duration.ofSeconds(5),
             100,
-            true));
+            new ArticlesProperties.Reader(Duration.ofSeconds(1), readerReadTimeout, breaker),
+            true),
+        clock);
   }
 
   @Test
@@ -115,5 +144,99 @@ class G2ArticlesClientTest {
     g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(okJson("{}")));
 
     assertThatThrownBy(() -> client().recent()).isInstanceOf(ArticlesUnavailableException.class);
+  }
+
+  // ---------------------------------------------------------------- the reader path (#230)
+
+  /** One attempt only: the reader has already been given up on by G1 after its own timeout. */
+  @Test
+  void readerCallGivesUpAfterOneAttempt() {
+    g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(okJson(NO_ARTICLES).withFixedDelay(1_000)));
+
+    assertThatThrownBy(() -> client(Duration.ofMillis(300), NEVER_OPENS).current(ARTICLE, null))
+        .isInstanceOf(ArticlesUnavailableException.class);
+    g2.verify(1, getRequestedFor(urlPathEqualTo(ARTICLES)));
+  }
+
+  @Test
+  void readerCallIsNotRetriedOnServerError() {
+    g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(aResponse().withStatus(503)));
+
+    assertThatThrownBy(() -> client().current(ARTICLE, null))
+        .isInstanceOf(ArticlesUnavailableException.class)
+        .hasMessageContaining("503");
+    g2.verify(1, getRequestedFor(urlPathEqualTo(ARTICLES)));
+  }
+
+  /** While G2 keeps failing, the reader path stops asking it and answers at once. */
+  @Test
+  void readerCircuitOpensAndThenG2IsNotCalled() {
+    G2ArticlesClient client = client(READER_READ_TIMEOUT, OPENS_QUICKLY);
+    g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(aResponse().withStatus(500)));
+    failTwice(client);
+
+    assertThatThrownBy(() -> client.current(ARTICLE, null))
+        .isInstanceOf(ArticlesUnavailableException.class)
+        .hasMessageContaining("circuit is open");
+    g2.verify(2, getRequestedFor(urlPathEqualTo(ARTICLES)));
+  }
+
+  @Test
+  void readerCircuitLetsTrialCallThroughAfterOpenForAndClosesOnSuccess() {
+    G2ArticlesClient client = client(READER_READ_TIMEOUT, OPENS_QUICKLY);
+    g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(aResponse().withStatus(500)));
+    failTwice(client);
+    g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(okJson(NO_ARTICLES)));
+
+    // The trial call is allowed only once the open time has passed, not at exactly one minute.
+    clock.advance(Duration.ofMinutes(1).plusSeconds(1));
+
+    assertThat(client.current(ARTICLE, null)).isEmpty();
+    assertThat(client.current(ARTICLE, null)).isEmpty();
+    g2.verify(4, getRequestedFor(urlPathEqualTo(ARTICLES)));
+  }
+
+  /** A bad request says nothing about G2's health, so it never opens the circuit. */
+  @Test
+  void clientErrorsNeverOpenTheReaderCircuit() {
+    G2ArticlesClient client = client(READER_READ_TIMEOUT, OPENS_QUICKLY);
+    g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(aResponse().withStatus(400)));
+    failTwice(client);
+
+    assertThatThrownBy(() -> client.current(ARTICLE, null))
+        .isInstanceOf(ArticlesUnavailableException.class)
+        .hasMessageContaining("400");
+    g2.verify(3, getRequestedFor(urlPathEqualTo(ARTICLES)));
+  }
+
+  /** The poll keeps its own timeouts and retries, and isn't stopped by the reader's circuit. */
+  @Test
+  void pollStillRetriesWhileTheReaderCircuitIsOpen() {
+    G2ArticlesClient client = client(READER_READ_TIMEOUT, OPENS_QUICKLY);
+    g2.stubFor(get(urlPathEqualTo(ARTICLES)).willReturn(aResponse().withStatus(500)));
+    failTwice(client);
+    g2.resetAll();
+    g2.stubFor(
+        get(urlPathEqualTo(ARTICLES))
+            .inScenario("slow restart")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(aResponse().withStatus(503))
+            .willSetStateTo("up"));
+    g2.stubFor(
+        get(urlPathEqualTo(ARTICLES))
+            .inScenario("slow restart")
+            .whenScenarioStateIs("up")
+            .willReturn(okJson(NO_ARTICLES)));
+
+    assertThat(client.recent().articles()).isEmpty();
+    g2.verify(2, getRequestedFor(urlPathEqualTo(ARTICLES)));
+    assertThatThrownBy(() -> client.current(ARTICLE, null)).hasMessageContaining("circuit is open");
+  }
+
+  private static void failTwice(G2ArticlesClient client) {
+    for (int call = 0; call < 2; call++) {
+      assertThatThrownBy(() -> client.current(ARTICLE, null))
+          .isInstanceOf(ArticlesUnavailableException.class);
+    }
   }
 }
