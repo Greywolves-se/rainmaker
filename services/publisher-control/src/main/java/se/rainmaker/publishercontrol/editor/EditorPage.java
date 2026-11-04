@@ -19,6 +19,11 @@ import se.rainmaker.publishercontrol.editor.EditorArticles.EditorSuggestion;
  * Writes the editor page's HTML (#150, contract 7.6). The labels come from {@code
  * publisher-control/messages*.properties}, in Swedish or English; text from G2 and the offers is
  * shown as it is, always HTML-escaped. The design is plain on purpose (#150).
+ *
+ * <p>Its one script (#269) sends Approve and Reject in the background and replaces only that
+ * suggestion's line with the one from the page G3 answers with, so the page doesn't reload or
+ * scroll. It holds no texts of its own. Without JavaScript, or when anything goes wrong, the form
+ * is sent the ordinary way.
  */
 @Component
 class EditorPage {
@@ -38,6 +43,9 @@ class EditorPage {
       article { border-top: 1px solid #ccc; padding: 0.5rem 0 1rem; }
       .zone-green { color: #1f7a4d; } .zone-yellow { color: #8a5a00; } .zone-red { color: #b3261e; }
       li { margin: 0.5rem 0; } form { display: inline; }
+      article:target { scroll-margin-top: 1rem; }
+      .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden;
+        clip-path: inset(50%%); white-space: nowrap; }
       </style>
       </head>
       <body>
@@ -46,6 +54,38 @@ class EditorPage {
       <main>
       %s
       </main>
+      <p id="decision-status" class="visually-hidden" aria-live="polite"></p>
+      <script>
+      document.addEventListener('submit', async event => {
+        const form = event.target;
+        const line = form.closest('li[id^="s-"]');
+        if (!line) {
+          return;
+        }
+        event.preventDefault();
+        line.querySelectorAll('button').forEach(button => {
+          button.disabled = true;
+        });
+        try {
+          const answer = await fetch(form.action, {method: 'POST'});
+          if (!answer.ok) {
+            throw new Error('G3 answered ' + answer.status);
+          }
+          const page = new DOMParser().parseFromString(await answer.text(), 'text/html');
+          const updated = page.getElementById(line.id);
+          if (!updated) {
+            throw new Error('The suggestion is no longer on the page');
+          }
+          const replacement = document.importNode(updated, true);
+          line.replaceWith(replacement);
+          const status = replacement.querySelector('.status');
+          document.getElementById('decision-status').textContent = status ? status.textContent : '';
+          (replacement.querySelector('button') || replacement).focus({preventScroll: true});
+        } catch {
+          form.submit();
+        }
+      });
+      </script>
       </body>
       </html>
       """;
@@ -143,10 +183,11 @@ class EditorPage {
             .map(topic -> messages.getMessage("topic." + topic, null, topic, locale))
             .collect(Collectors.joining(", "));
     StringBuilder html = new StringBuilder();
-    html.append("<li id=\"s-").append(suggestion.suggestionId()).append("\">");
+    // Focusable from script (tabindex -1), for when a decision leaves the line without buttons.
+    html.append("<li id=\"s-").append(suggestion.suggestionId()).append("\" tabindex=\"-1\">");
     html.append(offer).append("<br>\n");
     html.append(escaped(message("suggestion.matches", locale, topics))).append(" · ");
-    html.append("<strong>")
+    html.append("<strong class=\"status\">")
         .append(escaped(message("suggestion." + suggestion.status(), locale)))
         .append("</strong>\n");
     // The button for the decision the suggestion already has is left out.

@@ -150,7 +150,7 @@ class EditorPageTest {
             .getResponse();
 
     assertThat(response.getStatus()).isEqualTo(303);
-    assertThat(response.getHeader(HttpHeaders.LOCATION)).isEqualTo(PAGE + "#s-" + home);
+    assertThat(response.getHeader(HttpHeaders.LOCATION)).isEqualTo(PAGE + "#a-" + article);
     assertThat(audit(home)).isEqualTo("approved by demo-editor");
     assertThat(articleOnPage(article, null)).contains("Godkänd");
   }
@@ -161,9 +161,44 @@ class EditorPageTest {
     UUID home = UUID.randomUUID();
     g2Sends(article(article, 1, "green", suggestion(home, HOME_OFFER, 1)));
 
-    mockMvc.perform(post("/publisher/suggestions/" + home + "/reject"));
+    MockHttpServletResponse response =
+        mockMvc
+            .perform(post("/publisher/suggestions/" + home + "/reject"))
+            .andReturn()
+            .getResponse();
 
+    assertThat(response.getStatus()).isEqualTo(303);
+    assertThat(response.getHeader(HttpHeaders.LOCATION)).isEqualTo(PAGE + "#a-" + article);
     assertThat(audit(home)).isEqualTo("rejected by demo-editor");
+  }
+
+  /**
+   * #269: with JavaScript, a decision replaces only its own line, which the script takes from the
+   * page by its id; the status it announces is the line's status element. The texts come from the
+   * page, so the script holds none of its own.
+   */
+  @Test
+  void suggestionLineHasWhatTheScriptNeeds() throws Exception {
+    UUID article = UUID.randomUUID();
+    UUID home = UUID.randomUUID();
+    g2Sends(article(article, 1, "green", suggestion(home, HOME_OFFER, 1)));
+
+    String page = page(null);
+
+    assertThat(page)
+        .contains("<li id=\"s-" + home + "\" tabindex=\"-1\">")
+        .contains("<strong class=\"status\">Föreslagen</strong>")
+        .contains("<p id=\"decision-status\" class=\"visually-hidden\" aria-live=\"polite\">")
+        .contains("<script>");
+    assertThat(page.substring(page.indexOf("<script>")))
+        .doesNotContain("Godkänd")
+        .doesNotContain("Approved");
+  }
+
+  /** #269: the article the page comes back to keeps a little space above it. */
+  @Test
+  void articleAnchorKeepsSpaceAbove() throws Exception {
+    assertThat(page(null)).contains("article:target { scroll-margin-top:");
   }
 
   @Test

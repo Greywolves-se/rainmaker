@@ -29,8 +29,9 @@ import se.rainmaker.publishercontrol.decision.SuggestionNotFoundException;
  *   <li>{@code GET /publisher/articles}: the recent articles with their zone, reason and
  *       suggestions.
  *   <li>{@code POST /publisher/suggestions/{id}/approve} and {@code …/reject}: decide, then go back
- *       to the page at that suggestion (303). A suggestion that is unknown (404) or can't be
- *       decided any more (409) gets a short page that says why.
+ *       to the page at that suggestion's article (303). A suggestion that is unknown (404) or can't
+ *       be decided any more (409) gets a short page that says why. With JavaScript, the page's
+ *       script sends the form itself and replaces only the suggestion's line (#269).
  * </ul>
  */
 @RestController
@@ -62,14 +63,12 @@ class EditorController {
 
   @PostMapping("/publisher/suggestions/{suggestionId}/approve")
   ResponseEntity<Void> approve(@PathVariable UUID suggestionId) {
-    decisions.approve(suggestionId, EDITOR);
-    return backTo(suggestionId);
+    return backTo(decisions.approve(suggestionId, EDITOR));
   }
 
   @PostMapping("/publisher/suggestions/{suggestionId}/reject")
   ResponseEntity<Void> reject(@PathVariable UUID suggestionId) {
-    decisions.reject(suggestionId, EDITOR);
-    return backTo(suggestionId);
+    return backTo(decisions.reject(suggestionId, EDITOR));
   }
 
   @ExceptionHandler(SuggestionNotFoundException.class)
@@ -82,10 +81,13 @@ class EditorController {
     return html(HttpStatus.CONFLICT, page.problem("error.not-decidable", language(request)));
   }
 
-  /** Post/redirect/get: a reload of the page doesn't send the decision again. */
-  private static ResponseEntity<Void> backTo(UUID suggestionId) {
+  /**
+   * Post/redirect/get: a reload of the page doesn't send the decision again. The page comes back at
+   * the whole article, with its headline and every suggestion in view (#269).
+   */
+  private static ResponseEntity<Void> backTo(UUID articleId) {
     return ResponseEntity.status(HttpStatus.SEE_OTHER)
-        .location(URI.create(PAGE + "#s-" + suggestionId))
+        .location(URI.create(PAGE + "#a-" + articleId))
         .build();
   }
 

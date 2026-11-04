@@ -1,5 +1,6 @@
 package se.rainmaker.publishercontrol.decision;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -36,27 +37,29 @@ public class SuggestionDecisions {
   /**
    * Approves the suggestion, so it may reach the widget.
    *
+   * @return the suggestion's article, so the editor page can come back to it (#269)
    * @throws SuggestionNotFoundException when there is no such suggestion
    * @throws SuggestionNotDecidableException when it is withdrawn or its article isn't green
    */
   @Transactional(PublisherControlDatabaseConfiguration.TRANSACTION_MANAGER)
-  public void approve(UUID suggestionId, String editor) {
-    decide(suggestionId, "approved", editor);
+  public UUID approve(UUID suggestionId, String editor) {
+    return decide(suggestionId, "approved", editor);
   }
 
   /**
    * Rejects the suggestion, so it never reaches the widget.
    *
+   * @return the suggestion's article, so the editor page can come back to it (#269)
    * @throws SuggestionNotFoundException when there is no such suggestion
    * @throws SuggestionNotDecidableException when it is withdrawn or its article isn't green
    */
   @Transactional(PublisherControlDatabaseConfiguration.TRANSACTION_MANAGER)
-  public void reject(UUID suggestionId, String editor) {
-    decide(suggestionId, "rejected", editor);
+  public UUID reject(UUID suggestionId, String editor) {
+    return decide(suggestionId, "rejected", editor);
   }
 
-  private void decide(UUID suggestionId, String decision, String editor) {
-    lockArticle(suggestionId);
+  private UUID decide(UUID suggestionId, String decision, String editor) {
+    UUID articleId = lockArticle(suggestionId).orElseThrow(() -> notDecidable(suggestionId));
     String current =
         database
             .sql(
@@ -74,7 +77,7 @@ public class SuggestionDecisions {
             .optional()
             .orElseThrow(() -> notDecidable(suggestionId));
     if (current.equals(decision)) {
-      return;
+      return articleId;
     }
     database
         .sql("UPDATE suggestion SET status = ? WHERE suggestion_id = ?")
@@ -84,16 +87,17 @@ public class SuggestionDecisions {
         .sql("INSERT INTO suggestion_audit (suggestion_id, action, decided_by) VALUES (?, ?, ?)")
         .params(suggestionId, decision, editor)
         .update();
+    return articleId;
   }
 
   /**
    * Locks the suggestion's article before the suggestion. The query in {@link #decide} locks the
    * rows of its join in {@code FROM} order, suggestion first; if a poll held the article and waited
    * for the suggestion, PostgreSQL would abort one of them. Nothing is locked for an unknown
-   * suggestion; {@link #decide} then reports it.
+   * suggestion: then it is empty, and {@link #decide} reports it.
    */
-  private void lockArticle(UUID suggestionId) {
-    database
+  private Optional<UUID> lockArticle(UUID suggestionId) {
+    return database
         .sql(
             """
             SELECT a.article_id FROM article a
