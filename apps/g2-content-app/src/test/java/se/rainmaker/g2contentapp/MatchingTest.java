@@ -45,6 +45,9 @@ import se.rainmaker.matchingranking.api.Suggestion;
 @SpringBootTest(
     properties = {
       "rainmaker.content-ingestion.feed.polling=false",
+      // Some tests count the calls to G3; a retry run (#248) on articles left waiting by another
+      // test class would add one.
+      "rainmaker.matching-ranking.retry.enabled=false",
       // The fake classifier's answer for a stored article (#209): green, topic "home".
       "rainmaker.content-intent.classifier.fake.zone=green"
     })

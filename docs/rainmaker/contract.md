@@ -271,7 +271,9 @@ Append-only. `clickId` is unique in the database (#153). No IP, no cookie, no us
   keys are kept in both G3 and G2.
 - Matching reads the offers from G3 (section 7.2), with timeouts and retries. If G3 still can't
   be reached, nothing new is stored and the error is logged; a new version still loses its old
-  set (D-5). The article is matched again the next time it is classified (decided in #149).
+  set (D-5). The version waits for offers, and matching tries it again on a schedule until G3
+  answers (#248); a later result for that version or a newer one ends the wait. "Nothing fits"
+  is a result, not an outage, so it isn't tried again.
 - Not green never waits for G3: the set is emptied at once.
 
 ---
@@ -585,8 +587,8 @@ Opening the link:
 
 ### 7.6 Editor page (G3, #150)
 
-An internal UI, under `/publisher/` so the paths don't clash with the fake-news site's own
-`/editor` (#159):
+An internal UI for the publisher's editor, under `/publisher/`. (The fake-news site has no editor
+page of its own: articles are published as files in `test-site/content/articles/`, #159.)
 
 | Method | Path | What |
 |---|---|---|

@@ -28,9 +28,9 @@ const PANEL_CSS = `
 `;
 
 /**
- * The host element's own tag, so page rules for ordinary elements (e.g. {@code div { padding }}) don't
- * match it. Rules that match every element (e.g. {@code body > *}) still can; nothing a script adds
- * to someone else's page is fully out of reach.
+ * The host element's own tag, so page rules for ordinary elements (e.g. `div { padding }`) don't
+ * match it. Rules that match every element (e.g. `body > *`) still can; nothing a script adds to
+ * someone else's page is fully out of reach.
  */
 const HOST_TAG = 'rainmaker-panel';
 
@@ -79,20 +79,22 @@ function element(tag: string, className: string, text: string): HTMLElement {
 }
 
 /**
- * A constructed stylesheet is not blocked by `style-src 'self'`, while a `<style>` element is.
- * Browsers without constructed stylesheets get the `<style>` element.
+ * Whether this browser can style the panel on any page (#187). The panel's CSS is a constructed
+ * stylesheet, which a Content-Security-Policy with `style-src 'self'` allows; a `<style>` element
+ * would be blocked there, and an unstyled ad could pass for the publisher's own content. Browsers
+ * without one (Safari before 16.4, Firefox before 101) get no next step at all.
  */
-function addStyles(shadow: ShadowRoot): void {
-  if (
-    'adoptedStyleSheets' in shadow &&
+export function canStylePanel(): boolean {
+  return (
+    typeof ShadowRoot === 'function' &&
+    'adoptedStyleSheets' in ShadowRoot.prototype &&
+    typeof CSSStyleSheet === 'function' &&
     typeof CSSStyleSheet.prototype.replaceSync === 'function'
-  ) {
-    const sheet = new CSSStyleSheet();
-    sheet.replaceSync(PANEL_CSS);
-    shadow.adoptedStyleSheets = [sheet];
-    return;
-  }
-  const style = document.createElement('style');
-  style.textContent = PANEL_CSS;
-  shadow.append(style);
+  );
+}
+
+function addStyles(shadow: ShadowRoot): void {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(PANEL_CSS);
+  shadow.adoptedStyleSheets = [sheet];
 }

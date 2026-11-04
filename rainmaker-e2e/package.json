@@ -1,0 +1,16 @@
+{
+  "name": "rainmaker-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end test of the Rainmaker demo's \"done means\" points against the local stack (#154).",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}
