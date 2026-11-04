@@ -3,7 +3,10 @@
 AWS CDK app (Java) that defines Rainmaker's AWS resources. CLAUDE.md: all AWS resources
 are created with CDK through the pipeline, never by hand in the console.
 
-- One stack per environment. Today only **staging** (account `659947636280`, `eu-north-1`).
+- One stack per environment: **staging** (account `659947636280`) and **dev** (the member account
+  `rainmaker-dev`, #161), both in `eu-north-1` (Stockholm). Accounts and regions are context in
+  `cdk.json`, the dev account (`034220091974`) next to staging's. Account ids aren't secret (AWS);
+  name the stack in every `cdk` command, since staging and dev are different accounts.
 - Package `se.rainmaker.infra`. The module inherits Spotless, Checkstyle and JaCoCo from the
   root POM (#39).
 
@@ -12,6 +15,7 @@ are created with CDK through the pipeline, never by hand in the console.
 | Stack | What | Issue |
 |---|---|---|
 | `GithubDeployAccess-staging` | GitHub OIDC provider and the `github-actions-rainmaker` role with three inline policies: `ecr-push-mission-control` (push the images), `ecs-deploy-mission-control-web` (roll out the web service) and `read-mission-control-secrets` (read the collector's OpenAI key, see below). Only jobs in the GitHub environment `staging` of `Greywolves-se/rainmaker` can assume the role. `docker.yml` uses it. | #61, #82, #112 |
+| `BedrockAccess-dev` | The `rainmaker-g2-content-app` role: ECS tasks in the dev account may call Claude Haiku 4.5 through the EU inference profile, and nothing else. See "Dev account and Bedrock" below. | #161 |
 
 ECR repositories and the ECS service follow in #62.
 
@@ -39,13 +43,15 @@ Needs the CDK CLI (`npm install -g aws-cdk`) and credentials for the staging acc
 Run from `infra/`:
 
 ```
-cdk synth     # writes the templates to cdk.out/ (git-ignored)
-cdk diff      # shows what would change in AWS; paste the output into infra PRs
-cdk deploy    # changes AWS; only through the pipeline or with senior approval
+cdk synth                               # writes the templates to cdk.out/ (git-ignored)
+cdk diff   GithubDeployAccess-staging   # what would change in AWS; paste it into infra PRs
+cdk deploy GithubDeployAccess-staging   # changes AWS; only through the pipeline or with senior approval
 ```
 
-`cdk.json` starts the app with `../mvnw`, which works in Linux, macOS, CI and WSL. On
-Windows, run `cdk` from WSL; plain `cmd.exe` cannot run `../mvnw`.
+Name the stack: the app also defines the dev stacks, which live in another account (see "Dev
+account and Bedrock"). `cdk.json` starts the app with `../mvnw`, which works in Linux, macOS, CI
+and WSL. On Windows, use WSL or Git Bash with `--app '..\mvnw.cmd -q compile exec:java'`; plain
+`cmd.exe` cannot run `../mvnw`.
 
 Never print or commit secret values. Reference secrets by name or ARN (see CLAUDE.md).
 
@@ -144,3 +150,110 @@ organisation rule that blocks service-account keys.
   the flag the collector refuses the login (#120), since a plain user login cannot be limited to
   the read-only scope. Needs the role "Service Account Token Creator" on the service account;
   documented in #120.
+
+## Dev account and Bedrock (#161)
+
+Rainmaker reaches Claude through **Amazon Bedrock** in the dev account (contract D-8). Nobody
+uses an API key: the app gets credentials from its IAM role, and developers from their own SSO
+login.
+
+The dev account is the member account `rainmaker-dev` in the GreyWolves AWS Organization, one
+account per project and environment. The organisation's management account holds only the
+organisation, billing and IAM Identity Center, never workloads (decided 22 Oct 2026, #161).
+
+### Settings for the code (#148)
+
+| Setting | Value |
+|---|---|
+| Region | `eu-north-1` (Stockholm) |
+| Model id to call | `eu.anthropic.claude-haiku-4-5-20251001-v1:0` (the EU cross-region inference profile) |
+| Credentials | Locally: `AWS_PROFILE` of your SSO profile. In AWS: the task role |
+
+Call the **profile id**, not the base model id `anthropic.claude-haiku-4-5-20251001-v1:0`. The role only
+allows the model *through* the profile, which may route a request to any of the six EU regions
+in `cdk.json` (`rainmaker:bedrock`). Changing the model is a change to that context block.
+
+**Why Haiku 4.5, not 5.5 (4 Nov 2026):** the dev account's quota for Claude Haiku 5.5
+cross-region tokens per minute was 0 (21 Oct) and the increase never came, so the team switched
+to Claude Haiku 4.5, which has quota. The ids, the profile ARN and the six destination regions
+were read from AWS (`aws bedrock list-inference-profiles` / `get-inference-profile`) on 4 Nov 2026;
+`BedrockModelAccessTest.cdkJsonNamesTheVerifiedModelAndRegions` pins them.
+
+### What the G2 role may do
+
+`bedrock:InvokeModel` (which also covers the Converse API) on two kinds of resource:
+
+1. the inference profile
+   `arn:aws:bedrock:eu-north-1:<dev account>:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0`;
+2. `arn:aws:bedrock:<region>::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0` in each of
+   the six EU destination regions, **only** when the request comes through that profile (condition
+   `bedrock:InferenceProfileArn`). Calling the base model directly is denied.
+
+Only ECS tasks in the same account (`aws:SourceAccount`) can assume the role.
+`BedrockAccessStackTest` pins the exact policy.
+
+### Local access for developers
+
+Each developer signs in with their own IAM Identity Center user; no access keys in files. The
+permission set with the same narrow access follows in the second #161 PR. Then:
+
+```
+aws configure sso                       # once: SSO start URL, region eu-north-1, the permission set
+aws sso login --profile rainmaker-dev   # each day; opens the browser
+```
+
+Set `AWS_PROFILE=rainmaker-dev` (or pass the profile to the SDK); the AWS SDK picks up the login.
+
+### Synth, diff and deploy for dev
+
+The dev account and region come from `cdk.json` (`rainmaker:dev`); the region must be an EU
+region. Name the stack, and use an admin profile for the dev account:
+
+```
+cdk diff   --profile <admin profile> BedrockAccess-dev
+cdk deploy --profile <admin profile> BedrockAccess-dev
+```
+
+Before the first deploy the dev account must be bootstrapped once
+(`cdk bootstrap aws://034220091974/eu-north-1`); see the change log, C-3 and C-4.
+
+**On Windows:** run `cdk` from Git Bash as `npx aws-cdk ...` with
+`--app '..\mvnw.cmd -q compile exec:java'` (plain `cmd.exe` can't run `../mvnw`). If CDK doesn't
+find your SSO login, load it into the shell first and leave out `--profile`:
+`eval "$(aws configure export-credentials --profile <admin profile> --format env)"`.
+
+### Cost
+
+- **Nothing here costs money by itself.** IAM roles and policies are free. Bedrock is billed per
+  call (input and output tokens), and nothing calls it until #148 runs with this role or an SSO
+  login. The CDK bootstrap adds an S3 bucket and an ECR repository that cost fractions of a cent
+  a month while nearly empty.
+- **Quota (4 Nov 2026):** Claude Haiku 4.5 cross-region inference in the dev account allows
+  **50 requests per minute** (the default is 10 000) and **5 000 000 tokens per minute**. G2's own
+  limit is 20 calls per minute (`calls-per-minute`, retries included), well under 50. Model access
+  is authorized; `agreementAvailability` showed `NOT_AVAILABLE` (4 Nov). The first Anthropic call
+  in an account accepts the model agreement through AWS Marketplace, which needs
+  `aws-marketplace` permissions that the G2 role and `RainmakerBedrockDeveloper` deliberately
+  don't have. So **make the first test call with an admin SSO login** (`rainmaker-dev-admin`),
+  for example `aws bedrock-runtime converse --model-id
+  eu.anthropic.claude-haiku-4-5-20251001-v1:0 --region eu-north-1 --profile rainmaker-dev-admin
+  --messages '[{"role":"user","content":[{"text":"hej"}]}]'`; after that the narrow
+  roles work. If a call fails with AccessDenied before then, this is the first thing to check.
+- **Where to see the cost:** Billing and Cost Management, Cost Explorer, filter *Service* =
+  *Amazon Bedrock*. A Cost Anomaly Detection alert follows in the second #161 PR; a Bedrock-only
+  budget can be added once Bedrock has billing history.
+- **The budget and the hard stop (change log C-9):** the budget **"rainmaker-dev - Monthly
+  Budget"**, 100 USD a month of actual cost, filtered on the rainmaker-dev account. It lives in the
+  management account's AWS Budgets, **not** in rainmaker-dev, so it can't be seen from there. It
+  mails at 80 % and 100 %. At 100 % an automatically approved budget action attaches an SCP to
+  rainmaker-dev that blocks API calls there. **If calls in rainmaker-dev suddenly get
+  `AccessDenied`, check this budget first.** Check it from the management account:
+
+  ```
+  aws budgets describe-budgets --account-id <management account id>
+  aws budgets describe-budget-actions-for-budget --account-id <management account id> \
+    --budget-name "rainmaker-dev - Monthly Budget"
+  ```
+
+  The management account has its own, separate budget of 50 USD a month; it doesn't cover
+  rainmaker-dev.
