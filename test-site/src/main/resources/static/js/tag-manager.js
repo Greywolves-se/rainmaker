@@ -62,6 +62,11 @@
     element.async = true;
     element.src = tag.src;
     element.setAttribute('data-tag-name', tag.name);
+    // Settings the script reads from its own tag, e.g. rainmaker.js's data-qualified-reading-seconds.
+    var attributes = tag.attributes || {};
+    Object.keys(attributes).forEach(function (name) {
+      element.setAttribute(name, attributes[name]);
+    });
     document.head.appendChild(element);
     window.dataLayer.push({ event: 'tm.tag', tagName: tag.name });
   }

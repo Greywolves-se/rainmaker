@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Shared dependencies come from services/pom.xml; plugins and versions from the root POM. -->
+  <parent>
+    <groupId>se.rainmaker</groupId>
+    <artifactId>services</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>tracking-click</artifactId>
+  <name>S2 Tracking and Click</name>
+  <description>The click redirect: stores each click once and sends the reader to the offer.</description>
+
+  <!-- The click links and the stored clicks decide where money goes (#153), so their package
+       must keep 80 % line coverage (CLAUDE.md, "Testing"; README.md, "Coverage"). -->
+  <properties>
+    <jacoco.check.skip>false</jacoco.check.skip>
+    <jacoco.check.packages>se.rainmaker.trackingclick.click*</jacoco.check.packages>
+  </properties>
+
+  <!-- Its own PostgreSQL database with Flyway migrations (#155, architecture D16). -->
+  <dependencies>
+    <!-- Connection pool (HikariCP), JdbcClient and transactions. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <!-- Flyway itself, not Boot's starter: each module runs its own migrations (see the
+         module's database configuration), because an app holds several databases. -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- A real PostgreSQL in the tests (CLAUDE.md, "Testing"): stored once, also concurrently,
+         and append-only are the database's job, so they are tested against the real thing. -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

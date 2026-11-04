@@ -80,8 +80,9 @@ CI runs the same checks on every pull request that changes this folder
 The terminal shows one JSON log line per event (ECS format, with `trace_id`
 and `correlation_id`) – that is the project's logging standard, not an error.
 
-After editing a template, CSS, JavaScript or content file, restart the site
-to see the change.
+After editing a template, CSS or JavaScript file, restart the site to see the
+change. Articles and the front page change without a restart (see
+[Publishing and editing during a demo](#publishing-and-editing-during-a-demo)).
 
 ### Things to try in the browser
 
@@ -120,6 +121,44 @@ Open an article and look in the browser console for `[rainmaker stub]`.
 Remove the variables afterwards with
 `Remove-Item Env:RAINMAKER_SCRIPT_URL, Env:RAINMAKER_INSTALL_METHOD`.
 
+### Places for Rainmaker's next step (#217)
+
+Rainmaker shows an article's approved links as a next step once the reader has
+read it: beside the article on desktop, after it on mobile
+([ADR 0005](../docs/adr/0005-behaviour-based-reader-flow.md)). Every article
+page has three empty markers for that, which a publisher can copy:
+
+```html
+<article>
+  <div class="article__body">
+    <!-- the article text -->
+    <div data-rainmaker-article-end aria-hidden="true"></div>
+  </div>
+  <div data-rainmaker-next-step="after-article"></div>
+</article>
+<aside class="article-sidebar">
+  <!-- "Läs också", ads -->
+  <div data-rainmaker-next-step="sidebar"></div>
+</aside>
+```
+
+- **`data-rainmaker-next-step="sidebar"`:** beside the article, last in the
+  right-hand column. **`"after-article"`:** directly after the article text.
+  Both are on every page at every width; the widget picks the one that fits the
+  layout (#220).
+- **`data-rainmaker-article-end`:** the end of the article content, which the
+  widget can watch to know the reader got there (#219). On a PLUS article it
+  comes after the paywall offer, so a reader can reach it without unlocking.
+  Whether the next step should show on a locked article at all is open until
+  #222.
+- **Empty, they change nothing:** the page looks the same without the widget.
+  They contain no `<p>`, so ingestion's `article p` text is unchanged.
+- **"Beside the article" only works if the place is in view when the reader
+  reaches the end.** The sidebar is usually shorter than the article and
+  scrolls away, so here it stretches to the article's height
+  (`align-self: stretch`) and the place sticks just below the menu
+  (`position: sticky`). A publisher whose sidebar ends early needs the same.
+
 ## What is on the site
 
 | Address | What it is | Who uses it |
@@ -129,8 +168,8 @@ Remove the variables afterwards with
 | `/sektion/<id>` | All articles in a section, e.g. `/sektion/sport` | Readers |
 | `/rss.xml` | RSS 2.0 feed with every article | Content Ingestion (S5) |
 | `/sitemap.xml` | Google News-style sitemap | Content Ingestion (S5) |
-| `/robots.txt` | Points crawlers to the sitemap | Crawlers |
-| `/eval/labels.csv` | The *correct* zone for each article | AI evaluation (S6) |
+| `/robots.txt` | Points crawlers to the sitemap, keeps them out of `/eval/` | Crawlers |
+| `/eval/labels.csv` | The *correct* zone for each article. Not linked from any page: open the address directly | AI evaluation (S6) |
 | `/ads/creatives.json` | The fake ad server | The site's own `ads.js` |
 | `/tag-manager/container.json` | Which tags the tag manager loads | The site's own `tag-manager.js` |
 | `/health` | Returns `ok` | Uptime checks, load balancer |
@@ -160,7 +199,7 @@ test-site/
 ├── Dockerfile                 ← image: the jar + content/, runs as a non-root user
 ├── docker-compose.yml         ← docker compose up --build
 ├── package.json               ← only "npm test" for the browser scripts
-├── content/                   ← EVERYTHING EDITORIAL (read at start-up)
+├── content/                   ← EVERYTHING EDITORIAL (articles re-read on change)
 │   ├── articles/              ← one JSON file per article
 │   ├── front-page.json        ← lead story, "JUST NU", "Mest läst"
 │   └── ads.json               ← fictional advertisers and their ads
@@ -171,7 +210,8 @@ test-site/
 │   │   ├── Article, ArticleBlock, Section, BrandSafetyZone   the data model
 │   │   ├── ArticleParser, ArticleRepository                  articles
 │   │   ├── FrontPage, AdInventory, AdCreative                front page, ads
-│   │   └── ContentConfiguration                              loads it all at start-up
+│   │   ├── LiveContent, SiteContent                          articles + front page, following the files
+│   │   └── ContentConfiguration                              creates LiveContent and the ads
 │   ├── view/                        prepares data for the templates
 │   │   ├── ViewHelper                dates in Swedish time, reading time, initials
 │   │   ├── ArticleBodyBuilder        places the in-article ad and the paywall
@@ -219,9 +259,10 @@ tested with Node in `src/test/javascript/`.
 ## Editing content
 
 **Articles:** copy a file in `content/articles/`, change `id` (unique, e.g.
-`vb-0013`), `slug` (unique, used in the URL) and the text. Restart the site.
-A mistake stops the start-up with a message naming the file and field. Then
-run `./mvnw -pl test-site test`.
+`vb-0013`), `slug` (unique, used in the URL) and the text. No restart: the
+next request shows it. A mistake is refused with a log line naming the file and
+field, and the site keeps the last good version (at start-up, a mistake stops
+the site). Then run `./mvnw -pl test-site test`.
 
 ```jsonc
 {
@@ -244,6 +285,29 @@ run `./mvnw -pl test-site test`.
   ]
 }
 ```
+
+### Publishing and editing during a demo
+
+The site re-reads `content/articles/` and `content/front-page.json` on every
+request (#159), so the demo and the end-to-end test (#154) change articles while
+everything runs:
+
+1. **Publish:** save a new file in `content/articles/`. It shows at once on
+   `/artikel/<slug>`, in `/rss.xml` and in `/sitemap.xml`.
+2. **Edit:** change the text in the same file. Keep `id` and `slug` (the URL),
+   and set `updatedAt` to a later time, with time zone. The feed shows it as
+   `<atom:updated>` and the sitemap as `<lastmod>`, so Rainmaker's ingestion
+   (#147) sees a new version.
+3. **Turn a story red:** edit the text into, say, an accident, set
+   `expectedZone` to `red` (only `/eval/labels.csv` shows it) and give it a new
+   `updatedAt`.
+4. **Nothing changed?** Look for `Content change refused` in the log: it names
+   the file and the field. Fix the file and save it again.
+
+With Docker, `docker-compose.yml` mounts `content/` into the container
+(read-only), so editing `test-site/content/` works the same. The files are in
+git: after the demo, `git status` shows what to remove or restore. To keep the
+real content untouched, point `CONTENT_DIRECTORY` at a copy instead.
 
 **Front page:** `content/front-page.json` picks the lead story, the article in
 the "JUST NU" bar (optional) and the "Mest läst" list, by article id.
@@ -268,6 +332,7 @@ Set as environment variables, in `application.yml`, or (for Docker) in a
 | `BASE_URL` | `http://localhost:<PORT>` | Public address, for absolute links in RSS and sitemap |
 | `RAINMAKER_SCRIPT_URL` | *(empty)* | Address of rainmaker.js; empty = no widget |
 | `RAINMAKER_INSTALL_METHOD` | `template` | `template` (script tag in the page) or `tag-manager` |
+| `RAINMAKER_QUALIFIED_READING_SECONDS` | *(empty)* | Seconds of active reading before the widget shows the next step (1–3600), set as `data-qualified-reading-seconds` on its script tag by the template or the tag manager. Empty = the widget's default (60 s). The end-to-end test (#154) shortens it |
 | `CONTENT_DIRECTORY` | `content` | Folder with the content files, relative to `test-site/` |
 | `TEST_SITE_PORT` | `3000` | Docker only: the port on your computer |
 
@@ -300,11 +365,15 @@ quality"); this module's own notes are in `test-site/CLAUDE.md`.
 ## Design decisions worth knowing
 
 - **The expected zone is not in the page HTML.** Otherwise the AI classifier
-  (S6) could read the answer. It is only published in `/eval/labels.csv`.
+  (S6) could read the answer. It is only published in `/eval/labels.csv`, which
+  no page links to and `robots.txt` disallows, so a crawler that follows links
+  (like ingestion's planned "fetch the page" fallback) does not find it either.
 - **Markup made for ingestion.** Only the article itself is inside `<article>`,
   so selectors like `article h1` and `article p` get exactly the headline and
   body text. Ad slots and the paywall offer inside the article contain no `<p>`.
-  The headline has `data-rainmaker-headline` for the widget's hover (UC-06).
+  The headline has `data-rainmaker-headline`, which the widget stub looks for;
+  the real widget uses the places for the next step, described under "Places
+  for Rainmaker's next step" (#220).
 - **Paywalled text stays in the HTML** (hidden by CSS), so ingestion reads the
   whole article. Some real publishers instead cut the text on the server –
   worth asking the pilot publisher (C2/P3).
@@ -321,11 +390,13 @@ quality"); this module's own notes are in `test-site/CLAUDE.md`.
 - **No wall-clock time in pages or feeds,** so output and tests are stable.
 - **No hard-coded UI text.** Everything visible comes from `messages.properties`.
   The site is fixed to Swedish (`spring.web.locale-resolver: fixed`).
-- **Fail fast at start-up** for broken content files.
+- **Fail fast at start-up** for broken content files; while the site runs, a
+  broken change is refused and the last good version stays.
 
 ## Known limitations
 
-- No live reload: restart after changes (Spring Boot DevTools could be added).
+- Only articles and the front page change without a restart. Templates, CSS,
+  JavaScript, `ads.json` and Java code still need one.
 - No real photos (drawn illustrations per section), no search, no comments.
 - The sticky menu's small logo and the click-through consent flow are checked
   through code and unit tests; automated *browser* tests (Playwright) are not
@@ -340,9 +411,10 @@ quality"); this module's own notes are in `test-site/CLAUDE.md`.
 
 1. **Plug in the real widget** with `RAINMAKER_SCRIPT_URL` – the stub shows
    what it needs to find.
-2. **Playwright end-to-end tests** (architecture 7.3): "hover headline →
-   panel appears", "red article → no panel", "panel adds no layout shift",
-   "panel works after *Endast nödvändiga*".
+2. **Playwright end-to-end tests** (architecture 7.3, #154): "read the
+   article → the next step appears" (ADR 0005), "red article → no next step",
+   "the next step never covers the article text", "the next step works after
+   *Endast nödvändiga*".
 3. **More articles** towards the ~200 labelled articles for the AI evaluation
    set, including tricky yellow/red borderline cases.
 4. **A client-side-routed variant** (articles change without a page reload),

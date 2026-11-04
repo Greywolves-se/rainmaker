@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Shared dependencies come from services/pom.xml; plugins and versions from the root POM. -->
+  <parent>
+    <groupId>se.rainmaker</groupId>
+    <artifactId>services</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>advertiser-marketplace</artifactId>
+  <name>S4 Advertiser Marketplace</name>
+  <description>Advertisers, offers and their landing pages.</description>
+
+  <!-- Its own PostgreSQL database with Flyway migrations (#155, architecture D16). -->
+  <dependencies>
+    <!-- Connection pool (HikariCP), JdbcClient and transactions. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <!-- Flyway itself, not Boot's starter: each module runs its own migrations (see the
+         module's database configuration), because an app holds several databases. -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
+</project>

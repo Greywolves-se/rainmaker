@@ -81,7 +81,6 @@
         <ul class="site-footer__links">
           <li><a href="/rss.xml" th:text="#{footer.rss}"></a></li>
           <li><a href="/sitemap.xml" th:text="#{footer.sitemap}"></a></li>
-          <li><a href="/eval/labels.csv" th:text="#{footer.labels}"></a></li>
           <li><button type="button" class="link-button" data-consent-open th:text="#{footer.cookieSettings}"></button></li>
         </ul>
       </div>
@@ -98,6 +97,7 @@
     manager when RAINMAKER_INSTALL_METHOD=tag-manager). The script must never
     block or break the page: if it fails to load, the article still works.
   -->
-  <script th:if="${rainmaker.loadedByTemplate()}" async th:src="${rainmaker.scriptUrl()}"></script>
+  <script th:if="${rainmaker.loadedByTemplate()}" async th:src="${rainmaker.scriptUrl()}"
+          th:attr="data-qualified-reading-seconds=${rainmaker.qualifiedReadingSeconds()}"></script>
 </body>
 </html>

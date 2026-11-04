@@ -18,9 +18,9 @@ sequenceDiagram
     Site->>G2: RSS item
     G2->>G2: store, classify (Claude), match
     G2->>G3: GET /api/offers (matching needs the offers)
-    G3->>G2: GET /api/articles?since=… (polls new articles and suggestions)
+    G3->>G2: GET /api/articles?recent=… (polls the recent articles and suggestions)
     G3->>G3: editor approves
-    JS->>G1: GET /widget/v1/links?url=… (on headline hover)
+    JS->>G1: GET /widget/v1/links?url=… (when the reader leaves the article after qualified reading, ADR 0005)
     G1->>G3: GET /api/approved-links?url=…
     G3->>G2: GET /api/articles?url=… (is it still green?)
     G1-->>JS: links with signed click URLs
@@ -127,8 +127,9 @@ Shared rules for every object, event and API:
 ```
 
 - `version` starts at 1. It goes up by one each time the site shows a newer `updatedAt` for
-  the same URL (#147). The RSS feed has no update time: the news sitemap (`<lastmod>`) and the
-  article page (`<time>` next to the byline) have it.
+  the same URL (#147). The RSS feed has it as `<atom:updated>` per item (#159), like the news
+  sitemap's `<lastmod>`: the last change, or the publish time if the article was never
+  updated.
 - `text` is the full body text, without the headline. It stays inside G2: never logged, never
   in a REST answer.
 
@@ -177,6 +178,8 @@ in "nyheter" can be about travel, and "nyheter" can't be matched to an offer.
   in G3 use the same values. Display names come from the sv/en translation files (`CLAUDE.md`).
 - Claude picks 1–3 keys and never invents new ones: the JSON schema in section 8 only allows
   these values. No offer has the category `other`, so `other` never matches.
+- Claude lists the topics **most relevant first**, and `topics` keeps that order: matching
+  ranks by it (section 4).
 - Crime, politics and accidents are not topics; the zone handles them.
 
 **Decision D-9: `reason` in both languages.** The editor view runs in Swedish or English, so
@@ -259,12 +262,19 @@ Append-only. `clickId` is unique in the database (#153). No IP, no cookie, no us
 ## 4. Matching rules (G2: matching-ranking)
 
 - Only `classified` + `green` articles get suggestions. Everything else gets an empty set (D-4).
-- An offer fits when its `category` is in the article's `topics`. More shared topics means a
-  better fit.
-- At most 3 suggestions, ordered by fit. **CPC only breaks ties** (product rule).
-- Matching reads the offers from G3 (section 7.2). If G3 can't be reached, the article keeps
-  its classification and gets no suggestions for now. When to match it again is decided in
-  #149.
+- An offer fits when its `category` is one of the article's `topics`. The earlier the topic in
+  the list, the better the fit: an offer for the first topic beats one for the second, whatever
+  the CPC (decided in #149).
+- At most 3 suggestions, ordered by fit. **CPC only breaks ties** (product rule), then the offer
+  id, so the order never changes.
+- An offer whose `category` isn't a known topic key is skipped and logged, never an error: the
+  keys are kept in both G3 and G2.
+- Matching reads the offers from G3 (section 7.2), with timeouts and retries. If G3 still can't
+  be reached, nothing new is stored and the error is logged; a new version still loses its old
+  set (D-5). The version waits for offers, and matching tries it again on a schedule until G3
+  answers (#248); a later result for that version or a newer one ends the wait. "Nothing fits"
+  is a result, not an outage, so it isn't tried again.
+- Not green never waits for G3: the set is emptied at once.
 
 ---
 
@@ -351,25 +361,33 @@ Rules for every call between the apps:
 
 | Call | From → to | Section |
 |---|---|---|
-| `GET /api/articles?since=…` and `?url=…` | G3 → G2 | 7.1 |
+| `GET /api/articles?recent=…` and `?url=…` | G3 → G2 | 7.1 |
 | `GET /api/offers` | G2 → G3 | 7.2 |
 | `GET /api/approved-links?url=…` | G1 → G3 | 7.3 |
 | `GET /widget/v1/links?url=…` | rainmaker.js → G1 | 7.4 |
 | `GET /c/{token}` | reader's browser → G1 | 7.5 |
 
-### 7.1 Articles API (G2, #147–#149)
+### 7.1 Articles API (G2, #202)
 
 ```
-GET http://localhost:8082/api/articles?since=2026-10-30T09:00:00Z
+GET http://localhost:8082/api/articles?recent=100
 GET http://localhost:8082/api/articles?url=http%3A%2F%2Flocalhost%3A3000%2Fartikel%2Fbadrumsrenovering-experternas-rad
 ```
 
-- `since`: every article whose latest version, classification or suggestions changed at or
-  after that time, oldest change first. G3 polls it (every few seconds, a setting) and calls
-  again with `nextSince`. The same article may come twice; G3's update is idempotent.
+- `recent`: a snapshot of the latest version of the `recent` (1–500) articles whose **latest
+  version was stored most recently** (content-ingestion's `stored_at`), newest first, each with
+  its current classification and suggestions. An edited article moves back to the top. G3 polls
+  it (every few seconds, a setting) and applies the whole answer every time; applying the same
+  article again changes nothing.
 - `url`: the latest version of that one article, or an empty list. G3 uses it on every widget
   request to check the current zone (section 7.3).
-- Exactly one of `since` and `url` is required; otherwise `400`.
+- Exactly one of `recent` and `url` is required, and `recent` must be a whole number from 1 to
+  500; otherwise `400`.
+- **Why a snapshot, not "changed since":** a snapshot needs no module to record when its part of
+  an article changed (a reclassification changes only content-intent, a new set only matching).
+  After the demo, events replace the polling (ADR 0004). Each event then carries one article
+  object exactly as below, so G3 handles both the same way, and `recent` stays for filling G3's
+  copy from scratch.
 
 `200 OK`:
 
@@ -400,11 +418,9 @@ GET http://localhost:8082/api/articles?url=http%3A%2F%2Flocalhost%3A3000%2Fartik
       "suggestions": [
         {"suggestionId": "0192f3e4-…", "offerId": "0192f3d0-…", "rank": 1, "matchedTopics": ["home"]}
       ],
-      "changedAt": "2026-10-30T09:15:05Z",
       "correlationId": "c0a1…"
     }
-  ],
-  "nextSince": "2026-10-30T09:15:05Z"
+  ]
 }
 ```
 
@@ -471,8 +487,8 @@ GET http://localhost:8083/api/approved-links?url=http%3A%2F%2Flocalhost%3A3000%2
 - `destinationUrl` is for G1 to put into the signed click link (section 7.5). It never goes to
   the browser as a field.
 
-**Known limit:** each hover is G1 → G3 → G2, three hops. Fine for the demo; caching is out of
-scope.
+**Known limit:** each call from rainmaker.js is G1 → G3 → G2, three hops. Fine for the demo;
+caching is out of scope.
 
 ### 7.4 Widget API (G1, #151) (D-7)
 
@@ -499,7 +515,8 @@ GET http://localhost:8081/widget/v1/links?url=http%3A%2F%2Flocalhost%3A3000%2Far
 
 - **Empty, not an error:** for a red, yellow, failed, unclassified or unknown article, or one
   with no approved links, the API returns 200 with `"links": []`.
-- `400` when `url` is missing or not an http(s) URL. `503` when G3 can't answer.
+- `400` when `url` is missing, longer than 2048 characters, not an http(s) URL, or not on one of
+  the publisher sites allowed for CORS (#224). `503` when G3 can't answer.
 - rainmaker.js shows a panel only for a 200 with links. Anything else, including a timeout,
   means no panel, and the page works as before (fail open for the reader, #152).
 - At most 3 links, in rank order. No `destinationUrl`, ever.
@@ -531,6 +548,16 @@ GET http://localhost:8081/c/{payload}.{signature}
 So a double-click or a retry of the same link carries the same `clickId` and is stored once. A
 page reload gives a new link, and that is a new click (the 30-minute dedupe is "not now").
 
+**Known risk, to decide before anything real is billed (#224):** the widget API is public, has no
+rate limit, and mints a new valid `clickId` on every answer. So a script that calls it in a loop and
+opens each `clickUrl` stores as many distinct clicks as it likes, each one paid for by the
+advertiser. Options include a rate limit at the edge, or a dedupe per article, offer and coarse
+client key within a time window.
+
+The links must be on the origin rainmaker.js is loaded from: the widget drops any other
+`clickUrl` (#152). G1 makes them from its own setting (`RAINMAKER_CLICK_BASE_URL`), so the two
+must name the same origin.
+
 The destination is inside the signed link, so G1 redirects and stores the click on its own:
 the money path doesn't depend on G3, and the redirect needs no network call (the
 architecture's target is under 100 ms). `exp` limits how long a copied link can be replayed.
@@ -543,6 +570,13 @@ Opening the link:
 | Same `clickId` again | `302` to the same place | No new row |
 | Bad, changed or garbled token | `400` error page | Nothing |
 | Valid signature, expired | `410 Gone` error page | Nothing |
+| Valid, but the click can't be stored (the database is down or too slow) | `503` error page ("try again"), no redirect | Nothing; opening the link again retries with the same `clickId` |
+| `HEAD` instead of `GET` (link checkers, e-mail and chat previews) | The same status and `Location` as `GET`, no page | Nothing, ever |
+
+- **Fail closed for money (#192):** a click that can't be stored is never passed on; the
+  alternative, redirecting anyway, would lose it. G1 waits at most 1 s for a database
+  connection (`connection-timeout`, never over 2 s) and 1 s for the insert, so the reader sees
+  the `503` page within about 2 s instead of a blank page.
 
 - The redirect target comes from the signed link, which only G1 can make, never from anything
   the request can change (no open redirect).
@@ -553,8 +587,8 @@ Opening the link:
 
 ### 7.6 Editor page (G3, #150)
 
-An internal UI, under `/publisher/` so the paths don't clash with the fake-news site's own
-`/editor` (#159):
+An internal UI for the publisher's editor, under `/publisher/`. (The fake-news site has no editor
+page of its own: articles are published as files in `test-site/content/articles/`, #159.)
 
 | Method | Path | What |
 |---|---|---|
@@ -568,6 +602,9 @@ like this:
 ```json
 {"auditId": "…", "suggestionId": "0192f3e4-…", "action": "approved", "by": "demo-editor", "at": "2026-10-30T09:20:00Z"}
 ```
+
+`action` is `approved` or `rejected` by the editor, or `withdrawn` by `g2` when G3 withdraws a
+suggestion because of G2's data (section 5), so an approved link leaving the widget is logged too.
 
 ---
 

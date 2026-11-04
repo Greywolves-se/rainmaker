@@ -43,3 +43,6 @@ site:
     script-url: ${RAINMAKER_SCRIPT_URL:}
     # "template" (script tag in the page) or "tag-manager" (architecture P4).
     install-method: ${RAINMAKER_INSTALL_METHOD:template}
+    # Seconds of active reading before the widget shows the next step (1-3600), put on its script
+    # tag. Empty = the widget's default (60 s). The end-to-end test (#154) shortens it.
+    qualified-reading-seconds: ${RAINMAKER_QUALIFIED_READING_SECONDS:}

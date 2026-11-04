@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Claude's answer for one article. Copied from docs/rainmaker/contract.md, section 8 (#145, D-8); change both together. Anything that does not match counts as failed.",
+  "type": "object",
+  "required": ["zone", "topics", "reason"],
+  "additionalProperties": false,
+  "properties": {
+    "zone": {"enum": ["green", "yellow", "red"]},
+    "topics": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {"enum": ["travel", "outdoor", "sport", "culture", "food", "home", "cars", "health", "personal-finance", "other"]}
+    },
+    "reason": {
+      "type": "object",
+      "required": ["sv", "en"],
+      "additionalProperties": false,
+      "properties": {
+        "sv": {"type": "string", "maxLength": 300},
+        "en": {"type": "string", "maxLength": 300}
+      }
+    }
+  }
+}

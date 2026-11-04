@@ -3,6 +3,9 @@
 - **Status:** Accepted by the Rainmaker team (21 Oct 2026), for the demo on 30 Oct 2026.
 - **Date:** 21 Oct 2026
 - **Issue:** #145. The contract itself: [`docs/rainmaker/contract.md`](../rainmaker/contract.md).
+- **Partly replaced:** the panel on headline hover is replaced by a behaviour-based reader flow,
+  [ADR 0005](0005-behaviour-based-reader-flow.md) (#215, 30 Oct 2026). The rest of this decision
+  is unchanged.
 
 ## Context
 
@@ -23,10 +26,14 @@ rainmaker.js), G2 `g2-content-app` (8082: ingestion, classification, matching) a
 **Departure from `CLAUDE.md`: no events between the apps.** Everything between apps is REST:
 
 - G3 learns about new articles, classifications and suggestions by **polling** G2
-  (`GET /api/articles?since=…`), instead of receiving events through EventBridge + SQS.
+  (`GET /api/articles?recent=…`, a snapshot of the recent articles), instead of receiving events
+  through EventBridge + SQS. *Updated 28 Oct 2026 (#202): a snapshot instead of
+  `?since=…`, so no module has to record change times that events will make unnecessary. The
+  decision itself, polling for the demo, is unchanged.*
 - G2 reads the offers from G3 (`GET /api/offers`) when it matches.
 - G1 asks G3 for the approved links on every hover, and G3 asks G2 whether the article is still
-  green (three hops).
+  green (three hops). *Updated 30 Oct 2026 (ADR 0005): rainmaker.js asks after qualified reading
+  instead of on hover; the three hops are unchanged.*
 - A click needs no other app: the signed click link carries the destination (contract, 7.5).
 
 **Inside G2**, ingestion, classification and matching use Spring events, as `CLAUDE.md` says,

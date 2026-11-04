@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -28,6 +29,7 @@ import se.rainmaker.testsite.content.Article;
 import se.rainmaker.testsite.content.ArticleBlock;
 import se.rainmaker.testsite.content.ArticleRepository;
 import se.rainmaker.testsite.content.FrontPage;
+import se.rainmaker.testsite.content.LiveContent;
 import se.rainmaker.testsite.content.Section;
 import se.rainmaker.testsite.view.ViewHelper;
 
@@ -39,11 +41,19 @@ class PagesTest {
   private static final Locale SWEDISH = Locale.forLanguageTag("sv");
 
   @Autowired private MockMvc mockMvc;
-  @Autowired private ArticleRepository articles;
-  @Autowired private FrontPage frontPage;
+  @Autowired private LiveContent liveContent;
   @Autowired private AdInventory adInventory;
   @Autowired private MessageSource messages;
   @Autowired private ViewHelper view;
+
+  private ArticleRepository articles;
+  private FrontPage frontPage;
+
+  @BeforeEach
+  void readContent() {
+    articles = liveContent.current().articles();
+    frontPage = liveContent.current().frontPage();
+  }
 
   private String message(String key, Object... arguments) {
     return messages.getMessage(key, arguments, SWEDISH);
@@ -71,6 +81,13 @@ class PagesTest {
         .contains("<html lang=\"sv\">")
         .contains(escaped(message("fiction.label")))
         .contains("<meta name=\"robots\" content=\"noindex\">");
+  }
+
+  @ParameterizedTest
+  @MethodSource("allPages")
+  void noPageLinksToTheEvaluationLabels(String path) throws Exception {
+    // A crawler following links must not find the answer key (#160).
+    assertThat(page(mockMvc, path)).doesNotContain("/eval/");
   }
 
   @Test
@@ -164,6 +181,24 @@ class PagesTest {
         assertThat(element).contains("<p>" + escaped(paragraph.text()) + "</p>");
       }
     }
+  }
+
+  @ParameterizedTest
+  @MethodSource("allSlugs")
+  void articlePageHasPlacesForTheNextStepAndEndOfArticleMarker(String slug) throws Exception {
+    String html = page(mockMvc, "/artikel/" + slug);
+
+    // #217: empty, so the page looks the same without the widget. The end marker is the last
+    // thing in the article body (after the paywall offer on PLUS articles), followed directly by
+    // the place after the article.
+    assertThat(articleElement(html))
+        .containsPattern(
+            "<div data-rainmaker-article-end aria-hidden=\"true\"></div>\\s*</div>\\s*"
+                + "<div data-rainmaker-next-step=\"after-article\"></div>\\s*$");
+    // The place beside the article is the last thing in the sidebar, after the skyscraper ad.
+    assertThat(html)
+        .containsPattern(
+            "</aside>\\s*<div data-rainmaker-next-step=\"sidebar\"></div>\\s*</aside>\\s*</div>");
   }
 
   @ParameterizedTest
