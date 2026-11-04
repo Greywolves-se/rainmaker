@@ -50,7 +50,7 @@ cdk deploy GithubDeployAccess-staging   # changes AWS; only through the pipeline
 
 Name the stack: the app also defines the dev stacks, which live in another account (see "Dev
 account and Bedrock"). `cdk.json` starts the app with `../mvnw`, which works in Linux, macOS, CI
-and WSL. On Windows, use WSL or Git Bash with `--app '..mvnw.cmd -q compile exec:java'`; plain
+and WSL. On Windows, use WSL or Git Bash with `--app '..\mvnw.cmd -q compile exec:java'`; plain
 `cmd.exe` cannot run `../mvnw`.
 
 Never print or commit secret values. Reference secrets by name or ARN (see CLAUDE.md).
@@ -218,7 +218,7 @@ Before the first deploy the dev account must be bootstrapped once
 (`cdk bootstrap aws://034220091974/eu-north-1`); see the change log, C-3 and C-4.
 
 **On Windows:** run `cdk` from Git Bash as `npx aws-cdk ...` with
-`--app '..mvnw.cmd -q compile exec:java'` (plain `cmd.exe` can't run `../mvnw`). If CDK doesn't
+`--app '..\mvnw.cmd -q compile exec:java'` (plain `cmd.exe` can't run `../mvnw`). If CDK doesn't
 find your SSO login, load it into the shell first and leave out `--profile`:
 `eval "$(aws configure export-credentials --profile <admin profile> --format env)"`.
 
