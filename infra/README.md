@@ -283,9 +283,9 @@ find your SSO login, load it into the shell first and leave out `--profile`:
     --topic-arn arn:aws:sns:eu-north-1:034220091974:rainmaker-cost-alerts \
     --notification-endpoint <your e-mail>
   ```
-- **Region:** everything is in `eu-north-1`. If CloudFormation refuses the cost resources
-  there, deploy `CostGuardrails-dev` to `us-east-1`, Cost Explorer's home region (that region
-  then needs a CDK bootstrap too).
+- **Region:** everything is in `eu-north-1`. `aws cloudformation describe-type --type RESOURCE
+  --type-name AWS::CE::AnomalyMonitor --region eu-north-1` showed the resource type there
+  (4 Nov 2026).
 - **Not yet:** a budget for Bedrock alone, once Bedrock has billing history to filter on.
 - **The budget and the hard stop (change log C-9):** the budget **"rainmaker-dev - Monthly
   Budget"**, 100 USD a month of actual cost, filtered on the rainmaker-dev account. It lives in the
