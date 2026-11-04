@@ -47,7 +47,8 @@ The editor page: approve or reject suggested offers, with an audit log.
 - **Settings** (`rainmaker.publisher-control.articles.*`, in G3's `application.properties`): `base-url`
   (`RAINMAKER_G2_URL`; `http://test-site:8082` in Docker, where G2 shares the test site's network),
   `connect-timeout`, `read-timeout`, `max-attempts`, `backoff`, `poll-interval`, `recent` (1–500,
-  default 100), and `polling=false` to turn the schedule off in tests.
+  default 100), and `polling=false` to turn the schedule off in tests. Those are the poll's;
+  `reader.*` are the approved links API's own (below).
 - **`decision/SuggestionDecisions`** approves or rejects one suggestion and writes an audit row (who,
   when, what) in `suggestion_audit`. A withdrawn suggestion, or one of an article that isn't green,
   can't be decided. The same decision twice writes one row; a changed decision writes a new one. A
@@ -58,6 +59,17 @@ The editor page: approve or reject suggested offers, with an audit log.
     G2 says at that moment that this version is classified + green (contract 5).
   - G2 is asked on every call (`GET /api/articles?url=…`), with the caller's `X-Correlation-Id`. If G2
     can't answer, the API answers `503`, never the last known links (fail closed).
+  - **Time budget (#230):** G1 waits 500 ms for G3, so this call to G2 has its own settings,
+    `reader.connect-timeout` (100 ms) and `reader.read-timeout` (350 ms), and **one attempt**: at
+    most 450 ms. G3 refuses to start if `reader.connect-timeout + reader.read-timeout` isn't under
+    500 ms. G1's value lives in another app, so it is mirrored in `ArticlesProperties.G1_READ_TIMEOUT`;
+    change both together.
+  - **Circuit breaker (#230):** when at least half of the last 10 calls (5 at the least) failed
+    (no connection, a timeout or a 5xx; a 4xx doesn't count), G2 isn't asked for 10 s
+    (`reader.circuit-breaker.*`) and the API answers `503` at once. Then one trial call decides.
+    Each change of state is logged once as a WARN with the from and to state; the `503`s while it
+    is open are logged at DEBUG. The poll is outside the circuit: it keeps its own timeouts and
+    retries, so the circuit reflects only what readers get.
   - An unknown article gives `"articleId": null` and `"links": []`. A missing or non-http(s) `url`
     gives `400`.
   - `destinationUrl` is for G1's signed click link; it never goes to the reader's browser.

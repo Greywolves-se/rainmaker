@@ -13,6 +13,11 @@ import org.springframework.scheduling.annotation.SchedulingConfigurer;
 @EnableConfigurationProperties(ArticlesProperties.class)
 class ArticlesConfiguration {
 
+  /** Stops G3 at start-up if the reader call to G2 can outlast G1's wait for G3 (#230). */
+  ArticlesConfiguration(ArticlesProperties properties) {
+    properties.requireReaderWithinG1Wait();
+  }
+
   /**
    * The first poll runs at start-up, the next one {@code poll-interval} after it ends. G2 may start
    * later than G3 (contract 7: start in any order); until it does, each poll logs and gives up.
