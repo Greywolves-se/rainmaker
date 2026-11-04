@@ -148,7 +148,11 @@ class ArticleClassificationTest {
 
     publisher.publishEvent(article);
 
-    assertThat(row(article)).containsEntry("status", "failed").containsEntry("zone", null);
+    // The first try counts: the retry waits longer after each failed try (#258).
+    assertThat(row(article))
+        .containsEntry("status", "failed")
+        .containsEntry("zone", null)
+        .containsEntry("failed_attempts", 1);
     assertThat(published(article))
         .singleElement()
         .extracting(event -> event.classification().status())
@@ -276,7 +280,8 @@ class ArticleClassificationTest {
     return database
         .sql(
             """
-            SELECT status, zone, reason_sv, reason_en, model, classified_at, correlation_id
+            SELECT status, zone, reason_sv, reason_en, model, classified_at, correlation_id,
+                failed_attempts
             FROM classification WHERE article_id = :articleId AND article_version = :version
             """)
         .param("articleId", article.articleId())

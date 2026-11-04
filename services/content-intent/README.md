@@ -43,7 +43,12 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
     schedule (settings below). Each run takes at most `batch-size` of them that weren't tried for
     `interval`, oldest attempt first, and marks them as tried (column `attempted_at`,
     `V3__attempted_at.sql`), so a version being classified right now is left alone and a long
-    outage is worked through in turn. It reads their text from content-ingestion
+    outage is worked through in turn. **The wait grows (#258):** after the n-th failed try in a row
+    a version waits `interval × 2^(n − 1)` (5, 10, 20 minutes ...), at most `max-wait` (a day), so
+    an article Claude always refuses costs about one call a day instead of one every 5 minutes.
+    Only a `failed` result counts (column `failed_attempts`, `V4__failed_attempts.sql`): an
+    `unclassified` one made no call, so being held back by the call limits never makes the wait
+    longer. A classified result, or a new version, starts over. It reads their text from content-ingestion
     (`api.LatestArticleTexts`) and classifies them as the first time, through the same classifier
     and its limits: the result replaces the old one and `ArticleClassified` is published. A
     version replaced by a newer one is skipped; if content-ingestion has a newer version
@@ -77,7 +82,8 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 
 | Setting | Default | What it does |
 |---|---|---|
-| `interval` | `5m` | Time between runs, and how long a version must go untried before a run takes it. At least `1m`, longer than one classification with its retries |
+| `interval` | `5m` | Time between runs, and how long a version must go untried before a run takes it. At least `1m`, longer than one classification with its retries. Doubles after each failed try in a row (#258) |
+| `max-wait` | `1d` | The longest wait however often a version failed. At least `interval` |
 | `batch-size` | `10` | Most versions per run (1–100), so a long outage can't spend the daily token cap at once |
 | `enabled` | `true` | `false` turns the schedule off (tests) |
 
@@ -91,7 +97,7 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 | Other client error, e.g. an expired SSO login | `failed`, logged as ERROR (`failed-client-error`) | By the retry, once the login works again |
 | `AccessDenied` (also the hard cost stop's SCP, #161) | `failed`, logged as ERROR (`failed-access-denied`) | By the retry, which fails again until access is back |
 | Validation error, unknown model | `failed` | By the retry |
-| Refusal, cut-off answer, text instead of the tool, invalid answer | `failed` | By the retry: a call each `interval`, within the limits, until the article is edited |
+| Refusal, cut-off answer, text instead of the tool, invalid answer | `failed` | By the retry, with a wait that doubles after each failed try, up to one call a day (`max-wait`), until the article is edited |
 | A database error while storing the result | stays `unclassified` | By the retry |
 
 Never green by default. Logs carry the article id, version, outcome and tokens, never the text.

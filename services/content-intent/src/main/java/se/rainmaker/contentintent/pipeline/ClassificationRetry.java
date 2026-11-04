@@ -17,9 +17,10 @@ import se.rainmaker.contentintent.api.ArticleVersion;
  * login, a database error) stays failed until the article is edited.
  *
  * <p>Each run takes at most {@code batch-size} versions not tried for {@code interval}, oldest
- * attempt first, gets their text from content-ingestion and classifies them as the first time,
- * through the same classifier and its call limits and token cap. If content-ingestion has a newer
- * version that content-intent never got, that one is classified instead.
+ * attempt first; a version that keeps failing waits twice as long after each failed try, at most
+ * {@code max-wait} (#258). It gets their text from content-ingestion and classifies them as the
+ * first time, through the same classifier and its call limits and token cap. If content-ingestion
+ * has a newer version that content-intent never got, that one is classified instead.
  */
 class ClassificationRetry implements Runnable {
 
@@ -45,7 +46,8 @@ class ClassificationRetry implements Runnable {
   @Override
   public void run() {
     try {
-      List<ArticleVersion> due = store.takeForRetry(settings.batchSize(), settings.interval());
+      List<ArticleVersion> due =
+          store.takeForRetry(settings.batchSize(), settings.interval(), settings.maxWait());
       if (due.isEmpty()) {
         return;
       }
