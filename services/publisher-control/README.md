@@ -29,8 +29,15 @@ The editor page: approve or reject suggested offers, with an audit log.
     `OfferCatalog`), the matched topic and the status, with Approve and Reject buttons. A red, yellow
     or unclassified article shows "No suggestions".
   - The buttons post to `/publisher/suggestions/{id}/approve` or `…/reject`, then go back to the page
-    (303). An unknown suggestion gives 404; one that can't be decided any more gives 409. Both get a
-    short page that says why.
+    at the suggestion's article (303, `#a-<articleId>`, with a little space above it). An unknown
+    suggestion gives 404; one that can't be decided any more gives 409. Both get a short page that
+    says why.
+  - **No jump (#269):** the page's one script sends the form in the background and replaces only that
+    suggestion's line with the one from the page G3 answers with (so its texts stay in the message
+    files), moves focus into it and announces the new status to screen readers. The page doesn't
+    reload or scroll. Without JavaScript, or if G3 answers 404/409 or the request fails, the form is
+    sent the ordinary way. There is no Content-Security-Policy on G3 today; if one is added, the
+    inline script needs a nonce.
   - Texts are in `src/main/resources/publisher-control/messages*.properties`, Swedish by default and
     English when the browser asks for it. Text from G2 and the offers is always HTML-escaped.
 

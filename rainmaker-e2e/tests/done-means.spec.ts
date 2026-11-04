@@ -57,8 +57,22 @@ test('a green article: editor view, approval, panel, and a click stored once', a
     advertiser = (await suggestion.locator('strong').first().textContent()) ?? '';
     expect(advertiser).not.toBe('');
 
-    await suggestion.getByRole('button', {name: 'Godkänn'}).click();
+    // The decision updates its line in place (#269): no reload, no scroll. A reload would drop the
+    // mark set here, and the scroll position is taken after Playwright has scrolled the button
+    // into view, just before the click.
+    const approve = suggestion.getByRole('button', {name: 'Godkänn'});
+    await approve.scrollIntoViewIfNeeded();
+    const before = await page.evaluate(() => {
+      (window as Window & {notReloaded?: boolean}).notReloaded = true;
+      return window.scrollY;
+    });
+    await approve.click();
     await expect(entry.locator('li').first()).toContainText('Godkänd');
+    const after = await page.evaluate(() => ({
+      notReloaded: (window as Window & {notReloaded?: boolean}).notReloaded === true,
+      scrollY: window.scrollY,
+    }));
+    expect(after).toEqual({notReloaded: true, scrollY: before});
   });
 
   await test.step('after approval, the article shows the panel with the approved link', async () => {
