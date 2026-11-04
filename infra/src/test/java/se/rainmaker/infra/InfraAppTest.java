@@ -69,4 +69,19 @@ class InfraAppTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("rainmaker:dev-account");
   }
+
+  /**
+   * The Bedrock calls are made in the dev region, so it must be in the EU like the destinations.
+   */
+  @Test
+  void refusesDevRegionOutsideTheEu() {
+    Map<String, Object> context = context();
+    context.put("rainmaker:dev", Map.of("region", "us-east-1"));
+    context.put("rainmaker:dev-account", "111111111111");
+
+    assertThatThrownBy(() -> defineStacks(context))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("rainmaker:dev")
+        .hasMessageContaining("us-east-1");
+  }
 }

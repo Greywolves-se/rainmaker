@@ -52,10 +52,16 @@ public final class InfraApp {
           "CDK context \"" + DEV_ACCOUNT + "\" must be a 12-digit AWS account id");
     }
     Map<?, ?> dev = ContextValues.requireObject(app, DEV);
+    String devRegion = ContextValues.requireText(dev, DEV, "region");
+    // G2 calls Bedrock in this region, so it stays in the EU like the profile's destinations.
+    if (!devRegion.startsWith("eu-")) {
+      throw new IllegalArgumentException(
+          "CDK context \"" + DEV + "\": region must be an EU region: " + devRegion);
+    }
     new BedrockAccessStack(
         app,
         "BedrockAccess-dev",
-        stackProps(account, ContextValues.requireText(dev, DEV, "region")),
+        stackProps(account, devRegion),
         BedrockModelAccess.fromContext(app));
   }
 
