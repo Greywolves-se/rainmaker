@@ -1,7 +1,9 @@
 package se.rainmaker.testsite.feed;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import se.rainmaker.testsite.config.SiteProperties;
 
 /**
@@ -26,8 +28,20 @@ public record TagContainer(String containerId, List<Tag> tags) {
    * @param name shown in the page as data-tag-name
    * @param src address of the script
    * @param trigger "pageview" (load right away) or "consent" (only after "Godkänn alla")
+   * @param attributes set on the script element, like a real tag manager's custom attributes; left
+   *     out of the JSON when there are none
    */
-  public record Tag(String name, String src, String trigger) {}
+  public record Tag(
+      String name,
+      String src,
+      String trigger,
+      @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, String> attributes) {
+
+    /** Makes the attributes unmodifiable. */
+    public Tag {
+      attributes = Map.copyOf(attributes);
+    }
+  }
 
   /**
    * Builds the container for the site. Rainmaker is only in it when the site is configured to
@@ -36,9 +50,14 @@ public record TagContainer(String containerId, List<Tag> tags) {
    */
   public static TagContainer forSite(SiteProperties site) {
     List<Tag> tags = new ArrayList<>();
-    tags.add(new Tag("vintra-stats", STATS_SOURCE, "consent"));
+    tags.add(new Tag("vintra-stats", STATS_SOURCE, "consent", Map.of()));
     if (site.rainmaker().loadedByTagManager()) {
-      tags.add(new Tag("rainmaker", site.rainmaker().scriptUrl(), "pageview"));
+      tags.add(
+          new Tag(
+              "rainmaker",
+              site.rainmaker().scriptUrl(),
+              "pageview",
+              site.rainmaker().scriptAttributes()));
     }
     return new TagContainer("VTB-TEST-1", tags);
   }

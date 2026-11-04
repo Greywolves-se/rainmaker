@@ -12,8 +12,8 @@
       "thresholdUsd": 5
     },
     "rainmaker:bedrock": {
-      "inferenceProfileId": "eu.anthropic.claude-haiku-5-5",
-      "foundationModelId": "anthropic.claude-haiku-5-5",
+      "inferenceProfileId": "eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "foundationModelId": "anthropic.claude-haiku-4-5-20251001-v1:0",
       "destinationRegions": [
         "eu-north-1",
         "eu-central-1",

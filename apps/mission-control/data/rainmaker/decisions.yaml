@@ -209,3 +209,10 @@
   date: 2026-10-04
   status: decided
   reference: Section 9
+- id: B34
+  title: 'C3: a behaviour-based reader flow replaces headline hover; the commercial next step comes after confirmed reading (details in #215).'
+  owner: Peter
+  date: 2026-10-29
+  status: decided
+  needsOwnerDecision: false
+  reference: 'C3; https://github.com/Greywolves-se/rainmaker/issues/215; work in #217–#222; comments on Solution Architecture v0.5, 8 October 2026, sections 4–5'

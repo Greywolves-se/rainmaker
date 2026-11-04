@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Shared dependencies come from services/pom.xml; plugins and versions from the root POM. -->
+  <parent>
+    <groupId>se.rainmaker</groupId>
+    <artifactId>services</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>content-intent</artifactId>
+  <name>S6 Content and Intent</name>
+  <description>Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone and a short reason.</description>
+
+  <!-- Its own PostgreSQL database with Flyway migrations (#155, architecture D16). -->
+  <dependencies>
+    <!-- S5's api: the ArticleStored event this module classifies (#209, contract 6.1). Same app
+         (G2), so only the api package; the app's ArchUnit test checks it. -->
+    <dependency>
+      <groupId>se.rainmaker</groupId>
+      <artifactId>content-ingestion</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!-- Connection pool (HikariCP), JdbcClient and transactions. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <!-- Flyway itself, not Boot's starter: each module runs its own migrations (see the
+         module's database configuration), because an app holds several databases. -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <!-- Checks Claude's answer against the contract's schema (#148, contract section 8). Version
+         managed in the root POM; the collector already uses it. -->
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+    </dependency>
+    <!-- Calls Claude on Amazon Bedrock (#148, contract D-8). Version from the AWS BOM in the
+         root POM. Credentials come from the environment: SSO locally, the task role in AWS. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>bedrockruntime</artifactId>
+    </dependency>
+    <!-- Retries with back-off for the Bedrock call (CLAUDE.md, "Architecture rules"); already
+         managed in the root POM and used by the collector. -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-retry</artifactId>
+    </dependency>
+    <!-- A circuit breaker around the Bedrock call (#185, CLAUDE.md "Architecture rules"); same
+         project and version as resilience4j-retry, managed in the root POM. -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-circuitbreaker</artifactId>
+    </dependency>
+  </dependencies>
+</project>

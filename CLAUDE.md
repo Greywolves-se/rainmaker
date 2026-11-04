@@ -6,9 +6,10 @@ for that module.
 
 ## Project context
 Rainmaker is a contextual performance marketplace for digital news publishers.
-A script tag on the publisher's site shows a small, labelled panel with relevant
-commercial links when a reader hovers a headline. AI suggests the links, an editor
-approves them, and every click is tracked for settlement.
+A script tag on the publisher's site shows relevant, labelled commercial links as a
+next step once the reader has read the article: beside it on desktop, after it on
+mobile (`docs/adr/0005-behaviour-based-reader-flow.md`, #215). AI suggests the links,
+an editor approves them, and every click is tracked for settlement.
 
 - Before starting a task, read the GitHub issue, the README of the folder you work in,
   and `/docs/START_HERE.md` once it exists (Mission Control will generate it, #25).
@@ -22,12 +23,13 @@ approves them, and every click is tracked for settlement.
 |---|---|---|---|
 | `apps/mission-control/` | Internal status app: `collector/` (Java) + `web/` (React) | Maven aggregator + npm | **In progress** (#1–#32) |
 | `test-site/` | Fictional news site (Vintrabladet) to test the widget, ingestion and AI against; not part of the product | Maven module | Done; see its `README.md` |
-| `services/<name>/` | One logical service each (S1–S10, table below) | Maven module | Empty – later |
-| `apps/g1`–`g4-*-app/` | Deployable Spring Boot apps that assemble services | Maven module | Not created yet |
-| `widget/` | rainmaker.js (TypeScript) | npm | Empty – later |
+| `services/<name>/` | One logical service each (S1–S10, table below), grouped by `services/pom.xml` | Maven module | S1–S7 created empty (#155); S8–S10 later |
+| `apps/g1`–`g4-*-app/` | Deployable Spring Boot apps that assemble services (ports 8081–8083) | Maven module | G1–G3 created (#155); G4 later |
+| `widget/` | rainmaker.js (TypeScript, gts, Vite, Vitest; one script, max 15 KB gzipped) | npm | Reader flow: the next step after qualified reading, beside or after the article (ADR 0005, #217–#220); G1 serves it at `/widget/rainmaker.js` |
 | `portals/` | React apps for publishers and admins | npm | Empty – later |
 | `infra/` | AWS CDK app (Java), one stack per environment; see `infra/README.md` | Maven module | **In progress** (#61–#63) |
 | `docs/` | START_HERE.md, architecture decision records | – | Empty – later |
+| `docs/study-guides.md` | How Claude writes and publishes a study guide for each PR, and the hub's link | – | Added in #179 |
 | `docs/adr/` | Architecture decision records, one Markdown file per decision | – | First ADR: 0001, Mission Control V1 (#6) |
 
 Build all Maven modules with `./mvnw verify` from the root (parent `pom.xml`, JDK 21
@@ -48,7 +50,9 @@ Planned services and apps (folder names to use when they are created):
 Base package per service: `se.rainmaker.<folder without dashes>` (e.g.
 `se.rainmaker.clearinghouse`). Other modules may only use its `.api` sub-package.
 Mission Control: `se.rainmaker.missioncontrol.<module>` (e.g.
-`se.rainmaker.missioncontrol.collector`). Test site: `se.rainmaker.testsite`.
+`se.rainmaker.missioncontrol.collector`). Test site: `se.rainmaker.testsite`. Apps:
+`se.rainmaker.<folder without dashes>` (e.g. `se.rainmaker.g1readerapp`); each app scans only
+the service packages it assembles, and its `ModuleBoundaryTest` enforces the `.api` rule.
 
 ## Claude behaviour
 
@@ -82,8 +86,21 @@ Before presenting any change, review it as a strict senior reviewer would:
 - Does it break any rule in this file, especially the product rules?
 - Is there a simpler way? Remove dead code, duplication and speculative abstractions.
 
-State the weaknesses, assumptions and open risks you found. Never present code
-as finished or "production-ready" without this review.
+Before opening a draft PR, fix the gaps this review finds instead of only listing
+them, and say in the PR summary what you found and fixed. State the weaknesses,
+assumptions and open risks that remain. Never present code as finished or
+"production-ready" without this review.
+
+### Study guides
+- After opening a draft PR that changes code (not for docs or config only), write a
+  study guide for it, in English: one page that explains all the changed code, with
+  questions at the end that check the developer understood it. Keep it light: a main
+  path of about 15 minutes, with the full detail in closed "Go deeper" boxes. Publish
+  it as a private claude.ai page and add it to the team's hub. How, and what a guide
+  contains: `docs/study-guides.md`.
+- Then remind the developer to share the guide with the team from its Share menu.
+  Claude cannot change who has access to a page.
+- When the PR changes after a review, update the guide (same link) and its hub entry.
 
 ### Verify, don't assume
 - Run the build, formatter and relevant tests before saying a change works.
