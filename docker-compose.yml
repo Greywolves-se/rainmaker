@@ -44,6 +44,9 @@ services:
       BASE_URL: http://localhost:3000
       # The browser loads the widget from G1 (contract D-7).
       RAINMAKER_SCRIPT_URL: ${RAINMAKER_SCRIPT_URL:-http://localhost:8081/widget/rainmaker.js}
+      # Seconds of active reading before the widget shows the next step; empty = its default
+      # (60 s). The end-to-end test (#154) shortens it.
+      RAINMAKER_QUALIFIED_READING_SECONDS: ${RAINMAKER_QUALIFIED_READING_SECONDS:-}
 
   # G1 Reader & clicks: serves rainmaker.js and the widget API, stores clicks.
   g1:
@@ -90,6 +93,11 @@ services:
       # article gets a panel. green only for local work on matching or the widget; then red
       # articles get a panel too (#148).
       RAINMAKER_FAKE_ZONE: ${RAINMAKER_FAKE_ZONE:-red}
+      # Only for the end-to-end test (#154): a headline containing this marker is green. Empty
+      # (default): no headline is.
+      RAINMAKER_FAKE_GREEN_MARKER: ${RAINMAKER_FAKE_GREEN_MARKER:-}
+      # How often G2 reads the test site's feed: every minute; the end-to-end test shortens it.
+      RAINMAKER_FEED_POLL_INTERVAL: ${RAINMAKER_FEED_POLL_INTERVAL:-1m}
       # G2 fetches the offers from G3 (#149, #190). G2 shares the test site's network, where
       # localhost:8083 isn't G3, so it uses G3's service name.
       RAINMAKER_G3_URL: http://g3:8083

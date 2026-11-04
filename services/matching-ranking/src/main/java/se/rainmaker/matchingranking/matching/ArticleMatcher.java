@@ -21,8 +21,8 @@ import se.rainmaker.matchingranking.ranking.RankedOffer;
  *       withdrawn at once, without asking G3, so brand safety never waits for another app (D-4).
  *   <li><b>Green:</b> the offers are read from G3 and ranked ({@link OfferRanking}).
  *   <li><b>Green, but G3 can't be reached</b> after the retries: nothing new is stored and the
- *       error is logged. A new version still loses its old set (fail closed). The article is
- *       matched again the next time it is classified.
+ *       error is logged. A new version still loses its old set (fail closed). The version waits for
+ *       offers, and {@link MatchingRetry} matches it once G3 answers (#248).
  * </ul>
  *
  * <p>Runs after content-intent's transaction commits, or at once if it was published outside one.
@@ -54,13 +54,19 @@ class ArticleMatcher {
         ranked = OfferRanking.rank(classification.topics(), offers.offers());
       } catch (OffersUnavailableException exception) {
         LOG.error(
-            "No suggestions for article {} version {} for now: {}. It is matched again when it is"
-                + " classified again.",
+            "No suggestions for article {} version {} for now: {}. It is matched again once G3"
+                + " answers.",
             event.articleId(),
             event.articleVersion(),
             exception.getMessage(),
             exception);
-        store.withdrawIfNewer(event.articleId(), event.articleVersion());
+        if (!store.waitForOffers(
+            event.articleId(),
+            event.articleVersion(),
+            classification.topics(),
+            event.correlationId())) {
+          logOlderVersionIgnored(event);
+        }
         return;
       }
       save(event, ranked);
@@ -75,10 +81,14 @@ class ArticleMatcher {
           event.articleVersion(),
           ranked.size());
     } else {
-      LOG.info(
-          "Article {} version {} is older than the newest one matched; ignored",
-          event.articleId(),
-          event.articleVersion());
+      logOlderVersionIgnored(event);
     }
+  }
+
+  private static void logOlderVersionIgnored(ArticleClassified event) {
+    LOG.info(
+        "Article {} version {} is older than the newest one matched; ignored",
+        event.articleId(),
+        event.articleVersion());
   }
 }
