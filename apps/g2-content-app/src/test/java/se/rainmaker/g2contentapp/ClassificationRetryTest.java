@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -16,6 +17,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,7 +43,8 @@ import se.rainmaker.contentintent.database.ContentIntentDatabaseConfiguration;
 /**
  * How content-intent classifies failed and unclassified versions again (#223), with the article's
  * text from content-ingestion. The classifier is a mock; both databases are real (Testcontainers).
- * The schedule is off: each test runs the retry itself. A run takes at most 2 versions here.
+ * The schedule is off: each test runs the retry itself. A run takes at most 2 versions here. The
+ * wait before a retry starts at the default 5 minutes and grows to at most the default 1 day.
  */
 @SpringBootTest(
     properties = {
@@ -220,6 +224,96 @@ class ClassificationRetryTest {
     assertThat(published(article)).hasSize(1);
   }
 
+  /**
+   * #258: the wait doubles with each failed try: 5, 10, then 20 minutes. Of two versions with the
+   * same number of failed tries, only the one tried a minute longer ago than the wait is taken.
+   */
+  @ParameterizedTest
+  @CsvSource({"1, 5", "2, 10", "3, 20"})
+  void waitDoublesWithEachFailedTry(int failedAttempts, int waitMinutes) {
+    ArticleStored due = storedInIngestion(UUID.randomUUID(), 1);
+    ArticleStored notYet = storedInIngestion(UUID.randomUUID(), 1);
+    failedBefore(due, failedAttempts, Duration.ofMinutes(waitMinutes + 1));
+    failedBefore(notYet, failedAttempts, Duration.ofMinutes(waitMinutes - 1));
+    when(classifier.classify(any())).thenReturn(green());
+
+    retry.run();
+
+    verify(classifier).classify(argThat(asked -> asked.articleId().equals(due.articleId())));
+    assertThat(row(due)).containsEntry("status", "classified");
+    assertThat(row(notYet)).containsEntry("status", "failed");
+  }
+
+  /** #258: however often a version failed, it is tried again at least once a day (max-wait). */
+  @Test
+  void waitStopsGrowingAtMaxWait() {
+    ArticleStored due = storedInIngestion(UUID.randomUUID(), 1);
+    ArticleStored notYet = storedInIngestion(UUID.randomUUID(), 1);
+    failedBefore(due, 1000, Duration.ofDays(1).plusMinutes(1));
+    failedBefore(notYet, 1000, Duration.ofDays(1).minusMinutes(1));
+    when(classifier.classify(any())).thenReturn(green());
+
+    retry.run();
+
+    verify(classifier).classify(argThat(asked -> asked.articleId().equals(due.articleId())));
+    assertThat(row(notYet)).containsEntry("status", "failed");
+  }
+
+  @Test
+  void failedRetryCountsOneMoreFailedTry() {
+    ArticleStored article = storedInIngestion(UUID.randomUUID(), 1);
+    failedBefore(article, 2, Duration.ofHours(1));
+    when(classifier.classify(any())).thenReturn(Classification.failed(MODEL, AT));
+
+    retry.run();
+
+    assertThat(row(article)).containsEntry("status", "failed").containsEntry("failed_attempts", 3);
+  }
+
+  /** No call was made (call limits, token cap, open breaker), so the wait doesn't grow. */
+  @Test
+  void unclassifiedResultDoesNotCountAsFailedTry() {
+    ArticleStored article = storedInIngestion(UUID.randomUUID(), 1);
+    failedBefore(article, 2, Duration.ofHours(1));
+    when(classifier.classify(any())).thenReturn(Classification.unclassified());
+
+    retry.run();
+
+    assertThat(row(article))
+        .containsEntry("status", "unclassified")
+        .containsEntry("failed_attempts", 2);
+  }
+
+  @Test
+  void successfulClassificationStartsOver() {
+    ArticleStored article = storedInIngestion(UUID.randomUUID(), 1);
+    failedBefore(article, 3, Duration.ofHours(1));
+    when(classifier.classify(any())).thenReturn(green());
+
+    retry.run();
+
+    assertThat(row(article))
+        .containsEntry("status", "classified")
+        .containsEntry("failed_attempts", 0);
+  }
+
+  /**
+   * A new version is a new row: its wait starts at the interval, however often the old one failed.
+   */
+  @Test
+  void newVersionStartsOver() {
+    UUID articleId = UUID.randomUUID();
+    ArticleStored first = storedInIngestion(articleId, 1);
+    final ArticleStored second = storedInIngestion(articleId, 2);
+    failedBefore(first, 5, Duration.ofDays(2));
+    when(classifier.classify(any())).thenReturn(Classification.failed(MODEL, AT));
+
+    retry.run();
+
+    assertThat(row(second)).containsEntry("status", "failed").containsEntry("failed_attempts", 1);
+    assertThat(row(first)).containsEntry("failed_attempts", 5);
+  }
+
   @Test
   void logsIdVersionAndOutcomeNeverTheText(CapturedOutput output) {
     ArticleStored article = storedInIngestion(UUID.randomUUID(), 1);
@@ -293,6 +387,27 @@ class ClassificationRetryTest {
         .update();
   }
 
+  /**
+   * A failed row with {@code failedAttempts} failed tries, the last one {@code ago} before the
+   * database's clock, which is the clock the retry compares with.
+   */
+  private void failedBefore(ArticleStored article, int failedAttempts, Duration ago) {
+    contentIntent
+        .sql(
+            """
+            INSERT INTO classification (article_id, article_version, status, correlation_id,
+                failed_attempts, attempted_at)
+            VALUES (:articleId, :version, 'failed', :correlationId, :failedAttempts,
+                now() - make_interval(secs => :seconds))
+            """)
+        .param("articleId", article.articleId())
+        .param("version", article.version())
+        .param("correlationId", article.correlationId())
+        .param("failedAttempts", failedAttempts)
+        .param("seconds", ago.toSeconds())
+        .update();
+  }
+
   private void classifiedGreen(ArticleStored article, Instant attemptedAt) {
     contentIntent
         .sql(
@@ -314,7 +429,7 @@ class ClassificationRetryTest {
     return contentIntent
         .sql(
             """
-            SELECT status, zone FROM classification
+            SELECT status, zone, failed_attempts FROM classification
             WHERE article_id = :articleId AND article_version = :version
             """)
         .param("articleId", article.articleId())

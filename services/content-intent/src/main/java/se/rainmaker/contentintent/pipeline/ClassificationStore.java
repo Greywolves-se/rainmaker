@@ -60,7 +60,9 @@ class ClassificationStore implements CurrentClassifications {
   }
 
   /**
-   * Makes {@code classification} the version's current result, replacing any earlier one.
+   * Makes {@code classification} the version's current result, replacing any earlier one. A failed
+   * result counts one more failed try, a classified one starts the count over, and an unclassified
+   * one (no call was made) leaves it as it is (#258).
    *
    * @throws IllegalStateException if the version wasn't stored as unclassified first
    */
@@ -73,7 +75,11 @@ class ClassificationStore implements CurrentClassifications {
                 UPDATE classification
                 SET status = :status, zone = :zone, topics = :topics, reason_sv = :reasonSv,
                     reason_en = :reasonEn, model = :model, classified_at = :classifiedAt,
-                    attempted_at = now()
+                    attempted_at = now(),
+                    failed_attempts = CASE :status
+                        WHEN 'failed' THEN failed_attempts + 1
+                        WHEN 'classified' THEN 0
+                        ELSE failed_attempts END
                 WHERE article_id = :articleId AND article_version = :version
                 """)
             .param("articleId", articleId)
@@ -96,10 +102,13 @@ class ClassificationStore implements CurrentClassifications {
 
   /**
    * Takes up to {@code limit} versions to classify again (#223): failed or unclassified, the newest
-   * version of their article here, and not tried for {@code notTriedFor}; oldest attempt first.
+   * version of their article here, and not tried for their wait; oldest attempt first. The wait is
+   * {@code interval}, doubled for each failed try after the first, at most {@code maxWait} (#258).
    * They are marked as tried now, so the next run, or another G2, doesn't take them too.
    */
-  List<ArticleVersion> takeForRetry(int limit, Duration notTriedFor) {
+  List<ArticleVersion> takeForRetry(int limit, Duration interval, Duration maxWait) {
+    // The exponent stops at 30: interval × 2^30 is far beyond any max-wait, and power() can't
+    // overflow however many times a version failed.
     return database
         .sql(
             """
@@ -107,7 +116,9 @@ class ClassificationStore implements CurrentClassifications {
             WHERE (article_id, article_version) IN (
                 SELECT article_id, article_version FROM classification tried
                 WHERE status IN ('failed', 'unclassified')
-                    AND attempted_at < now() - make_interval(secs => :seconds)
+                    AND attempted_at < now() - make_interval(secs => LEAST(
+                        :intervalSeconds * power(2, LEAST(GREATEST(failed_attempts - 1, 0), 30)),
+                        :maxWaitSeconds))
                     AND NOT EXISTS (
                         SELECT 1 FROM classification newer
                         WHERE newer.article_id = tried.article_id
@@ -117,7 +128,8 @@ class ClassificationStore implements CurrentClassifications {
                 FOR UPDATE SKIP LOCKED)
             RETURNING article_id, article_version
             """)
-        .param("seconds", notTriedFor.toSeconds())
+        .param("intervalSeconds", interval.toSeconds())
+        .param("maxWaitSeconds", maxWait.toSeconds())
         .param("limit", limit)
         .query(
             (row, number) ->
