@@ -50,6 +50,7 @@ const LOG_NOTES = [
   [/^No approved links/, 'G3 couldn\'t ask G2 whether the article is green, so it answered 503 (fail closed): the reader gets no next step.'],
   [/^Approved offer .* no longer exists/, 'An approved offer was removed from S4; its link is left out.'],
   [/^No widget links/, 'G1 couldn\'t get the approved links from G3 (down, slow, bad answer or circuit open) and answered 503: no next step for that reader.'],
+  [/^G2 articles reader circuit breaker/, 'G3\'s circuit breaker for its live call to G2 changed state. While open (10 s), the approved links API answers 503 at once and G2 isn\'t asked; the poll is not affected.'],
   [/^G3 approved links circuit breaker/, 'G1\'s circuit breaker for G3 changed state. While open (10 s), no reader gets a next step and G3 isn\'t called.'],
   [/^Left out .*without all its fields|^Left out offerId/, 'One link from G3 was incomplete or couldn\'t be signed; only that link is dropped.'],
   [/^Widget links refused/, 'The widget asked for an address that isn\'t an article on a publisher site, or is too long. 400, G3 not asked.'],
