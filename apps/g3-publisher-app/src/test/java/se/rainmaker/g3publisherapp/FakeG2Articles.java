@@ -41,7 +41,7 @@ final class FakeG2Articles {
          "updatedAt": null,
          "classification": {"status": "classified", "zone": "%s", "topics": ["home"],
            "reason": {"sv": "Praktiska råd.", "en": "Practical advice."},
-           "model": "claude-haiku-5-5", "classifiedAt": "2026-10-30T09:15:04Z"},
+           "model": "claude-haiku-4-5", "classifiedAt": "2026-10-30T09:15:04Z"},
          "suggestions": [%s],
          "correlationId": "c0a1"}
         """;
