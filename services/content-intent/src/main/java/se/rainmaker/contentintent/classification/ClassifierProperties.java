@@ -58,13 +58,21 @@ public record ClassifierProperties(
    * @param topics the topics it gives every article
    * @param reasonSv the reason in Swedish
    * @param reasonEn the reason in English
+   * @param classifications where the demo's known answers are, e.g. {@code
+   *     classpath:content-intent/demo-classifications.json} (#261); empty (the default) for none
    */
   public record Fake(
-      Zone zone, String greenMarker, List<Topic> topics, String reasonSv, String reasonEn) {
+      Zone zone,
+      String greenMarker,
+      List<Topic> topics,
+      String reasonSv,
+      String reasonEn,
+      String classifications) {
 
-    /** No marker unless one is set. */
+    /** No marker and no demo file unless set. */
     public Fake {
       greenMarker = greenMarker == null ? "" : greenMarker.strip();
+      classifications = classifications == null ? "" : classifications.strip();
     }
   }
 

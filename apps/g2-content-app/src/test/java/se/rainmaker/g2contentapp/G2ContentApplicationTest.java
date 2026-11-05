@@ -81,6 +81,23 @@ class G2ContentApplicationTest {
     assertThat(classification.zone()).isEqualTo(Zone.RED);
   }
 
+  /**
+   * Fails closed too: the demo classifications (#261) are off unless set, so even a headline that
+   * the demo file lists as green is red.
+   */
+  @Test
+  void defaultFakeHasNoDemoClassifications() {
+    Classification classification =
+        classifier.classify(
+            new ArticleToClassify(
+                UUID.randomUUID(),
+                1,
+                "Svenskarna väljer Mallorca i höst – här är öns okända pärlor",
+                "Resor och mat."));
+
+    assertThat(classification.zone()).isEqualTo(Zone.RED);
+  }
+
   @Test
   void startsOnItsOwnPort() {
     assertThat(port).isEqualTo(8082);

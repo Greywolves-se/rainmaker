@@ -79,6 +79,10 @@ docker compose up --build        # stop with Ctrl+C, or add -d and stop with: do
   in `.env`; then every article gets a panel, the red test articles too, so never for the demo.
   The end-to-end test (#154) instead sets `RAINMAKER_FAKE_GREEN_MARKER`: only headlines containing
   it are green, every other article stays red.
+  For a demo without Claude, set
+  `RAINMAKER_FAKE_CLASSIFICATIONS=classpath:content-intent/demo-classifications.json` (#261): the test site's
+  articles then get the answers Claude would give, green with their own topics, the robbery and
+  the accident red, and the health and money articles yellow.
   For real Claude on Bedrock, log in with `aws sso login`, set `AWS_PROFILE` in `.env` (copy
   `.env.example`) and start with
   `docker compose -f docker-compose.yml -f docker-compose.bedrock.yml up --build`. Your SSO login is

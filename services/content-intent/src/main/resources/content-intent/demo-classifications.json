@@ -1,0 +1,112 @@
+{
+  "articles": [
+    {
+      "headline": "Svenskarna väljer Mallorca i höst – här är öns okända pärlor",
+      "zone": "green",
+      "topics": ["travel", "food"],
+      "reason": {
+        "sv": "Researtikel om Mallorca under hösten, med tips om platser och mat. Ett vardagligt ämne där reselänkar passar.",
+        "en": "A travel article about Mallorca in autumn, with tips on places and food. An everyday subject where travel links fit."
+      }
+    },
+    {
+      "headline": "Vintra IF klart för Superettan efter dramatisk avslutning",
+      "zone": "green",
+      "topics": ["sport"],
+      "reason": {
+        "sv": "Sportnyhet om lokalklubbens uppflyttning. Ett positivt ämne där biljetter och sportprodukter passar.",
+        "en": "Sports news about the local club's promotion. A positive subject where tickets and sports products fit."
+      }
+    },
+    {
+      "headline": "Man gripen efter rånförsök mot butik i centrala Vintra",
+      "zone": "red",
+      "topics": ["other"],
+      "reason": {
+        "sv": "Brottsnyhet om ett rånförsök. Kommersiella länkar vore olämpliga här.",
+        "en": "Crime news about an attempted robbery. Commercial links would be inappropriate here."
+      }
+    },
+    {
+      "headline": "Stadsteatern tar ut svängarna – vinterns musikal den största på 20 år",
+      "zone": "green",
+      "topics": ["culture"],
+      "reason": {
+        "sv": "Kulturartikel om vinterns stora musikal. Biljetter och kulturupplevelser passar.",
+        "en": "A culture article about the winter's big musical. Tickets and cultural experiences fit."
+      }
+    },
+    {
+      "headline": "Kantarellerna har exploderat – så hittar du höstens guld",
+      "zone": "green",
+      "topics": ["food", "outdoor"],
+      "reason": {
+        "sv": "Artikel om att plocka och laga kantareller. Mat och friluftsliv passar.",
+        "en": "An article about picking and cooking chanterelles. Food and outdoor offers fit."
+      }
+    },
+    {
+      "headline": "Badrummet som håller i 40 år – experternas bästa råd innan du renoverar",
+      "zone": "green",
+      "topics": ["home"],
+      "reason": {
+        "sv": "Råd om badrumsrenovering. Produkter och tjänster för hemmet passar.",
+        "en": "Advice on renovating a bathroom. Products and services for the home fit."
+      }
+    },
+    {
+      "headline": "Vi har testat: Familjeelbilen klarar kylan bättre än väntat",
+      "zone": "green",
+      "topics": ["cars"],
+      "reason": {
+        "sv": "Test av en familjeelbil i kyla. Bilerbjudanden passar.",
+        "en": "A test of a family electric car in the cold. Car offers fit."
+      }
+    },
+    {
+      "headline": "Allt fler unga sover för lite – läkaren: ”Skärmarna är bara en del av problemet”",
+      "zone": "yellow",
+      "topics": ["health"],
+      "reason": {
+        "sv": "Hälsoartikel om ungas sömnbrist. Ett känsligt ämne där länkar kräver försiktighet.",
+        "en": "A health article about young people's lack of sleep. A sensitive subject where links need care."
+      }
+    },
+    {
+      "headline": "Hushållen sparar mer än någonsin – men var fjärde saknar buffert",
+      "zone": "yellow",
+      "topics": ["personal-finance"],
+      "reason": {
+        "sv": "Artikel om hushållens sparande och buffertar. Privatekonomi är ett känsligt ämne.",
+        "en": "An article about household savings and buffers. Personal finance is a sensitive subject."
+      }
+    },
+    {
+      "headline": "Två döda i trafikolycka utanför Vintra",
+      "zone": "red",
+      "topics": ["other"],
+      "reason": {
+        "sv": "Nyhet om en trafikolycka med två döda. Kommersiella länkar vore olämpliga här.",
+        "en": "News about a traffic accident in which two people died. Commercial links would be inappropriate here."
+      }
+    },
+    {
+      "headline": "Fjällvandring i oktober – så lyckas du med höstturen",
+      "zone": "green",
+      "topics": ["outdoor", "travel"],
+      "reason": {
+        "sv": "Guide till fjällvandring på hösten. Friluftsliv och resor passar.",
+        "en": "A guide to mountain hiking in autumn. Outdoor and travel offers fit."
+      }
+    },
+    {
+      "headline": "4 000 löpare till start när Vintraloppet firar 25 år",
+      "zone": "green",
+      "topics": ["sport", "health"],
+      "reason": {
+        "sv": "Sportnyhet om ett populärt motionslopp. Löpning och träning passar.",
+        "en": "Sports news about a popular running race. Running and training fit."
+      }
+    }
+  ]
+}

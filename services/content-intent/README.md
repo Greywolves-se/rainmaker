@@ -28,6 +28,7 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
     (`src/main/resources/content-intent/classification-answer.schema.json`, a copy of section 8;
     change both together), with both reasons non-blank. Anything else means `failed`.
   - `FakeArticleClassifier` gives every article one configured answer, for local work and tests.
+    Optionally, `DemoClassifications` gives listed headlines their own answer first (#261).
   - `BedrockArticleClassifier` calls Claude on Amazon Bedrock (Converse API, AWS SDK v2) with the
     prompt in `src/main/resources/content-intent/classification-prompt.txt` and the schema as a tool
     Claude must call. Only the headline and text are sent, as data.
@@ -71,6 +72,7 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 | `daily-token-cap` | `200000` | When used, articles stay `unclassified` until the next UTC day |
 | `circuit-breaker.*` | `50` %, `10`, `5`, `1m` | Opens when at least `failure-rate-percent` of the last `window-size` articles (at least `minimum-calls` seen) still failed after their retries; then no call for `open-for`, and one trial call decides (#185) |
 | `fake.*` | **red** (`RAINMAKER_FAKE_ZONE`), `home` | The fake classifier's answer for every article. Red by default, so nothing gets a panel without Claude; set `RAINMAKER_FAKE_ZONE=green` only for local work on matching or the widget. G2 logs a WARN at start-up while the fake is active |
+| `fake.classifications` | *(empty)* (`RAINMAKER_FAKE_CLASSIFICATIONS`) | For a local demo without Claude (#261): a JSON file with an answer per headline (zone, 1-3 topics, both reasons). `classpath:content-intent/demo-classifications.json` has the test site's 12 articles, as Claude would classify them. Listed headlines get their answer first, then the marker, then `fake.zone`. A missing or broken file stops G2; Bedrock mode never reads it |
 | `fake.green-marker` | *(empty)* (`RAINMAKER_FAKE_GREEN_MARKER`) | Only for the end-to-end test (#154): a headline containing it is green, every other article keeps `fake.zone`. Empty: no headline is |
 
 ### Retry settings (`rainmaker.content-intent.retry.*`, #223)
