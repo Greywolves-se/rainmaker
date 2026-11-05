@@ -25,6 +25,9 @@ reconsider it, but the comments didn't reach v0.5 or this repository:
    hypothesis is 60 seconds of active time, combined with simple activity signals (the page is
    visible, the reader scrolls, a part of the article has been reached), so a phone left on the
    table doesn't count. The 60 seconds is a setting to test, never a hard-coded rule.
+   *Updated 4 Nov 2026 (#252): as built (#218), qualified reading is the active time while the
+   page is visible plus one scroll; reaching the end of the article is the separate leaving
+   signal in step 3 (#219). The decision itself is unchanged.*
 3. **Leaving the article:** when the reader then shows signs of leaving the article content
    (for example the scroll position or another defined signal), the widget shows the article's
    approved links as a clearly labelled ("Annons") next step.
@@ -51,6 +54,8 @@ there are no reader profiles (CLAUDE.md, product rules).
   demo.
 - **When the widget API is called:** rainmaker.js asks for the links in a page view that reaches
   qualified reading, instead of on the first hover. A page view that never qualifies makes no call.
+  *Updated 4 Nov 2026 (#252): as built (#220), it asks once both qualified reading and the end
+  of the article are reached, so a reader who stops in the middle makes no call either.*
 - **The end-to-end test** (#154) keeps the step that makes the widget show the links in one
   helper, so only that helper changes when #220 lands.
 - **Open until #222:** how long without scrolling counts as idle, which signal means "leaving",

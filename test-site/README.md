@@ -167,7 +167,7 @@ page has three empty markers for that, which a publisher can copy:
 | `/artikel/<slug>` | One article (PLUS articles have a paywall) | Readers, widget (S1), ingestion (S5) |
 | `/sektion/<id>` | All articles in a section, e.g. `/sektion/sport` | Readers |
 | `/rss.xml` | RSS 2.0 feed with every article | Content Ingestion (S5) |
-| `/sitemap.xml` | Google News-style sitemap | Content Ingestion (S5) |
+| `/sitemap.xml` | Google News-style sitemap | Crawlers (S5 reads only `/rss.xml`) |
 | `/robots.txt` | Points crawlers to the sitemap, keeps them out of `/eval/` | Crawlers |
 | `/eval/labels.csv` | The *correct* zone for each article. Not linked from any page: open the address directly | AI evaluation (S6) |
 | `/ads/creatives.json` | The fake ad server | The site's own `ads.js` |

@@ -37,8 +37,9 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
     as `unclassified` at once (a version stored already is a repeated event: nothing changes),
     calls the classifier outside any database transaction, then has the result stored. A
     classifier that throws gives `failed`. The listener runs inside ingestion's feed poll, so any
-    other error is logged and the poll continues; that version stays `unclassified` until the
-    retry takes it.
+    other error is logged and the poll continues. If storing the result failed, the version stays
+    `unclassified` until the retry takes it. If storing the version itself failed, there is no row,
+    so the retry never finds it: it is classified only when a newer version comes (#243).
   - `ClassificationRetry` (#223) classifies `failed` and `unclassified` versions again, on a
     schedule (settings below). Each run takes at most `batch-size` of them that weren't tried for
     `interval`, oldest attempt first, and marks them as tried (column `attempted_at`,
@@ -93,6 +94,7 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 | Validation error, unknown model | `failed` | By the retry |
 | Refusal, cut-off answer, text instead of the tool, invalid answer | `failed` | By the retry: a call each `interval`, within the limits, until the article is edited |
 | A database error while storing the result | stays `unclassified` | By the retry |
+| A database error while storing the version as `unclassified` (the first step) | no row | No: only a newer version gets classified (#243) |
 
 Never green by default. Logs carry the article id, version, outcome and tokens, never the text.
 

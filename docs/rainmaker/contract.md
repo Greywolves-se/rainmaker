@@ -193,8 +193,8 @@ chosen language. An answer without both counts as `failed`.
 | `classified` | `green` | Safe, with commercial intent | Yes (up to 3) | Yes, after approval | The zone and suggestions |
 | `classified` | `yellow` | Sensitive (health, personal finance) | No, for the demo | No | Yellow |
 | `classified` | `red` | Never next to ads (crime, tragedy) | No, never | No, never | Red |
-| `unclassified` | `null` | Stored, not classified yet | No | No | "Not classified yet" |
-| `failed` | `null` | Timeout, refusal, invalid answer, retries used up | No | No | "Couldn't be classified" |
+| `unclassified` | `null` | Stored, not classified yet, or deferred without a call (the calls-per-minute limit, the daily token cap, an open circuit breaker) | No | No | "Not classified yet" |
+| `failed` | `null` | Bedrock gave an error (timeout, throttling or service errors after the retries, access denied, an expired login), a refusal or an invalid answer, no headline or text, or the classifier threw | No | No | "Couldn't be classified" |
 
 **Decision D-4:** `unclassified` and `failed` are stored as their own states, never as red,
 so the editor view tells the truth, the failure counts stay honest, and a later retry can
@@ -571,7 +571,7 @@ Opening the link:
 | Bad, changed or garbled token | `400` error page | Nothing |
 | Valid signature, expired | `410 Gone` error page | Nothing |
 | Valid, but the click can't be stored (the database is down or too slow) | `503` error page ("try again"), no redirect | Nothing; opening the link again retries with the same `clickId` |
-| `HEAD` instead of `GET` (link checkers, e-mail and chat previews) | The same status and `Location` as `GET`, no page | Nothing, ever |
+| `HEAD` instead of `GET` (link checkers, e-mail and chat previews) | The status and `Location` `GET` gives when the click is stored (`302`, `400` or `410`), no page. Never `503`: it doesn't touch the database | Nothing, ever |
 
 - **Fail closed for money (#192):** a click that can't be stored is never passed on; the
   alternative, redirecting anyway, would lose it. G1 waits at most 1 s for a database
@@ -593,8 +593,8 @@ page of its own: articles are published as files in `test-site/content/articles/
 | Method | Path | What |
 |---|---|---|
 | GET | `/publisher/articles` | Recent articles: headline, zone (or "Not classified yet" / "Couldn't be classified"), reason, suggestions |
-| POST | `/publisher/suggestions/{suggestionId}/approve` | Approve; writes an audit row |
-| POST | `/publisher/suggestions/{suggestionId}/reject` | Reject; writes an audit row |
+| POST | `/publisher/suggestions/{suggestionId}/approve` | Approve; writes an audit row when the status changes |
+| POST | `/publisher/suggestions/{suggestionId}/reject` | Reject; writes an audit row when the status changes |
 
 The page states that there's no login (local demo only). An audit row (append-only) looks
 like this:
