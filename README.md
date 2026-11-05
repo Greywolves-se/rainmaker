@@ -62,7 +62,7 @@ docker compose up --build        # stop with Ctrl+C, or add -d and stop with: do
 | The test site, Vintrabladet, with `rainmaker.js` loaded | http://localhost:3000 |
 | G1 Reader & clicks (serves `/widget/rainmaker.js`) | http://localhost:8081 |
 | G2 Content & AI | http://localhost:8082 |
-| G3 Publisher & marketplace (the editor view) | http://localhost:8083 |
+| G3 Publisher & marketplace: the editor view | http://localhost:8083/publisher/articles |
 | PostgreSQL | `localhost:5432` |
 
 - **The first start** builds the images (a few minutes); later starts reuse them. Add `--build`
@@ -79,13 +79,36 @@ docker compose up --build        # stop with Ctrl+C, or add -d and stop with: do
   in `.env`; then every article gets a panel, the red test articles too, so never for the demo.
   The end-to-end test (#154) instead sets `RAINMAKER_FAKE_GREEN_MARKER`: only headlines containing
   it are green, every other article stays red.
-  For real Claude on Bedrock, log in with `aws sso login`, set `AWS_PROFILE` in `.env` (copy
-  `.env.example`) and start with
-  `docker compose -f docker-compose.yml -f docker-compose.bedrock.yml up --build`. Your SSO login is
-  mounted read-only; no keys go into any file.
+  For real Claude, see "Claude on Bedrock" below.
 - **How it fits together:** every port is on `127.0.0.1` only. G2 shares the test site's network, so
   it reads `http://localhost:3000/...`, the same article addresses the browser and the widget use
   (contract D-2); other containers reach G2 at `test-site:8082`.
+
+### Claude on Bedrock
+
+With your own AWS login, G2 classifies the articles with Claude Haiku 4.5 in the rainmaker-dev
+account (#148, #161). Access is given in IAM Identity Center (the group Rainmaker-Dev), never with
+access keys. Everyone uses the same profile names, so the commands in the docs work as written.
+
+1. **Once:** copy the profiles in [`docs/aws-config-example`](docs/aws-config-example) into
+   `~/.aws/config`, and copy `.env.example` to `.env` with `AWS_PROFILE=rainmaker-dev-admin`.
+2. **Each day:** `aws sso login --profile rainmaker-dev-admin` (opens the browser; the login lasts
+   a few hours).
+3. **Start:** `docker compose -f docker-compose.yml -f docker-compose.bedrock.yml up --build -d`.
+   Your SSO login is mounted read-only; no keys go into any file.
+4. **Check:** after a minute, http://localhost:8082/api/articles?recent=100 shows each article's
+   zone. The robbery attempt and the traffic accident must be red. An article that shows `failed`
+   got no answer from Claude: check `docker compose logs g2`.
+5. **Demo:** approve links in the editor view, then open a green article on the test site and keep
+   reading for about a minute; the panel appears.
+
+- **Costs:** about half a cent per article. G2 is capped at 20 calls a minute and 200,000 tokens a
+  day, and the dev account has a 100 USD monthly budget with a hard stop (infra README).
+- **Data is kept:** after `docker compose down` and `up`, the classifications and the approved
+  links are still there, and no new calls are made for them. `down -v` starts over.
+- **When the login expires:** run `aws sso login` again and `docker compose restart g2`.
+  Articles that failed meanwhile are retried every 5 minutes.
+- On Windows, if `~/.aws` isn't found, also set `AWS_CONFIG_DIR=C:/Users/<you>/.aws` in `.env`.
 
 **CI.** Each part has its own workflow in `.github/workflows/`: `rainmaker-ci.yml` builds and tests
 `services/`, the apps G1–G3 and `widget/` (#156), `mission-control-ci.yml` Mission Control and `infra/`,
