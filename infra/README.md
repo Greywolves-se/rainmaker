@@ -221,6 +221,8 @@ aws sso login --profile rainmaker-dev   # each day; opens the browser
 ```
 
 Set `AWS_PROFILE=rainmaker-dev` (or pass the profile to the SDK); the AWS SDK picks up the login.
+`docs/aws-config-example` has this profile, commented out until the stack is deployed. Until then
+the team logs in with `rainmaker-dev-admin` (AdministratorAccess, group Rainmaker-Dev).
 
 ### Synth, diff and deploy for dev
 

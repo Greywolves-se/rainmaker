@@ -100,11 +100,13 @@ Never green by default. Logs carry the article id, version, outcome and tokens, 
 
 ### Running against Bedrock locally
 
-Needs #161 deployed, the permission set `RainmakerBedrockDeveloper`, and Bedrock quota:
+Needs an AWS login to rainmaker-dev, with the profiles in `docs/aws-config-example` (root README,
+"Claude on Bedrock"). Use `rainmaker-dev-admin` until the narrow `RainmakerBedrockDeveloper` role
+(profile `rainmaker-dev`, #161) is deployed:
 
 ```
-aws sso login --profile rainmaker-dev
-AWS_PROFILE=rainmaker-dev RAINMAKER_CLASSIFIER_MODE=bedrock ./mvnw -pl apps/g2-content-app spring-boot:run
+aws sso login --profile rainmaker-dev-admin
+AWS_PROFILE=rainmaker-dev-admin RAINMAKER_CLASSIFIER_MODE=bedrock ./mvnw -pl apps/g2-content-app spring-boot:run
 ```
 
 Tests never call Bedrock: they use the fake classifier or a stubbed SDK client (CLAUDE.md).

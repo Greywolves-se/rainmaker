@@ -1,0 +1,25 @@
+# AWS profiles for Rainmaker (#276). Copy into ~/.aws/config, or merge with what you have there.
+# No keys or passwords: you log in through IAM Identity Center in the browser with
+#   aws sso login --profile rainmaker-dev-admin
+# Account ids and the start URL are not secrets. How to use it: README.md, "Claude on Bedrock".
+
+[sso-session greywolves]
+sso_start_url = https://d-c3676f657e.awsapps.com/start
+sso_region = eu-north-1
+sso_registration_scopes = sso:account:access
+
+# AdministratorAccess in rainmaker-dev, through the Identity Center group Rainmaker-Dev.
+# For G2 with Claude (AWS_PROFILE=rainmaker-dev-admin in .env), deploys and the infra README's commands.
+[profile rainmaker-dev-admin]
+sso_session = greywolves
+sso_account_id = 034220091974
+sso_role_name = AdministratorAccess
+region = eu-north-1
+
+# Later: the narrow developer role, which may only call Claude in Bedrock (RainmakerBedrockDeveloper,
+# stack DeveloperAccess-dev, #161). Not deployed yet; use it for G2 instead once it is assigned.
+# [profile rainmaker-dev]
+# sso_session = greywolves
+# sso_account_id = 034220091974
+# sso_role_name = RainmakerBedrockDeveloper
+# region = eu-north-1
