@@ -21,7 +21,9 @@ for each item:
 
 **Reading the articles back (#202):** `api.LatestArticles` gives the latest version of each article,
 the most recently stored first or by URL, without the body text (`ingestion/JdbcLatestArticles`). G2's
-articles API (contract 7.1) uses it. `api.LatestArticleTexts` gives the latest version of a list of
+articles API (contract 7.1) uses it. "Most recent" walks the index `article_version_recent`
+(`V3`) newest first and stops after the count, so G3's poll of 100 articles reads about 100 rows
+however large the archive grows (#232). `api.LatestArticleTexts` gives the latest version of a list of
 articles with the body text, as `ArticleStored` announced it, so content-intent can classify an
 article again (#223). That text stays inside G2: never in a REST answer or a log line.
 

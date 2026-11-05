@@ -75,7 +75,7 @@ class ArticlesControllerTest {
               "Praktiska råd om badrumsrenovering; tydlig köpavsikt, inget känsligt.",
               "Practical advice on renovating a bathroom; clear buying intent, nothing"
                   + " sensitive."),
-          "claude-haiku-5-5",
+          "claude-haiku-4-5",
           Instant.parse("2026-10-30T09:15:04Z"));
   private static final Suggestion SUGGESTION =
       new Suggestion(

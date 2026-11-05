@@ -63,7 +63,7 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 |---|---|---|
 | `mode` | `fake` (`RAINMAKER_CLASSIFIER_MODE`) | `fake` needs no AWS; `bedrock` calls Claude |
 | `region` | `eu-north-1` | Where Bedrock is called |
-| `model-id` | `eu.anthropic.claude-haiku-5-5` (`RAINMAKER_CLASSIFIER_MODEL_ID`) | The EU inference profile the G2 role may call (#161) |
+| `model-id` | `eu.anthropic.claude-haiku-4-5-20251001-v1:0` (`RAINMAKER_CLASSIFIER_MODEL_ID`) | The EU inference profile the G2 role may call (#161) |
 | `max-tokens` | `400` | Most tokens per answer; the answer is a short JSON |
 | `max-text-chars` | `20000` | Longer article texts are cut before sending, so one call can't use a large share of the daily cap |
 | `timeout` | `20s` | One call, including the answer |

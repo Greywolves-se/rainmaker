@@ -57,7 +57,7 @@ class ClassificationRetryTest {
   /** Long before the retry interval: due for a retry. */
   private static final Instant LONG_AGO = Instant.parse("2026-01-01T00:00:00Z");
 
-  private static final String MODEL = "eu.anthropic.claude-haiku-5-5";
+  private static final String MODEL = "eu.anthropic.claude-haiku-4-5-20251001-v1:0";
 
   @DynamicPropertySource
   static void settings(DynamicPropertyRegistry registry) {

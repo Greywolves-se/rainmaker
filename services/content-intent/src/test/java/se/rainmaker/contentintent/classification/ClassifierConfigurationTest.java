@@ -24,7 +24,7 @@ class ClassifierConfigurationTest {
           .withUserConfiguration(ClassifierConfiguration.class)
           .withPropertyValues(
               PREFIX + "region=eu-north-1",
-              PREFIX + "model-id=eu.anthropic.claude-haiku-5-5",
+              PREFIX + "model-id=eu.anthropic.claude-haiku-4-5-20251001-v1:0",
               PREFIX + "max-tokens=400",
               PREFIX + "max-text-chars=20000",
               PREFIX + "timeout=20s",

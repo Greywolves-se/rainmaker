@@ -56,6 +56,18 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>bedrockruntime</artifactId>
     </dependency>
+    <!-- Let the SDK read a developer's SSO login (AWS_PROFILE in Bedrock mode); without them every
+         classification fails before any call (#266). Not needed for the task role in AWS. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sso</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>ssooidc</artifactId>
+      <scope>runtime</scope>
+    </dependency>
     <!-- Retries with back-off for the Bedrock call (CLAUDE.md, "Architecture rules"); already
          managed in the root POM and used by the collector. -->
     <dependency>

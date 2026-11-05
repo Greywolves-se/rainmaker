@@ -30,6 +30,24 @@ class JdbcLatestArticles implements LatestArticles, LatestArticleTexts {
       updated_at, correlation_id
       """;
 
+  /**
+   * The latest version of each article, the most recently stored first. The article id breaks a tie
+   * in stored_at (UUIDv7, so the newer article wins). It walks the index {@code
+   * article_version_recent} newest first, skips a version that a newer one of the same article has
+   * replaced (the primary key answers that), and stops after {@code count}: the rows read grow with
+   * the count, not with the number of articles (#232). Package-private for the test of its plan.
+   */
+  static final String RECENT =
+      """
+      SELECT %s FROM article_version current
+      WHERE NOT EXISTS (
+          SELECT 1 FROM article_version newer
+          WHERE newer.article_id = current.article_id AND newer.version > current.version)
+      ORDER BY stored_at DESC, article_id DESC
+      LIMIT :count
+      """
+          .formatted(COLUMNS);
+
   private final JdbcClient database;
 
   JdbcLatestArticles(
@@ -42,21 +60,7 @@ class JdbcLatestArticles implements LatestArticles, LatestArticleTexts {
     if (count < 1) {
       throw new IllegalArgumentException("count must be at least 1: " + count);
     }
-    // The latest version per article first, then the most recently stored of those. The article
-    // id breaks a tie in stored_at (UUIDv7, so the newer article wins).
-    return database
-        .sql(
-            """
-            SELECT %s FROM (
-                SELECT DISTINCT ON (article_id) * FROM article_version
-                ORDER BY article_id, version DESC) latest
-            ORDER BY stored_at DESC, article_id DESC
-            LIMIT :count
-            """
-                .formatted(COLUMNS))
-        .param("count", count)
-        .query(JdbcLatestArticles::article)
-        .list();
+    return database.sql(RECENT).param("count", count).query(JdbcLatestArticles::article).list();
   }
 
   @Override

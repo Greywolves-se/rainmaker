@@ -44,9 +44,10 @@ services:
       BASE_URL: http://localhost:3000
       # The browser loads the widget from G1 (contract D-7).
       RAINMAKER_SCRIPT_URL: ${RAINMAKER_SCRIPT_URL:-http://localhost:8081/widget/rainmaker.js}
-      # Seconds of active reading before the widget shows the next step; empty = its default
-      # (60 s). The end-to-end test (#154) shortens it.
-      RAINMAKER_QUALIFIED_READING_SECONDS: ${RAINMAKER_QUALIFIED_READING_SECONDS:-}
+      # Seconds of active reading before the widget shows the next step. 10 s for the demo, a
+      # temporary value (#272); the widget's own default is 60 s. The end-to-end test (#154)
+      # sets its own value in .env.
+      RAINMAKER_QUALIFIED_READING_SECONDS: ${RAINMAKER_QUALIFIED_READING_SECONDS:-10}
 
   # G1 Reader & clicks: serves rainmaker.js and the widget API, stores clicks.
   g1:
