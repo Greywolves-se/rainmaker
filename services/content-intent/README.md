@@ -96,6 +96,14 @@ Classifies each article with Claude on Amazon Bedrock: topics, brand-safety zone
 
 Never green by default. Logs carry the article id, version, outcome and tokens, never the text.
 
+**What a failed call's log line says (#273):** besides the outcome and the exception's class
+(`error`), an error raised in G2 itself (credentials, settings, network: `SdkClientException`)
+carries the SDK's message as `error_detail`, at most 2 000 characters; that's where a login or
+classpath problem like #266 shows. An error AWS answered with (access denied, validation,
+throttling: `AwsServiceException`) carries `aws_error_code` and `aws_request_id` (what AWS Support
+asks for), never its message: an access-denied message names the caller's role session, which for
+an SSO login is the developer, and a validation message may quote the request.
+
 ### Running against Bedrock locally
 
 Needs #161 deployed, the permission set `RainmakerBedrockDeveloper`, and Bedrock quota:

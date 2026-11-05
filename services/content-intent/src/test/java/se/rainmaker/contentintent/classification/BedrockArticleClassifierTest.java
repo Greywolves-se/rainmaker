@@ -25,6 +25,7 @@ import se.rainmaker.contentintent.api.Classification;
 import se.rainmaker.contentintent.api.ClassificationStatus;
 import se.rainmaker.contentintent.api.Topic;
 import se.rainmaker.contentintent.api.Zone;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.core.exception.ApiCallAttemptTimeoutException;
 import software.amazon.awssdk.core.exception.ApiCallTimeoutException;
@@ -338,6 +339,80 @@ class BedrockArticleClassifierTest {
     ArgumentCaptor<ConverseRequest> sent = ArgumentCaptor.forClass(ConverseRequest.class);
     verify(client).converse(sent.capture());
     return sent.getValue().messages().get(0).content().get(0).text();
+  }
+
+  /**
+   * #273: the SDK's own message says what is wrong with the login or settings. For #266 it was the
+   * missing SSO module, and the log didn't show it.
+   */
+  @Test
+  void logsWhatWentWrongForClientError(CapturedOutput output) {
+    String cause =
+        "To use Sso related properties in the 'rainmaker-dev' profile, the 'sso' service module"
+            + " must be on the class path.";
+    when(client.converse(any(ConverseRequest.class)))
+        .thenThrow(SdkClientException.builder().message(cause).build());
+
+    classifier().classify(ARTICLE);
+
+    assertThat(output).contains("error_detail=").contains(cause);
+  }
+
+  /** #273: a long credentials-chain message is kept, but cut, so one line can't flood the log. */
+  @Test
+  void cutsLongClientErrorMessage(CapturedOutput output) {
+    when(client.converse(any(ConverseRequest.class)))
+        .thenThrow(SdkClientException.builder().message("x".repeat(3000)).build());
+
+    classifier().classify(ARTICLE);
+
+    assertThat(output).contains("x".repeat(2000)).doesNotContain("x".repeat(2001));
+  }
+
+  /**
+   * #273: an error AWS answered with is logged by its code and request id, never its message: an
+   * access-denied message names the caller's role session, which for an SSO login is the developer.
+   */
+  @Test
+  void logsCodeAndRequestIdButNotTheMessageOfServiceError(CapturedOutput output) {
+    when(client.converse(any(ConverseRequest.class)))
+        .thenThrow(
+            AccessDeniedException.builder()
+                .message(
+                    "User: arn:aws:sts::111111111111:assumed-role/AWSReservedSSO_Dev_0a1b2c/"
+                        + "developer@example.com is not authorized to perform:"
+                        + " bedrock:InvokeModel")
+                .requestId("7f3c9a1e-request")
+                .awsErrorDetails(
+                    AwsErrorDetails.builder().errorCode("AccessDeniedException").build())
+                .build());
+
+    classifier().classify(ARTICLE);
+
+    assertThat(output)
+        .contains("aws_error_code=\"AccessDeniedException\"")
+        .contains("aws_request_id=\"7f3c9a1e-request\"")
+        .doesNotContain("developer@example.com")
+        .doesNotContain("is not authorized");
+  }
+
+  /**
+   * #273: whatever AWS's message says about the request, the article's text never reaches a log.
+   */
+  @Test
+  void neverLogsTheArticleFromServiceError(CapturedOutput output) {
+    when(client.converse(any(ConverseRequest.class)))
+        .thenThrow(
+            ValidationException.builder()
+                .message("Invalid input: " + ARTICLE.text())
+                .awsErrorDetails(AwsErrorDetails.builder().errorCode("ValidationException").build())
+                .build());
+
+    classifier().classify(ARTICLE);
+
+    assertThat(output)
+        .contains("aws_error_code=\"ValidationException\"")
+        .doesNotContain(ARTICLE.text());
   }
 
   @Test
