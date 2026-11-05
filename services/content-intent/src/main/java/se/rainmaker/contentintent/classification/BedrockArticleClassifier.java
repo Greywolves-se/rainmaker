@@ -14,9 +14,11 @@ import java.time.Clock;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.spi.LoggingEventBuilder;
 import se.rainmaker.contentintent.api.ArticleClassifier;
 import se.rainmaker.contentintent.api.ArticleToClassify;
 import se.rainmaker.contentintent.api.Classification;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.ApiCallAttemptTimeoutException;
 import software.amazon.awssdk.core.exception.ApiCallTimeoutException;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -80,6 +82,9 @@ public class BedrockArticleClassifier implements ArticleClassifier {
 
   /** Each wait is randomly up to 50 % shorter or longer than the exponential value. */
   private static final double BACKOFF_JITTER = 0.5;
+
+  /** The longest client-error message logged; a credentials chain can explain itself at length. */
+  private static final int MAX_ERROR_DETAIL = 2000;
 
   private final BedrockRuntimeClient client;
   private final ClassifierProperties settings;
@@ -291,12 +296,38 @@ public class BedrockArticleClassifier implements ArticleClassifier {
       message = "Bedrock call failed; classification stored as failed";
       needsPerson = false;
     }
-    (needsPerson ? LOG.atError() : LOG.atWarn())
-        .addKeyValue("article_id", article.articleId())
-        .addKeyValue("article_version", article.version())
-        .addKeyValue("outcome", outcome)
-        .addKeyValue("error", error.getClass().getSimpleName())
-        .log(message);
+    LoggingEventBuilder line =
+        (needsPerson ? LOG.atError() : LOG.atWarn())
+            .addKeyValue("article_id", article.articleId())
+            .addKeyValue("article_version", article.version())
+            .addKeyValue("outcome", outcome)
+            .addKeyValue("error", error.getClass().getSimpleName());
+    whatWentWrong(line, error).log(message);
+  }
+
+  /**
+   * What went wrong, without personal data or the article (#273). An error AWS answered with is
+   * logged by its code and request id, never its message: an access-denied message names the
+   * caller's role session (for an SSO login, the developer), and a validation message may quote the
+   * request. An error raised here, before or instead of a call (credentials, settings, network), is
+   * logged with the SDK's message, which is built from local settings and never holds the article.
+   */
+  private static LoggingEventBuilder whatWentWrong(LoggingEventBuilder line, SdkException error) {
+    if (error instanceof AwsServiceException fromAws) {
+      if (fromAws.awsErrorDetails() != null) {
+        line = line.addKeyValue("aws_error_code", fromAws.awsErrorDetails().errorCode());
+      }
+      return fromAws.requestId() == null
+          ? line
+          : line.addKeyValue("aws_request_id", fromAws.requestId());
+    }
+    String detail = error.getMessage();
+    if (detail == null) {
+      return line;
+    }
+    return line.addKeyValue(
+        "error_detail",
+        detail.length() > MAX_ERROR_DETAIL ? detail.substring(0, MAX_ERROR_DETAIL) : detail);
   }
 
   private void log(ArticleToClassify article, String outcome, long tokens) {
