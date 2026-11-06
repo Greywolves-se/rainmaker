@@ -8,6 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Timer;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -17,11 +21,15 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
@@ -35,6 +43,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.MountableFile;
 import se.rainmaker.trackingclick.api.ClickLinks;
 import se.rainmaker.trackingclick.database.TrackingClickDatabaseConfiguration;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The app starts against a real PostgreSQL set up exactly like the local one (#155), and serves
@@ -45,6 +55,7 @@ import se.rainmaker.trackingclick.database.TrackingClickDatabaseConfiguration;
 @ActiveProfiles("local")
 @AutoConfigureMockMvc
 @Testcontainers
+@ExtendWith(OutputCaptureExtension.class)
 class G1ReaderApplicationTest {
 
   /** The same script docker-compose.yml runs: one database and one login per module. */
@@ -54,6 +65,11 @@ class G1ReaderApplicationTest {
 
   private static final String WIDGET_API = "/widget/v1/links";
   private static final String ARTICLE = "http://localhost:3000/artikel/badrumsrenovering";
+
+  private static final JsonMapper JSON = JsonMapper.builder().build();
+
+  private static final String UUID_PATTERN =
+      "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
   @Container
   static final PostgreSQLContainer POSTGRES =
@@ -99,6 +115,8 @@ class G1ReaderApplicationTest {
   @Autowired private MockMvc mockMvc;
 
   @Autowired private ClickLinks clickLinks;
+
+  @Autowired private MeterRegistry meters;
 
   @Test
   void startsOnItsOwnPort() {
@@ -155,6 +173,91 @@ class G1ReaderApplicationTest {
                 .query(Long.class)
                 .single())
         .isZero();
+  }
+
+  /** RED per endpoint (#193): each route counts requests, errors (by status class) and time. */
+  @Test
+  void recordsRequestsErrorsAndDurationPerRoute() throws Exception {
+    mockMvc.perform(get(URI.create(newClickLink()).getPath())).andExpect(status().isFound());
+    mockMvc.perform(get("/c/not-a-click-link")).andExpect(status().isBadRequest());
+    mockMvc
+        .perform(get(WIDGET_API).param("url", ARTICLE))
+        .andExpect(status().isServiceUnavailable());
+    mockMvc.perform(get("/widget/rainmaker.js")).andExpect(status().isOk());
+
+    assertThat(requests("/c/{token}", "REDIRECTION").count()).isPositive();
+    assertThat(requests("/c/{token}", "CLIENT_ERROR").count()).isPositive();
+    assertThat(requests(WIDGET_API, "SERVER_ERROR").count()).isPositive();
+    assertThat(requests("/widget/rainmaker.js", "SUCCESS").totalTime(TimeUnit.NANOSECONDS))
+        .isPositive();
+  }
+
+  /** CLAUDE.md: never a click id, token, URL or user id as a metric label. */
+  @Test
+  void metricLabelsAreRoutesAndFixedValuesNeverIdsOrAddresses() throws Exception {
+    String link = newClickLink();
+    final String token = link.substring(link.lastIndexOf('/') + 1);
+    mockMvc.perform(get(URI.create(link).getPath())).andExpect(status().isFound());
+    mockMvc
+        .perform(get(WIDGET_API).param("url", ARTICLE))
+        .andExpect(status().isServiceUnavailable());
+
+    List<Meter> ours =
+        meters.getMeters().stream()
+            .filter(
+                meter ->
+                    meter.getId().getName().startsWith("http.server.requests")
+                        || meter.getId().getName().startsWith("rainmaker."))
+            .toList();
+    assertThat(ours).isNotEmpty();
+    for (Meter meter : ours) {
+      for (Tag tag : meter.getId().getTags()) {
+        assertThat(tag.getValue())
+            .as("%s{%s}", meter.getId().getName(), tag.getKey())
+            .doesNotContain(token)
+            .doesNotContain("://")
+            .doesNotContainPattern(UUID_PATTERN);
+      }
+    }
+    assertThat(meters.get("http.server.requests").meters())
+        .allSatisfy(
+            meter ->
+                assertThat(meter.getId().getTags())
+                    .extracting(Tag::getKey)
+                    .isSubsetOf(MetricsConfiguration.REQUEST_LABELS));
+  }
+
+  /** CLAUDE.md: structured JSON with trace_id, and a click's clickId as its correlation_id. */
+  @Test
+  void logsClickAsJsonWithTraceIdAndClickIdAsCorrelationId(CapturedOutput output) throws Exception {
+    mockMvc.perform(get(URI.create(newClickLink()).getPath())).andExpect(status().isFound());
+
+    JsonNode line =
+        output
+            .getOut()
+            .lines()
+            .filter(text -> text.startsWith("{") && text.contains("Click stored"))
+            .map(JSON::readTree)
+            .reduce((first, second) -> second)
+            .orElseThrow();
+    String clickId = line.get("message").asString().replaceAll(".*clickId=([^,]+),.*", "$1");
+    assertThat(line.get("correlation_id").asString()).isEqualTo(clickId);
+    assertThat(line.get("trace_id").asString()).matches("[0-9a-f]{32}");
+  }
+
+  /** Metrics and health live on the management port, never on the readers' port (#193). */
+  @Test
+  void metricsAreNotOnTheReadersPort() throws Exception {
+    mockMvc.perform(get("/actuator/prometheus")).andExpect(status().isNotFound());
+    mockMvc.perform(get("/actuator/health")).andExpect(status().isNotFound());
+  }
+
+  private String newClickLink() {
+    return clickLinks.create(UUID.randomUUID(), UUID.randomUUID(), "http://localhost:8083/x");
+  }
+
+  private Timer requests(String route, String outcome) {
+    return meters.get("http.server.requests").tag("uri", route).tag("outcome", outcome).timer();
   }
 
   @Test

@@ -59,6 +59,8 @@ services:
         APP: g1-reader-app
     ports:
       - "127.0.0.1:8081:8081"
+      # Metrics and health (#193), on this machine only.
+      - "127.0.0.1:9081:9081"
     environment:
       RAINMAKER_DB_HOST: postgres
       # Click links point at http://localhost:8081 and are signed with a random key for each run

@@ -38,6 +38,10 @@ The click redirect: stores each click once and sends the reader to the offer.
   - the pages' text is in `tracking-click/messages*.properties`: Swedish, or English when the
     browser asks for it;
   - the log has the click, article and offer ids, never the reader's IP or the token.
+- **Metrics and logs** (#193): `click/ClickCounters` counts every opened link as
+  `rainmaker.clicks{result=stored|already_stored|invalid|expired|not_stored|looked_at}`. A valid
+  link's log lines, the "not stored" error too, carry its `clickId` as `correlation_id`. G1's
+  README lists every metric and the first alerts.
 - **Stored clicks** (#153 part 2, contract 3.6): `click/ClickStore` writes one row per click id to
   the `click` table (`V2__click.sql`): click id, article, offer and time; no IP, cookie or user id.
   - The click id is the primary key and the insert is `ON CONFLICT DO NOTHING`, so a double-click,

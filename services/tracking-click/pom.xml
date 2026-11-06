@@ -24,6 +24,11 @@
 
   <!-- Its own PostgreSQL database with Flyway migrations (#155, architecture D16). -->
   <dependencies>
+    <!-- Counters for G1's metrics (#193); the registry and its export come from the app. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+    </dependency>
     <!-- Connection pool (HikariCP), JdbcClient and transactions. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

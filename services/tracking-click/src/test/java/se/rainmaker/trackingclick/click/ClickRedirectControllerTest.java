@@ -13,15 +13,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.MDC;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -46,6 +50,7 @@ class ClickRedirectControllerTest {
   private SignedClickLinks links;
   private ClickStore clicks;
   private MockMvc mockMvc;
+  private SimpleMeterRegistry meters;
 
   @BeforeEach
   void setUp() {
@@ -58,7 +63,11 @@ class ClickRedirectControllerTest {
             clock,
             new UuidV7(clock, new SecureRandom()));
     clicks = mock(ClickStore.class);
-    mockMvc = MockMvcBuilders.standaloneSetup(new ClickRedirectController(links, clicks)).build();
+    meters = new SimpleMeterRegistry();
+    mockMvc =
+        MockMvcBuilders.standaloneSetup(
+                new ClickRedirectController(links, clicks, new ClickCounters(meters)))
+            .build();
   }
 
   @Test
@@ -167,6 +176,52 @@ class ClickRedirectControllerTest {
         .andExpect(header().doesNotExist(HttpHeaders.LOCATION));
 
     verifyNoInteractions(clicks);
+  }
+
+  /** Every result has its counter from the start, so a dashboard shows 0, not "no data" (#193). */
+  @Test
+  void countsEachKindOfClick() throws Exception {
+    assertThat(meters.find(ClickCounters.NAME).counters()).hasSize(6);
+    when(clicks.record(any())).thenReturn(true, false);
+    mockMvc.perform(opening(newLink())).andExpect(status().isFound());
+    mockMvc.perform(opening(newLink())).andExpect(status().isFound());
+    mockMvc.perform(get("/c/not-a-click-link")).andExpect(status().isBadRequest());
+    mockMvc.perform(looking(newLink())).andExpect(status().isFound());
+    String expired = newLink();
+    clock.advance(LIFETIME);
+    mockMvc.perform(opening(expired)).andExpect(status().isGone());
+    when(clicks.record(any())).thenThrow(new DataAccessResourceFailureException("database down"));
+    mockMvc.perform(opening(newLink())).andExpect(status().isServiceUnavailable());
+
+    assertThat(clicksWith("stored")).isEqualTo(1);
+    assertThat(clicksWith("already_stored")).isEqualTo(1);
+    assertThat(clicksWith("invalid")).isEqualTo(1);
+    assertThat(clicksWith("expired")).isEqualTo(1);
+    assertThat(clicksWith("not_stored")).isEqualTo(1);
+    assertThat(clicksWith("looked_at")).isEqualTo(1);
+  }
+
+  /** A click's log lines carry its click id as the correlation id (#193, contract section 3). */
+  @Test
+  void logsTheClickWithItsClickIdAsCorrelationId() throws Exception {
+    List<String> seen = new ArrayList<>();
+    when(clicks.record(any()))
+        .thenAnswer(
+            call -> {
+              ClickLink stored = call.getArgument(0);
+              seen.add(stored.clickId().toString());
+              seen.add(MDC.get("correlation_id"));
+              return true;
+            });
+
+    mockMvc.perform(opening(newLink())).andExpect(status().isFound());
+
+    assertThat(seen.get(1)).isEqualTo(seen.get(0));
+    assertThat(MDC.get("correlation_id")).isNull();
+  }
+
+  private double clicksWith(String result) {
+    return meters.get(ClickCounters.NAME).tag("result", result).counter().count();
   }
 
   @Test

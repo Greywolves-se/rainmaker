@@ -36,3 +36,49 @@ Serves rainmaker.js its links and handles clicks. The hot path: it must stay fas
   builds, and the root POM and the services have no main class.
 - **Talks to the other apps** only through REST queries (#145). Services never depend on apps,
   and other code may only use a service's `api` package; `ModuleBoundaryTest` enforces both.
+
+## Logs and metrics (#193)
+
+The pattern agreed on #193 for every Rainmaker app (#188 copies it for G3).
+
+- **Logs:** one JSON object per line (Spring Boot's structured logging, ECS,
+  `logging.structured.format.console=ecs`), with:
+  - `trace_id` and `span_id`: a new trace per request (Micrometer Tracing with the OpenTelemetry
+    bridge; nothing is exported yet). Renamed from `traceId` and `spanId` with
+    `logging.structured.json.rename.*`;
+  - `correlation_id`: a click's `clickId` (contract section 3), or a new id per widget API
+    request, which G1 also sends to G3 as `X-Correlation-Id`.
+
+  Never a reader's IP, a token, or free text from readers.
+- **Metrics and health** on the management port **9081**, never on the readers' 8081:
+  `http://localhost:9081/actuator/prometheus` and `/actuator/health`. Nothing else is exposed.
+  `docker-compose.yml` publishes it on `127.0.0.1` only.
+
+| Metric (Prometheus name) | Labels | What |
+|---|---|---|
+| `http_server_requests_seconds` | `method`, `uri` (route template), `outcome` | RED per endpoint: count, errors (`CLIENT_ERROR` / `SERVER_ERROR`) and time. `MetricsConfiguration` drops every other label |
+| `rainmaker_clicks_total` | `result`: `stored`, `already_stored`, `invalid`, `expired`, `not_stored`, `looked_at` | Click links opened (S2) |
+| `rainmaker_widget_links_total` | `result`: `links`, `empty`, `refused`, `unavailable` | Widget API answers (S1) |
+
+A label is never an id, a token or a URL (CLAUDE.md); `G1ReaderApplicationTest` checks every
+label value of these meters.
+
+### First alerts and their runbook
+
+No dashboard or alert exists yet: there is no AWS for the demo. When the monitoring stack is set
+up with the infrastructure (#61–#63, CloudWatch or a managed Prometheus), these are the first
+alerts, with this section as their runbook link.
+
+- **Clicks not stored:** `increase(rainmaker_clicks_total{result="not_stored"}[5m]) > 0`.
+  Readers see the "try again" page and nothing is redirected (fail closed for money, #192).
+  1. Check S2's database: is PostgreSQL up, and can G1 connect (`/actuator/health`)?
+  2. The log lines `Click not stored, so not redirected` carry the `correlation_id` (the
+     `clickId`) and the database error.
+  3. Nothing is lost: a reader who opens the same link again is stored once, with the same
+     `clickId`.
+- **Widget API failing:** `rainmaker_widget_links_total{result="unavailable"}` over 50 % of the
+  answers for 5 minutes. Readers get no next step (fail open), so it costs revenue, not the page.
+  1. Check G3 and its approved links API (contract 7.3): is it up, and is G2 up behind it?
+  2. G1's circuit breaker logs one WARN when it opens (`G3 approved links circuit breaker CLOSED
+     to OPEN`) and one when it closes.
+  3. A rising `refused` instead means requests for addresses outside the publisher sites (#224).
